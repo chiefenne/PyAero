@@ -160,7 +160,7 @@ class Slots:
         cy = center.y() + item.pos().y()
         rf.moveCenter(QtCore.QPointF(cx, cy))
 
-        self.parent.view.fitInView(rf, mode=QtCore.Qt.KeepAspectRatio)
+        self.parent.view.fitInView(rf, aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
         # adjust airfoil marker size to MARKERSIZE setting
         self.parent.view.adjustMarkerSize()
@@ -172,7 +172,7 @@ class Slots:
     def onViewAll(self):
         # calculates and returns the bounding rect of all items on the scene
         rectf = self.parent.scene.itemsBoundingRect()
-        self.parent.view.fitInView(rectf, mode=QtCore.Qt.KeepAspectRatio)
+        self.parent.view.fitInView(rectf, aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
         # adjust airfoil marker size to MARKERSIZE setting
         self.parent.view.adjustMarkerSize()

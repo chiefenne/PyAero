@@ -108,7 +108,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
         # scrollbars need to be switched off when calling fitinview from
         # within resize event otherwise strange recursion can occur
-        self.fitInView(self.sceneview, mode=QtCore.Qt.KeepAspectRatio)
+        self.fitInView(self.sceneview, aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
     def mousePressEvent(self, event):
         """Re-implement QGraphicsView's mousePressEvent handler"""
@@ -216,7 +216,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
                 # zoom the selected rectangle (works on scene coordinates)
                 # zoom rect must be at least 5% of view width to allow zoom
                 if rect.width() > RUBBERBANDSIZE * self.width():
-                    self.fitInView(rectf, mode=QtCore.Qt.KeepAspectRatio)
+                    self.fitInView(rectf, aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
                 # rescale markers during zoom
                 # i.e. keep them constant size
