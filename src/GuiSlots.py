@@ -327,7 +327,7 @@ class Slots:
     def onTabChanged(self):
         """Sync tabs and toolboxes """
         tab = self.parent.centralwidget.tabs.currentIndex()
-        self.parent.centralwidget.tools.toolBox.setCurrentIndex(tab)
+        self.parent.centralwidget.tools.setCurrentIndex(tab)
 
     # @QtCore.pyqtSlot()
     def onRedo(self):

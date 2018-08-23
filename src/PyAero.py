@@ -201,7 +201,7 @@ class CentralWidget(QtWidgets.QWidget):
 
         # add QToolBox widget to the left pane
         self.tools = ToolBox.Toolbox(self.parent)
-        self.splitter.addWidget(self.tools.toolBox)
+        self.splitter.addWidget(self.tools)
 
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.addTab(self.parent.view, 'Airfoil')

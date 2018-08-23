@@ -44,12 +44,8 @@ class Airfoil:
         self.brushcolor = QtGui.QColor()
         self.brushcolor.setNamedColor('#7c8696')
 
-        # create groups of items that carry contour, markers, etc.
-        self.makeItemGroups()
-
-    def makeItemGroups(self):
-        """Containers that treat a group of items as a single item"""
-
+        # create groups that carry contour, markers, etc.
+        # containers that treat a group of items as a single item
         self.contourGroup = QtWidgets.QGraphicsItemGroup()
         self.markersGroup = QtWidgets.QGraphicsItemGroup()       
         self.polygonMarkersGroup = QtWidgets.QGraphicsItemGroup()

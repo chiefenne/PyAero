@@ -18,7 +18,7 @@ import Connect
 from Settings import ICONS_L, DIALOGFILTER, DIALOGFILTER_MESH, OUTPUTDATA
 
 
-class Toolbox:
+class Toolbox(QtWidgets.QToolBox):
 
     def __init__(self, parent):
         """Main menus for PyAero functionality.
@@ -28,14 +28,13 @@ class Toolbox:
         Args:
             parent (QWidget): MainWindow from PyAero.py
         """
+        super().__init__()
+        
         self.parent = parent
-
-        # create toolbox widget for left side of splitter
-        self.toolBox = QtWidgets.QToolBox()
 
         # set the style
         style = (""" QToolBox::tab:selected {font: bold; } """)
-        self.toolBox.setStyleSheet(style)
+        self.setStyleSheet(style)
 
         # create toolbox items
         self.itemFileSystem()
@@ -47,11 +46,11 @@ class Toolbox:
 
         self.makeToolbox()
 
-        self.toolBox.currentChanged.connect(self.toolboxChanged)
+        self.currentChanged.connect(self.toolboxChanged)
 
     def toolboxChanged(self):
 
-        if self.toolBox.currentIndex() == self.tb4:
+        if self.currentIndex() == self.tb4:
             self.updatePoints()
 
     def updatePoints(self):
@@ -589,34 +588,34 @@ class Toolbox:
     def makeToolbox(self):
 
         # populate toolbox
-        self.tb1 = self.toolBox.addItem(self.item_fs, 'Airfoil Database')
-        self.tb2 = self.toolBox.addItem(self.item_cm,
+        self.tb1 = self.addItem(self.item_fs, 'Airfoil Database')
+        self.tb2 = self.addItem(self.item_cm,
                                         'Contour Splining and Refinement')
-        self.tb4 = self.toolBox.addItem(self.item_msh, 'Meshing')
-        self.tb5 = self.toolBox.addItem(self.item_ap, 'Aerodynamics')
-        self.tb3 = self.toolBox.addItem(self.item_ca, 'Contour Analysis')
-        self.toolBox.setItemEnabled(self.tb3, False)
-        self.tb6 = self.toolBox.addItem(self.item_vo, 'Viewing options')
+        self.tb4 = self.addItem(self.item_msh, 'Meshing')
+        self.tb5 = self.addItem(self.item_ap, 'Aerodynamics')
+        self.tb3 = self.addItem(self.item_ca, 'Contour Analysis')
+        self.setItemEnabled(self.tb3, False)
+        self.tb6 = self.addItem(self.item_vo, 'Viewing options')
 
-        self.toolBox.setItemToolTip(0, 'Airfoil database ' +
+        self.setItemToolTip(0, 'Airfoil database ' +
                                        '(browse filesystem)')
-        self.toolBox.setItemToolTip(1, 'Spline and refine the contour')
-        self.toolBox.setItemToolTip(2, 'Generate a 2D mesh around the ' +
+        self.setItemToolTip(1, 'Spline and refine the contour')
+        self.setItemToolTip(2, 'Generate a 2D mesh around the ' +
                                        'selected airfoil')
-        self.toolBox.setItemToolTip(3, 'Compute panel based aerodynamic ' +
+        self.setItemToolTip(3, 'Compute panel based aerodynamic ' +
                                     'coefficients')
-        self.toolBox.setItemToolTip(4, 'Analyze the curvature of the ' +
+        self.setItemToolTip(4, 'Analyze the curvature of the ' +
                                        'selected airfoil')
 
-        self.toolBox.setItemIcon(0, QtGui.QIcon(ICONS_L + 'airfoil.png'))
-        self.toolBox.setItemIcon(1, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
-        self.toolBox.setItemIcon(2, QtGui.QIcon(ICONS_L + 'mesh.png'))
-        self.toolBox.setItemIcon(3, QtGui.QIcon(ICONS_L + 'Fast delivery.png'))
-        self.toolBox.setItemIcon(4, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
-        self.toolBox.setItemIcon(5, QtGui.QIcon(ICONS_L + 'Configuration.png'))
+        self.setItemIcon(0, QtGui.QIcon(ICONS_L + 'airfoil.png'))
+        self.setItemIcon(1, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
+        self.setItemIcon(2, QtGui.QIcon(ICONS_L + 'mesh.png'))
+        self.setItemIcon(3, QtGui.QIcon(ICONS_L + 'Fast delivery.png'))
+        self.setItemIcon(4, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
+        self.setItemIcon(5, QtGui.QIcon(ICONS_L + 'Configuration.png'))
 
         # preselect airfoil database box
-        self.toolBox.setCurrentIndex(0)
+        self.setCurrentIndex(0)
 
     # @QtCore.pyqtSlot()
     def toggleRawPoints(self):
@@ -876,7 +875,7 @@ class Toolbox:
 
         # switch tab and toolbox to contour analysis
         self.parent.centralwidget.tabs.setCurrentIndex(1)
-        self.toolBox.setCurrentIndex(1)
+        self.setCurrentIndex(1)
 
         # enable radio buttons for plotting when analysis starts
         self.cgb.setEnabled(True)
