@@ -15,11 +15,10 @@ import TrailingEdge
 import Logger as logger
 import Meshing
 import Connect
-from Settings import ICONS_L, DIALOGFILTER, DIALOGFILTER_MESH, OUTPUTDATA, \
-                     AIRFOILDATA
+from Settings import ICONS_L, DIALOGFILTER, DIALOGFILTER_MESH, OUTPUTDATA
 
 
-class Toolbox(object):
+class Toolbox:
 
     def __init__(self, parent):
         """Main menus for PyAero functionality.
@@ -73,9 +72,6 @@ class Toolbox(object):
         # instance of QFileSystemModel
         filesystem_model = FileSystem.FileSystemModel()
         root_path = filesystem_model.rootPath()
-        print('root_path', root_path)
-        rp1 = QtCore.QDir(root_path).path()
-        print('rp1', rp1)
         
         self.tree = QtWidgets.QTreeView()
         self.tree.setModel(filesystem_model)
@@ -678,18 +674,18 @@ class Toolbox(object):
     def spline_and_refine(self):
         """Spline and refine airfoil"""
 
-        print('I am in Spline and Refine, filnally.\n')
+        # print('I am in Spline and Refine, filnally.\n')
 
         if not self.parent.airfoils:
             self.noairfoilWarning('Can\'t do splining and refining')
             return
 
-        print('Number of airfoils %s \n' % len(self.parent.airfoils))
+        # print('Number of airfoils %s \n' % len(self.parent.airfoils))
 
         for airfoil in self.parent.airfoils:
-            print('Before IF\n')
+            # print('Before IF\n')
             if airfoil.contourPolygon.isSelected():
-                print('Inside IF\n')
+                # print('Inside IF\n')
                 id = self.parent.airfoils.index(airfoil)
 
                 refine = SplineRefine.SplineRefine(id)
@@ -1019,7 +1015,7 @@ class ListWidget(QtWidgets.QListWidget):
     events
     """
     def __init__(self, parent):
-        super(ListWidget, self).__init__()
+        super().__init__()
         self.parent = parent
 
         self.itemClicked.connect(self.handleActivated)
@@ -1041,7 +1037,7 @@ class ListWidget(QtWidgets.QListWidget):
                     self.parent.slots.removeAirfoil()
 
         # call original implementation of QListWidget keyPressEvent handler
-        super(ListWidget, self).keyPressEvent(event)
+        super().keyPressEvent(event)
 
     # @QtCore.pyqtSlot() commented here because otherewise
     # "item" is not available

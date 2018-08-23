@@ -104,7 +104,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         """Re-implement QGraphicsView's resizeEvent handler"""
 
         # call original implementation of QGraphicsView resizeEvent handler
-        super(GraphicsView, self).resizeEvent(event)
+        super().resizeEvent(event)
 
         # scrollbars need to be switched off when calling fitinview from
         # within resize event otherwise strange recursion can occur
@@ -118,7 +118,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
             # e.g. for selection
             # on right button click this is not called
             # therefore no deselection happens then
-            super(GraphicsView, self).mousePressEvent(event)
+            super().mousePressEvent(event)
 
         # if a mouse event happens in the graphics view
         # put the keyboard focus to the view as well
@@ -140,7 +140,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
             self._dragPos = event.pos()
 
         # call original implementation of QGraphicsView mousePressEvent handler
-        # super(GraphicsView, self).mousePressEvent(event)
+        # super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         """Re-implement QGraphicsView's mouseMoveEvent handler"""
@@ -188,7 +188,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
                 QtCore.QRect(self.origin, event.pos()).normalized())
 
         # call original implementation of QGraphicsView mouseMoveEvent handler
-        super(GraphicsView, self).mouseMoveEvent(event)
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         """Re-implement QGraphicsView's mouseReleaseEvent handler"""
@@ -198,7 +198,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
         # call original implementation of QGraphicsView
         # mouseReleaseEvent handler
-        super(GraphicsView, self).mouseReleaseEvent(event)
+        super().mouseReleaseEvent(event)
 
         if self.rubberband.isVisible():
 
@@ -244,7 +244,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # DO NOT CONTINUE HANDLING EVENTS HERE!!!
         # this would destroy the mouse anchor
         # call original implementation of QGraphicsView wheelEvent handler
-        # super(GraphicsView, self).wheelEvent(event)
+        # super().wheelEvent(event)
 
     def keyPressEvent(self, event):
         """Re-implement QGraphicsView's keyPressEvent handler"""
@@ -296,13 +296,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # call original implementation of QGraphicsView keyPressEvent handler
         # the call here needs to be at the end of the method so that we can
         # optionally return without calling it; see above
-        super(GraphicsView, self).keyPressEvent(event)
+        super().keyPressEvent(event)
 
     def keyReleaseEvent(self, event):
         """Re-implement QGraphicsView's keyReleaseEvent handler"""
 
         # call original implementation of QGraphicsView keyReleaseEvent handler
-        super(GraphicsView, self).keyReleaseEvent(event)
+        super().keyReleaseEvent(event)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -430,7 +430,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
             self.parent.slots.removeAirfoil()
 
         # continue handling events
-        super(GraphicsView, self).contextMenuEvent(event)
+        super().contextMenuEvent(event)
 
 
 class RubberBand(QtWidgets.QRubberBand):
@@ -440,7 +440,7 @@ class RubberBand(QtWidgets.QRubberBand):
 
     def __init__(self, *args, **kwargs):
 
-        super(RubberBand, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.view = args[1]
 

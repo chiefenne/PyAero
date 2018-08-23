@@ -13,7 +13,7 @@ class IconProvider(QtWidgets.QFileIconProvider):
     # call constructor of IconProvider
     def __init__(self):
         # call constructor of QFileIconProvider
-        super(IconProvider, self).__init__()
+        super().__init__()
 
     # overwrite icon method of QFileIconProvider
     def icon(self, icontype):
@@ -28,4 +28,4 @@ class IconProvider(QtWidgets.QFileIconProvider):
         if icontype == QtGui.QFileIconProvider.File:
             return QtGui.QIcon(ICONS_L + 'Fast delivery.png')
 
-        return super(IconProvider, self).icon(icontype)
+        return super().icon(icontype)

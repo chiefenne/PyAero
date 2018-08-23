@@ -22,6 +22,7 @@ class FileSystemModel(QtWidgets.QFileSystemModel):
         # get MainWindow instance (overcomes handling parents)
         self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
 
+        # set path for FileSytemModel to location of airfoil data
         path = os.path.abspath(AIRFOILDATA)
         self.setRootPath(path)
 
@@ -69,5 +70,5 @@ class FileSystemModel(QtWidgets.QFileSystemModel):
         name = fileInfo.fileName()
         ext = fileInfo.suffix()
         fullname = fileInfo.absoluteFilePath()
-        print('FileInfo', [name, path, fullname, ext, fileInfo])
+        # print('FileInfo', [name, path, fullname, ext, fileInfo])
         return [name, path, fullname, ext, fileInfo]

@@ -186,7 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.slots.onViewAll()
         else:
             # progress event
-            super(MainWindow, self).keyPressEvent(event)
+            super().keyPressEvent(event)
 
 
 class CentralWidget(QtWidgets.QWidget):

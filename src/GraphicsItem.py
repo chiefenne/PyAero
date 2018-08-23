@@ -91,17 +91,17 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         self.setSelected(True)
 
         # handle event
-        super(GraphicsItem, self).mousePressEvent(event)
+        super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         # handle event
-        super(GraphicsItem, self).mouseReleaseEvent(event)
+        super().mouseReleaseEvent(event)
 
     def mouseMoveEvent(self, event):
 
         # handle event
-        super(GraphicsItem, self).mouseMoveEvent(event)
+        super().mouseMoveEvent(event)
 
     def shape(self):
         # this function may be overwritten when subclassing QGraphicsItem
@@ -186,9 +186,9 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         if not self.isSelected():
             self.pen.setWidthF(self.penwidth + self.hoverwidth)
         # handle event
-        super(GraphicsItem, self).hoverEnterEvent(event)
+        super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
         self.pen.setWidthF(self.penwidth)
         # handle event
-        super(GraphicsItem, self).hoverLeaveEvent(event)
+        super().hoverLeaveEvent(event)

@@ -77,7 +77,7 @@ class VtkWindow(QtWidgets.QFrame):
     are wireframe.
     """
     def __init__(self, parent=None):
-        super(VtkWindow, self).__init__(parent)
+        super().__init__(parent)
 
         self.parent = parent
 

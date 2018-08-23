@@ -25,7 +25,7 @@ class ContourAnalysis(QtWidgets.QFrame):
         toolbar (TYPE): Description
     """
     def __init__(self, parent, canvas=False):
-        super(ContourAnalysis, self).__init__(parent)
+        super().__init__(parent)
 
         self.parent = parent
         self.spline_data = None

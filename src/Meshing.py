@@ -10,10 +10,9 @@ from Settings import OUTPUTDATA
 import Logger as logger
 
 
-class Windtunnel(object):
+class Windtunnel:
     """docstring for Windtunnel"""
     def __init__(self):
-        super(Windtunnel, self).__init__()
 
         self.blocks = []
 

@@ -4,10 +4,9 @@ import scipy.spatial as ssp
 from PySide2 import QtGui, QtCore
 
 
-class Connect(object):
-    """docstring for Export"""
+class Connect:
+    """docstring"""
     def __init__(self):
-        super(Connect, self).__init__()
 
         # get MainWindow instance (overcomes handling parents)
         self.mainwindow = QtCore.QCoreApplication.instance().mainwindow

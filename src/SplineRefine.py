@@ -20,7 +20,7 @@ class SplineRefine(object):
     def doSplineRefine(self, tolerance=172.0, points=150, ref_te=3,
                        ref_te_n=6, ref_te_ratio=3.0):
 
-        print('Arrived in doSplineRefine\n')
+        # print('Arrived in doSplineRefine\n')
 
         # get raw coordinates
         x, y = self.mainwindow.airfoils[self.id].raw_coordinates
@@ -50,9 +50,9 @@ class SplineRefine(object):
 
         # add splined and refined contour to the airfoil contourGroup
         for airfoil in self.mainwindow.airfoils:
-            print('Copy back spline points')
+            # print('Copy back spline points')
             if airfoil.contourPolygon.isSelected():
-                print('Copy back spline points inside IF')
+                # print('Copy back spline points inside IF')
                 airfoil.addContourSpline(self.spline_data[0])
                 airfoil.addSplineMarkers()
                 airfoil.contourSpline.brush.setStyle(

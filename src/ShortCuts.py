@@ -1,12 +1,12 @@
 
 from PySide2 import QtGui, QtCore, QtWidgets
 
-class ShortCuts(object):
+class ShortCuts:
     """docstring for ClassName """
     def __init__(self, parent):
         if not isinstance(parent, QtWidgets.QMainWindow):
             raise TypeError('parent must be a MainWindow')
-        super(ShortCuts, self).__init__()
+
         self.parent = parent
 
     def addShortcut(self, shortcut, slot):

@@ -17,7 +17,7 @@ from Settings import DIALOGFILTER, AIRFOILDATA, LOGCOLOR, DEFAULT_CONTOUR, \
 logger = logging.getLogger(__name__)
 
 
-class Slots(object):
+class Slots:
     """This class handles all callback routines for GUI actions
 
     PyQt uses signals and slots for GUI events and their respective
@@ -28,7 +28,7 @@ class Slots(object):
         """Constructor for Slots class
 
         Args:
-            parent (QMainWindow object): MainWindow which emits signals
+            parent (QMainWindow object): MainWindow instance
         """
         self.parent = parent
 
