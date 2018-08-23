@@ -23,7 +23,7 @@ import datetime
 
 from PySide2 import QtGui, QtCore, QtWidgets
 
-import MenusTools as GUI
+import MenusTools
 import GraphicsView
 import GraphicsScene
 import GuiSlots
@@ -117,7 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # add a shortcut for toggling the message window
         sc = ShortCuts.ShortCuts(self)
-        sc.addShortcut('ALT+m', 'toggleLogDock')
+        sc.addShortcut('ALT+m', 'toggleLogDock', 'shortcut')
 
         # setup user interface and menus
         self.init_GUI()
@@ -125,7 +125,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # prepare logger so that it logs to
         # dock message window using HTML strings
         Logger.log()
-
 
         # toggle for graphics test items (CTRL+t)
         self.testitems = False
@@ -138,12 +137,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(__appname__ +
                             ' - Airfoil Contour Analysis and CFD Meshing')
 
-        # create widgets of main window
-        gui = GUI.MenusTools(self)
-        gui.createMenus()
-        gui.createTools()
-        gui.createStatusBar()
-        gui.createDocks()
+        # create menus and tools of main window
+        menusTools = MenusTools.MenusTools(self)
+        menusTools.createMenus()
+        menusTools.createTools()
+        menusTools.createStatusBar()
+        menusTools.createDocks()
 
         # show the GUI
         self.show()

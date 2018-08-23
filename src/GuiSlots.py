@@ -13,8 +13,9 @@ import IconProvider
 from Settings import DIALOGFILTER, AIRFOILDATA, LOGCOLOR, DEFAULT_CONTOUR, \
                       DEFAULT_STL
 
-# import Logger as logger
 logger = logging.getLogger(__name__)
+
+getframe_expr = 'sys._getframe({}).f_code.co_name'
 
 
 class Slots:
@@ -84,6 +85,7 @@ class Slots:
             self.shiftContours()
             # fit all airfoils into the view
             self.onViewAll()
+            logger.info('Test ABCDEFG')
             logger.info('Airfoil <b><font color=%s>' % (LOGCOLOR) + name +
                             '</b> loaded')
 
@@ -231,19 +233,19 @@ class Slots:
         printer.setOrientation(QtGui.QPrinter.Landscape)
         self.parent.view.render(QtGui.QPainter(printer))
 
-    # @QtCore.pyqtSlot()
-    def toggleLogDock(self):
+    def toggleLogDock(self, _sender):
         """Switch message log window on/off"""
 
-        sender = self.parent.sender().metaObject().className()
-
+        print('I am toggleLogDock:')
+        print('This is _sender:', _sender)
+        
         visible = self.parent.messagedock.isVisible()
         self.parent.messagedock.setVisible(not visible)
 
-        # update the checkbox if toggling is done via keyboard
-        if sender == 'QShortcut':
-            checkbox = self.parent.centralwidget.tools.cb1
-            checkbox.setChecked(not checkbox.isChecked())
+        # update the checkbox if toggling is done via keyboard shortcut
+        if _sender == 'shortcut':
+           checkbox = self.parent.centralwidget.tools.cb1
+           checkbox.setChecked(not checkbox.isChecked())
 
     # @QtCore.pyqtSlot()
     def onBlockMesh(self):

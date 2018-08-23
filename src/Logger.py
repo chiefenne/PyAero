@@ -3,18 +3,19 @@ import os
 import io
 import logging
 
+from PySide2 import QtCore
+
 from Settings import LOGDATA
 
-from PySide2 import QtCore, QtWidgets
+# have a class member to store the existing logger
+logger = logging.getLogger(__name__)
 
 
+'''
 class GuiHandler(logging.Handler):
     """ Class to redistribute python logging data
     from https://stackoverflow.com/a/36017801/2264936
     """
-
-    # have a class member to store the existing logger
-    logger_instance = logging.getLogger("SomeNameOfYourExistingLogger")
 
     def __init__(self, *args, **kwargs):
          # Initialize the Handler
@@ -27,7 +28,7 @@ class GuiHandler(logging.Handler):
                  self.setFormatter(value)
 
          # make the logger send data to this class
-         self.logger_instance.addHandler(self)
+         logger.addHandler(self)
          
          # get MainWindow instance (overcomes handling parents)
          self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
@@ -42,12 +43,13 @@ class GuiHandler(logging.Handler):
         # "Do work" starts here.
         # ---------------------------------------
         self.mainwindow.slots.onMessage(record)
-        
+
+'''        
 
 def log():
     
-    f = io.StringIO()
-    sys.stdout = f
+    # f = io.StringIO()
+    # sys.stdout = f
 
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
@@ -63,8 +65,8 @@ def log():
 
 
     # create GUI handler that reports to message window
-    gh = GuiHandler()
-    gh.setLevel(logging.DEBUG)
+    # gh = GuiHandler()
+    # gh.setLevel(logging.DEBUG)
 
     # create formatter and add it to the handlers
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -75,7 +77,7 @@ def log():
     # add the handlers to logger
     logger.addHandler(ch)
     logger.addHandler(fh)
-    logger.addHandler(gh)
+    # logger.addHandler(gh)
 
 
 """

@@ -443,7 +443,8 @@ class Toolbox:
         layout.setAlignment(QtCore.Qt.AlignTop)
 
         # connect signals to slots
-        self.cb1.clicked.connect(self.parent.slots.toggleLogDock)
+        # lambda allows to easily send extra parameters to the slot
+        self.cb1.clicked.connect(lambda: self.parent.slots.toggleLogDock('tick'))
         self.cb2.clicked.connect(self.toggleRawPoints)
         self.cb3.clicked.connect(self.toggleSplinePoints)
         self.cb4.clicked.connect(self.toggleSpline)

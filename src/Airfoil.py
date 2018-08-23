@@ -5,7 +5,9 @@ from PySide2 import QtGui, QtCore, QtWidgets
 
 import GraphicsItemsCollection as gc
 import GraphicsItem
-import Logger as logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Airfoil:
