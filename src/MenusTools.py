@@ -6,7 +6,7 @@ from PySide2 import QtGui, QtCore, QtWidgets
 from Settings import ICONS_S, ICONS_L, MENUDATA
 
 
-class MenusTools(object):
+class MenusTools:
     # call constructor of MenusTools
 
     def __init__(self, parent=None):

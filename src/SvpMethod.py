@@ -18,7 +18,7 @@ from Settings import LOGCOLOR
 import Logger as logger
 
 
-class Panel(object):
+class Panel:
     """Contains information related to one panel."""
     def __init__(self, xa, ya, xb, yb):
         """Creates a panel.
@@ -51,7 +51,7 @@ class Panel(object):
         self.cp = 0.                                # pressure coefficient
 
 
-class Freestream(object):
+class Freestream:
     """Freestream conditions."""
     def __init__(self, u_inf=1.0, alpha=0.0):
         """Sets the freestream conditions.

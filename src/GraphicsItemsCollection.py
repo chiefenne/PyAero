@@ -1,7 +1,7 @@
 from PySide2 import QtGui, QtCore
 
 
-class GraphicsCollection(object):
+class GraphicsCollection:
     """Collection of custom graphics items which can be used to draw
     QGraphicsItems within a scene.
 

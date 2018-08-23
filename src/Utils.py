@@ -3,7 +3,7 @@
 import numpy as np
 
 
-class Transformations(object):
+class Transformations:
     """Collection of static methods for geometric transformations
 
     Dependencies: numpy (np)
@@ -142,7 +142,7 @@ class Transformations(object):
         return MIRROR
 
 
-class Utils(object):
+class Utils:
     """Collection of utility functions (static methods).
     """
     def __init__(self):

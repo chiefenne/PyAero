@@ -9,7 +9,7 @@ from Utils import Utils
 import Logger as logger
 
 
-class SplineRefine(object):
+class SplineRefine:
 
     def __init__(self, id):
         self.id = id

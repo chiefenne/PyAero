@@ -7,7 +7,7 @@ from Utils import Utils
 import ContourAnalysis as pca
 
 
-class TrailingEdge(object):
+class TrailingEdge:
 
     def __init__(self, id):
 

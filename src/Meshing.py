@@ -282,7 +282,7 @@ class Windtunnel:
         self.blocks.append(block_tunnel_wake)
 
 
-class BlockMesh(object):
+class BlockMesh:
 
     def __init__(self, name='block'):
         self.name = name
@@ -877,7 +877,7 @@ class BlockMesh(object):
                             % ('#224CCC', basename, OUTPUTDATA))
 
 
-class Smooth(object):
+class Smooth:
 
     def __init__(self, block):
         self.block = block

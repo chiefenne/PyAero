@@ -14,7 +14,7 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
     def __init__(self, item):
         """
         Args:
-            item (object): PGraphicsItemsCollection object
+            item (object): GraphicsItemsCollection object
         """
         super().__init__()
 
