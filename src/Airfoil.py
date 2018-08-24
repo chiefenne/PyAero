@@ -38,8 +38,8 @@ class Airfoil:
         self.contourPolygon = None
         self.contourSpline = None
         self.raw_coordinates = None
-        self.pencolor = QtGui.QColor(10, 255, 20, 255)
-        self.penwidth = 3.0
+        self.pencolor = QtGui.QColor(95, 177, 237, 255)
+        self.penwidth = 2.2
         self.brushcolor = QtGui.QColor()
         self.brushcolor.setNamedColor('#7c8696')
 
@@ -146,11 +146,11 @@ class Airfoil:
 
             marker = gic.GraphicsCollection()
             marker.pen.setColor(QtGui.QColor(60, 60, 80, 255))
-            marker.pen.setWidth(0.01)
+            marker.pen.setWidth(0.08)
             marker.pen.setCosmetic(True)  # no pen thickness change when zoomed
             marker.brush.setColor(QtGui.QColor(217, 63, 122, 255))
 
-            marker.Circle(x, y, 0.02)
+            marker.Circle(x, y, 0.035)
 
             markerItem = GraphicsItem.GraphicsItem(marker)
             markerItem.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
@@ -163,19 +163,21 @@ class Airfoil:
         line = gic.GraphicsCollection()
         color = QtGui.QColor(70, 70, 70, 255)
         line.pen.setColor(color)
-        line.pen.setWidth(0.4)
+        line.pen.setWidth(0.05)
         line.pen.setCosmetic(True)  # no pen thickness change when zoomed
-        line.pen.setJoinStyle(QtCore.Qt.RoundJoin)
-        line.pen.setStyle(QtCore.Qt.CustomDashLine)
-        # pattern is 1px dash, 4px space, 7px dash, 4px
-        line.pen.setDashPattern([1, 4, 10, 4])
-        line.Line(np.min(self.raw_coordinates[0]), 0.0,
-                  np.max(self.raw_coordinates[0]), 0.0)
+        line.pen.setStyle(QtCore.Qt.DashLine)
+        index_min = np.argmin(self.raw_coordinates[0])
+        index_max = np.argmax(self.raw_coordinates[0])
+        line.Line(self.raw_coordinates[0][index_min],
+                  self.raw_coordinates[1][index_min],
+                  self.raw_coordinates[0][index_max],
+                  self.raw_coordinates[1][index_max])
 
         self.chord = GraphicsItem.GraphicsItem(line)
         self.chord.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
         self.chord.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
         self.chord.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
+        self.chord.setAcceptHoverEvents(False)
 
 
     def makeContourSpline(self, spline_coordinates):

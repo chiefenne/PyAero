@@ -1,5 +1,6 @@
 from PySide2 import QtGui, QtCore, QtWidgets
 
+DEBUG = False
 
 class GraphicsItem(QtWidgets.QGraphicsItem):
     """
@@ -46,7 +47,7 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         self.font = item.font
         self.item_shape = item.shape
         self.hoverstyle = QtCore.Qt.SolidLine
-        self.hoverwidth = 0.01
+        self.hoverwidth = 0.1
         if hasattr(item, 'name'):
             self.name = item.name
 
@@ -86,7 +87,8 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
 
     def mousePressEvent(self, event):
 
-        print('I WAS IN GRAPHICSITEM mousePressEvent')
+        if DEBUG:
+            print('I WAS IN GRAPHICSITEM mousePressEvent')
         self.setCursor(QtGui.QCursor(QtCore.Qt.SizeAllCursor))
 
         # set item as topmost in stack

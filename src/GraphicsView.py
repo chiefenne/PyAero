@@ -43,6 +43,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # use custom rubberband
         self.rubberband = RubberBand(QtWidgets.QRubberBand.Rectangle, self)
 
+
         # needed for correct mouse wheel zoom
         # otherwise mouse anchor is wrong; it would use (0, 0)
         self.setInteractive(True)
@@ -449,14 +450,16 @@ class RubberBand(QtWidgets.QRubberBand):
 
         self.view = args[1]
 
-        # set pen
+        # set pen and brush (filling)
         self.pen = QtGui.QPen()
-        self.pen.setStyle(QtCore.Qt.DashDotLine)
+        self.pen.setStyle(QtCore.Qt.DotLine)
         self.pen.setColor(QtGui.QColor(80, 80, 100))
+        self.brush = QtGui.QBrush()
+        color = QtGui.QColor(20, 20, 80, 30)
+        self.brush.setColor(color)
+        # self.brush.setStyle(QtCore.Qt.NoBrush)
+        self.brush.setStyle(QtCore.Qt.SolidPattern)
 
-        # set brush
-        color = QtGui.QColor(30, 30, 50, 30)
-        self.brush = QtGui.QBrush(color)
 
         # set style selectively for the rubberband like that
         # see: http://stackoverflow.com/questions/25642618
@@ -471,28 +474,27 @@ class RubberBand(QtWidgets.QRubberBand):
         # check if zooming or selecting
         if self.view.ctrl:
             # selecting is activated
-            self.pen.setWidth(4)
+            self.pen.setWidth(2)
             self.pen.setStyle(QtCore.Qt.DashDotLine)
             self.pen.setColor(QtGui.QColor(200, 200, 0))
             color = QtGui.QColor(200, 200, 0, 30)
-            self.brush = QtGui.QBrush(color)
+            self.brush.setColor(color)
+            self.brush.setStyle(QtCore.Qt.SolidPattern)
         else:
+            self.pen.setColor(QtGui.QColor(80, 80, 100))
+            self.pen.setWidth(2)
+            self.pen.setStyle(QtCore.Qt.DotLine)
+
             # zoom rect must be at least RUBBERBANDSIZE % of view to allow zoom
             if QPaintEvent.rect().width() < RUBBERBANDSIZE * self.view.width():
-                self.pen.setWidth(2)
-                self.pen.setStyle(QtCore.Qt.DashDotLine)
+                color = QtGui.QColor(30, 30, 50, 10)
+                self.brush.setColor(color)
+                self.brush.setStyle(QtCore.Qt.SolidPattern)
             else:
-                self.pen.setWidth(2)
-                self.pen.setStyle(QtCore.Qt.DotLine)
+                color = QtGui.QColor(30, 30, 100, 35)
+                self.brush.setColor(color)
+                self.brush.setStyle(QtCore.Qt.SolidPattern)
 
-            self.pen.setColor(QtGui.QColor(80, 80, 100))
-            color = QtGui.QColor(30, 30, 50, 30)
-            self.brush = QtGui.QBrush(color)
-
-        painter.setPen(self.pen)
-
-        # set brush
         painter.setBrush(self.brush)
-
-        # draw rectangle
+        painter.setPen(self.pen)
         painter.drawRect(QPaintEvent.rect())
