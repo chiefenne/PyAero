@@ -8,7 +8,7 @@ import PyAero
 import FileSystem
 import IconProvider
 import SvpMethod
-import GraphicsItemsCollection as gc
+import GraphicsItemsCollection as gic
 import GraphicsItem
 import SplineRefine
 import TrailingEdge
@@ -617,27 +617,24 @@ class Toolbox(QtWidgets.QToolBox):
         # preselect airfoil database box
         self.setCurrentIndex(0)
 
-    # @QtCore.pyqtSlot()
     def toggleRawPoints(self):
         """Toggle points of raw airfoil contour (on/off)"""
         for airfoil in self.parent.airfoils:
-            if hasattr(airfoil, 'markers') and \
+            if hasattr(airfoil, 'polygonMarkersGroup') and \
               airfoil.contourPolygon.isSelected():
-                visible = airfoil.markers.isVisible()
-                airfoil.markers.setVisible(not visible)
+                visible = airfoil.polygonMarkersGroup.isVisible()
+                airfoil.polygonMarkersGroup.setVisible(not visible)
                 self.cb2.setChecked(not self.cb2.isChecked())
 
-    # @QtCore.	()
     def toggleSplinePoints(self):
         """Toggle points of raw airfoil contour (on/off)"""
         for airfoil in self.parent.airfoils:
-            if hasattr(airfoil, 'markersSpline') and \
+            if hasattr(airfoil, 'splineMarkersGroup') and \
               airfoil.contourPolygon.isSelected():
-                visible = airfoil.markersSpline.isVisible()
-                airfoil.markersSpline.setVisible(not visible)
+                visible = airfoil.splineMarkersGroup.isVisible()
+                airfoil.splineMarkersGroup.setVisible(not visible)
                 self.cb3.setChecked(not self.cb3.isChecked())
 
-    # @QtCore.pyqtSlot()
     def toggleSpline(self):
         for airfoil in self.parent.airfoils:
             if airfoil.contourPolygon.isSelected():
@@ -645,7 +642,6 @@ class Toolbox(QtWidgets.QToolBox):
                 airfoil.contourSpline.setVisible(not visible)
                 self.cb4.setChecked(not self.cb4.isChecked())
 
-    # @QtCore.pyqtSlot()
     def toggleChord(self):
         """Toggle visibility of the airfoil chord"""
         for airfoil in self.parent.airfoils:
@@ -654,7 +650,6 @@ class Toolbox(QtWidgets.QToolBox):
                 airfoil.chord.setVisible(not visible)
                 self.cb5.setChecked(not self.cb5.isChecked())
 
-    # @QtCore.pyqtSlot()
     def runPanelMethod(self):
         """Gui callback to run AeroPython panel method in module PSvpMethod"""
         if not self.parent.airfoils:
@@ -670,7 +665,6 @@ class Toolbox(QtWidgets.QToolBox):
                 panels = self.panels.value()
                 SvpMethod.runSVP(airfoil.name, x, y, u_inf, alpha, panels)
 
-    # @QtCore.pyqtSlot()
     def spline_and_refine(self):
         """Spline and refine airfoil"""
 
@@ -696,7 +690,6 @@ class Toolbox(QtWidgets.QToolBox):
                                       ref_te_n=self.ref_te_n.value(),
                                       ref_te_ratio=self.ref_te_ratio.value())
 
-    # @QtCore.pyqtSlot()
     def makeTrailingEdge(self):
 
         if not self.parent.airfoils:
@@ -728,7 +721,6 @@ class Toolbox(QtWidgets.QToolBox):
                                       thickness=self.thickness.value(),
                                       side='lower')
 
-    # @QtCore.pyqtSlot()
     def makeMesh(self):
 
         for airfoil in self.parent.airfoils:
@@ -824,7 +816,7 @@ class Toolbox(QtWidgets.QToolBox):
                 for line in lines:
 
                     # instantiate a graphics item
-                    contour = gc.GraphicsCollection()
+                    contour = gic.GraphicsCollection()
                     # make it polygon type and populate its points
                     points = [QtCore.QPointF(x, y) for x, y in line]
                     contour.Polyline(QtGui.QPolygonF(points), '')
@@ -840,9 +832,8 @@ class Toolbox(QtWidgets.QToolBox):
 
                     airfoil.mesh.addToGroup(meshline)
 
-        airfoil.contourGroup.addToGroup(airfoil.mesh)
+        airfoil.contourItemGroup.addToGroup(airfoil.mesh)
 
-    # @QtCore.pyqtSlot()
     def exportMesh(self, from_browse_mesh=False):
 
         name = self.lineedit_mesh.text()
@@ -865,7 +856,6 @@ class Toolbox(QtWidgets.QToolBox):
         if self.check_GMSH.isChecked():
             Meshing.BlockMesh.writeGMSH(mesh, name=fullname)
 
-    # @QtCore.pyqtSlot()
     def analyzeAirfoil(self):
         """Airfoil contour analysis with respect to geometric features"""
 
@@ -902,7 +892,6 @@ class Toolbox(QtWidgets.QToolBox):
                         QtGui.QMessageBox.NoButton)
         return
 
-    # @QtCore.pyqtSlot()
     def updatename(self):
 
         name = ' '
@@ -1039,8 +1028,6 @@ class ListWidget(QtWidgets.QListWidget):
         # call original implementation of QListWidget keyPressEvent handler
         super().keyPressEvent(event)
 
-    # @QtCore.pyqtSlot() commented here because otherewise
-    # "item" is not available
     def handleActivated(self, item):
 
         for airfoil in self.parent.airfoils:

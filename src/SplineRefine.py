@@ -53,18 +53,18 @@ class SplineRefine:
             # print('Copy back spline points')
             if airfoil.contourPolygon.isSelected():
                 # print('Copy back spline points inside IF')
-                airfoil.addContourSpline(self.spline_data[0])
-                airfoil.addSplineMarkers()
+                airfoil.makeContourSpline(self.spline_data[0])
+                airfoil.makeSplineMarkers()
                 airfoil.contourSpline.brush.setStyle(
                     QtCore.Qt.SolidPattern)
                 color = QtGui.QColor()
                 color.setNamedColor('#7c8696')
                 airfoil.contourSpline.brush.setColor(color)
-                airfoil.markers.setZValue(100)
+                airfoil.polygonMarkersGroup.setZValue(100)
                 airfoil.chord.setZValue(99)
 
                 # switch off raw contour and toogle corresponding checkbox
-                if hasattr(airfoil, 'markers') and airfoil.markers.isVisible():
+                if hasattr(airfoil, 'polygonMarkersGroup') and airfoil.polygonMarkersGroup.isVisible():
                     self.mainwindow.centralwidget.tools.toggleRawPoints()
                     self.mainwindow.centralwidget.tools.cb2.setChecked(False)
 

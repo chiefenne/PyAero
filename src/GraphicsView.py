@@ -113,13 +113,6 @@ class GraphicsView(QtWidgets.QGraphicsView):
     def mousePressEvent(self, event):
         """Re-implement QGraphicsView's mousePressEvent handler"""
 
-        if event.button() == QtCore.Qt.LeftButton:
-            # do the standard operation only for left button click
-            # e.g. for selection
-            # on right button click this is not called
-            # therefore no deselection happens then
-            super().mousePressEvent(event)
-
         # if a mouse event happens in the graphics view
         # put the keyboard focus to the view as well
         self.setFocus()
@@ -133,6 +126,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
                                         QtCore.QSize()))
             # show, even at zero size, allows to check later using isVisible()
             self.rubberband.show()
+
+            # do the standard operation only for left button click
+            # e.g. for selection
+            # on right button click this is not called
+            # therefore no deselection happens then            
+            event.setAccepted(False)
+            super().mousePressEvent(event)
 
         if event.button() == QtCore.Qt.RightButton:
             self._rightMousePressed = True
@@ -351,7 +351,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         """Adjust marker size during zoom. Marker items are circles
         which are otherwise affected by zoom.
         """
-        # markers are drawn in PGraphicsItem using scene coordinates
+        # markers are drawn in GraphicsItem using scene coordinates
         # in order to keep them constant size, also when zooming
         # a fixed pixel size is mapped to scene coordinates
         # depending on the zoom, this leads to always different scene
@@ -366,15 +366,20 @@ class GraphicsView(QtWidgets.QGraphicsView):
         pw_mapped = pwr.width()
 
         for airfoil in self.parent.airfoils:
-            if hasattr(airfoil, 'markers'):
-                markers = airfoil.markers.childItems()
+            if airfoil.contourPolygon:
+                if not hasattr(airfoil, 'polygonMarkers'):
+                    continue
+                markers = airfoil.polygonMarkers
                 x, y = airfoil.raw_coordinates
                 for i, marker in enumerate(markers):
                     # in case of circle, args is a QRectF
                     marker.args = [QtCore.QRectF(x[i]-r, y[i]-r, 2.*r, 2.*r)]
                     marker.penwidth = pw_mapped
-            if hasattr(airfoil, 'markersSpline'):
-                markers = airfoil.markersSpline.childItems()
+            if airfoil.contourSpline:
+                if not hasattr(airfoil, 'splineMarkersGroup'):
+                    continue
+
+                markers = airfoil.splineMarkersGroup.childItems()
                 x, y = airfoil.spline_data[0]
                 for i, marker in enumerate(markers):
                     # in case of circle, args is a QRectF
@@ -446,7 +451,7 @@ class RubberBand(QtWidgets.QRubberBand):
 
         # set pen
         self.pen = QtGui.QPen()
-        self.pen.setStyle(QtCore.Qt.SolidLine)
+        self.pen.setStyle(QtCore.Qt.DashDotLine)
         self.pen.setColor(QtGui.QColor(80, 80, 100))
 
         # set brush
@@ -467,7 +472,7 @@ class RubberBand(QtWidgets.QRubberBand):
         if self.view.ctrl:
             # selecting is activated
             self.pen.setWidth(4)
-            self.pen.setStyle(QtCore.Qt.SolidLine)
+            self.pen.setStyle(QtCore.Qt.DashDotLine)
             self.pen.setColor(QtGui.QColor(200, 200, 0))
             color = QtGui.QColor(200, 200, 0, 30)
             self.brush = QtGui.QBrush(color)
@@ -475,10 +480,10 @@ class RubberBand(QtWidgets.QRubberBand):
             # zoom rect must be at least RUBBERBANDSIZE % of view to allow zoom
             if QPaintEvent.rect().width() < RUBBERBANDSIZE * self.view.width():
                 self.pen.setWidth(2)
-                self.pen.setStyle(QtCore.Qt.DotLine)
+                self.pen.setStyle(QtCore.Qt.DashDotLine)
             else:
-                self.pen.setWidth(4)
-                self.pen.setStyle(QtCore.Qt.SolidLine)
+                self.pen.setWidth(2)
+                self.pen.setStyle(QtCore.Qt.DotLine)
 
             self.pen.setColor(QtGui.QColor(80, 80, 100))
             color = QtGui.QColor(30, 30, 50, 30)

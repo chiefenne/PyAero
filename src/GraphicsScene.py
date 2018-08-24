@@ -24,7 +24,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def mousePressEvent(self, event):
         """Re-implement QGraphicsView's mousePressEvent handler"""
 
-        self.clearSelection()
+        print('I WAS IN GraphicsScene mousePressEvent')
+        print('Event accepted:', event.isAccepted())
+        #self.clearSelection()
 
         # call original implementation of QGraphicsView mousePressEvent handler
         super().mousePressEvent(event)

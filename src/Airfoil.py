@@ -3,7 +3,7 @@ import numpy as np
 
 from PySide2 import QtGui, QtCore, QtWidgets
 
-import GraphicsItemsCollection as gc
+import GraphicsItemsCollection as gic
 import GraphicsItem
 import logging
 
@@ -19,10 +19,9 @@ class Airfoil:
     Attributes:
         brushcolor (QColor): fill color for airfoil
         chord (QGraphicsItem): Description
-        contourGroup (QGraphicsItemGroup): Container for all items
+        contourItemGroup (QGraphicsItemGroup): Container for all items
             which belong to the airfoil contour
         item (QGraphicsItem): graphics item derived from QPolygonF object
-        markers (QGraphicsItem): color for airoil outline points
         name (str): airfoil name (without path)
         pencolor (QColor): color for airoil outline
         penwidth (float): thickness of airfoil outline
@@ -39,17 +38,34 @@ class Airfoil:
         self.contourPolygon = None
         self.contourSpline = None
         self.raw_coordinates = None
-        self.pencolor = QtGui.QColor(10, 10, 20, 255)
-        self.penwidth = 2.5
+        self.pencolor = QtGui.QColor(10, 255, 20, 255)
+        self.penwidth = 3.0
         self.brushcolor = QtGui.QColor()
         self.brushcolor.setNamedColor('#7c8696')
 
-        # create groups that carry contour, markers, etc.
-        # containers that treat a group of items as a single item
-        self.contourGroup = QtWidgets.QGraphicsItemGroup()
-        self.markersGroup = QtWidgets.QGraphicsItemGroup()       
-        self.polygonMarkersGroup = QtWidgets.QGraphicsItemGroup()
-        self.splineMarkersGroup = QtWidgets.QGraphicsItemGroup()
+        #
+        # QGraphicsItemGroup do not seem to completely act like
+        # individual items. Therefore no groups are used for the time being.
+        # Status from 24.8. 2018
+        #
+        # self.contourItemGroup = QtWidgets.QGraphicsItemGroup()        
+        # self.markersItemGroup = QtWidgets.QGraphicsItemGroup()       
+        # self.polygonMarkersItemGroup = QtWidgets.QGraphicsItemGroup()
+        # self.splineMarkersItemGroup = QtWidgets.QGraphicsItemGroup()
+        # set flags for QGraphicsItemGroup
+        # these flags seem to be default for QGraphicsItem but not for group
+        # self.contourItemGroup.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
+        # self.contourItemGroup.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
+        # self.contourItemGroup.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, True)
+        #
+        # hover events do not seem to work for the group, even if set to accepted
+        # according to the docs (link split on 3 lines):
+        # http://doc.qt.io/qtforpython/PySide2/QtWidgets/QGraphicsItem.html?
+        # highlight=setaccepthoverevents#PySide2.QtWidgets.PySide2.QtWidgets.
+        # QGraphicsItem.setAcceptHoverEvents
+        # it seems that the group is a parent item to the items which are grouped.
+        # Therefore it does not receive hover events
+        # self.contourItemGroup.setAcceptHoverEvents(True)
 
     def readContour(self, filename, comment):
 
@@ -96,19 +112,20 @@ class Airfoil:
         # make polygon graphicsitem from coordinates
         self.makeContourPolygon(self.raw_coordinates)
         self.makeChord()
-        self.contourGroup.addToGroup(self.contourPolygon)
-        self.contourGroup.addToGroup(self.chord)
-        self.markersGroup.addToGroup(self.polygonMarkersGroup)
-
-        # add everything to the scene
-        self.mainwindow.scene.addItem(self.contourGroup)
-        self.mainwindow.scene.addItem(self.markersGroup)
+        self.makePolygonMarkers()
+        
+        # add all items to the scene
+        self.mainwindow.scene.addItem(self.contourPolygon)
+        self.mainwindow.scene.addItem(self.chord)
+        ### for marker in self.polygonMarkers:
+        ###    self.mainwindow.scene.addItem(marker)
+        self.mainwindow.scene.createItemGroup(self.polygonMarkers)
 
     def makeContourPolygon(self, coordinates):
         """Add airfoil points as GraphicsItem to the scene"""
 
         # instantiate a graphics item
-        contour = gc.GraphicsCollection()
+        contour = gic.GraphicsCollection()
         # make it polygon type and populate its points
         points = [QtCore.QPointF(x, y) for x, y in zip(*coordinates)]
         contour.Polygon(QtGui.QPolygonF(points), self.name)
@@ -122,25 +139,31 @@ class Airfoil:
 
     def makePolygonMarkers(self):
         """Create marker for polygon contour"""
+        
+        self.polygonMarkers = list()
 
         for x, y in zip(*self.raw_coordinates):
 
-            # put airfoil contour points as graphicsitem
-            points = gc.GraphicsCollection()
-            points.pen.setColor(QtGui.QColor(60, 60, 80, 255))
-            points.brush.setColor(QtGui.QColor(217, 63, 122, 255))
-            points.pen.setCosmetic(True)  # no pen thickness change when zoomed
+            marker = gic.GraphicsCollection()
+            marker.pen.setColor(QtGui.QColor(60, 60, 80, 255))
+            marker.pen.setWidth(0.01)
+            marker.pen.setCosmetic(True)  # no pen thickness change when zoomed
+            marker.brush.setColor(QtGui.QColor(217, 63, 122, 255))
 
-            points.Circle(x, y, 0.003, marker=True)
+            marker.Circle(x, y, 0.02)
 
-            marker = GraphicsItem.GraphicsItem(points)
-            self.polygonMarkersGroup.addToGroup(marker)
+            markerItem = GraphicsItem.GraphicsItem(marker)
+            markerItem.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
+            markerItem.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+            markerItem.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
+
+            self.polygonMarkers.append(markerItem)
 
     def makeChord(self):
-        line = gc.GraphicsCollection()
+        line = gic.GraphicsCollection()
         color = QtGui.QColor(70, 70, 70, 255)
         line.pen.setColor(color)
-        line.pen.setWidth(1.)
+        line.pen.setWidth(0.4)
         line.pen.setCosmetic(True)  # no pen thickness change when zoomed
         line.pen.setJoinStyle(QtCore.Qt.RoundJoin)
         line.pen.setStyle(QtCore.Qt.CustomDashLine)
@@ -150,6 +173,10 @@ class Airfoil:
                   np.max(self.raw_coordinates[0]), 0.0)
 
         self.chord = GraphicsItem.GraphicsItem(line)
+        self.chord.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
+        self.chord.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+        self.chord.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
+
 
     def makeContourSpline(self, spline_coordinates):
         """Add splined and refined airfoil points as GraphicsItem to
@@ -159,24 +186,24 @@ class Airfoil:
         self.penwidth = 3.5
 
         # instantiate a graphics item
-        contour = gc.GraphicsCollection()
+        splinecontour = gic.GraphicsCollection()
         # make it polygon type and populate its points
         points = [QtCore.QPointF(x, y) for x, y in zip(*spline_coordinates)]
-        contour.Polygon(QtGui.QPolygonF(points), self.name)
+        splinecontour.Polygon(QtGui.QPolygonF(points), self.name)
         # set its properties
-        contour.pen.setColor(self.pencolor)
-        contour.pen.setWidth(self.penwidth)
-        contour.pen.setCosmetic(True)  # no pen thickness change when zoomed
-        contour.brush.setColor(self.brushcolor)
+        splinecontour.pen.setColor(self.pencolor)
+        splinecontour.pen.setWidth(self.penwidth)
+        splinecontour.pen.setCosmetic(True)  # no pen thickness change when zoomed
+        splinecontour.brush.setColor(self.brushcolor)
         # add the pline polygon without filling
-        contour.brush.setStyle(QtCore.Qt.NoBrush)
+        splinecontour.brush.setStyle(QtCore.Qt.NoBrush)
 
         # remove spline from the contourgroup if any
         if self.contourSpline:
             self.scene.removeItem(self.contourSpline)
             self.scene.removeItem(self.splineMarkers)
 
-        self.contourSpline = GraphicsItem.GraphicsItem(contour)
+        self.contourSpline = GraphicsItem.GraphicsItem(splinecontour)
 
     def makeSplineMarkers(self):
         """Create marker for polygon contour"""
@@ -184,15 +211,15 @@ class Airfoil:
         for x, y in zip(*self.spline_data[0]):
 
             # put airfoil contour points as graphicsitem
-            points = gc.GraphicsCollection()
-            points.pen.setColor(QtGui.QColor(60, 60, 80, 255))
-            points.brush.setColor(QtGui.QColor(180, 180, 50, 230))
-            points.pen.setCosmetic(True)  # no pen thickness change when zoomed
+            splinemarker = gic.GraphicsCollection()
+            splinemarker.pen.setColor(QtGui.QColor(60, 60, 80, 255))
+            splinemarker.brush.setColor(QtGui.QColor(180, 180, 50, 230))
+            splinemarker.pen.setCosmetic(True)  # no pen thickness change when zoomed
 
-            points.Circle(x, y, 0.003, marker=True)
+            splinemarker.Circle(x, y, 0.03)
 
-            marker = GraphicsItem.GraphicsItem(points)
-            self.splineMarkersGroup.addToGroup(marker)
+            splineMarkerItem = GraphicsItem.GraphicsItem(splinemarker)
+            self.splineMarkersGroup.addToGroup(splineMarkerItem)
 
     def camber(self):
         pass

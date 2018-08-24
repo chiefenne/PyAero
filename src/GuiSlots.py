@@ -8,7 +8,7 @@ from PySide2 import QtGui, QtCore, QtWidgets
 
 import PyAero
 import Airfoil
-import GraphicsTest as gt
+import GraphicsTest
 import IconProvider
 from Settings import DIALOGFILTER, AIRFOILDATA, LOGCOLOR, DEFAULT_CONTOUR, \
                       DEFAULT_STL
@@ -185,10 +185,10 @@ class Slots:
     # @QtCore.pyqtSlot()
     def toggleTestObjects(self):
         if self.parent.testitems:
-            gt.deleteTestItems(self.parent.scene)
+            GraphicsTest.deleteTestItems(self.parent.scene)
             logger.info('Test items for GraphicsView loaded')
         else:
-            gt.addTestItems(self.parent.scene)
+            GraphicsTest.addTestItems(self.parent.scene)
             logger.info('Test items for GraphicsView removed')
         self.parent.testitems = not self.parent.testitems
 
@@ -343,7 +343,7 @@ class Slots:
 
     # @QtCore.pyqtSlot()
     def onAbout(self):
-        QtGui.QMessageBox. \
+        QtWidgets.QMessageBox. \
             about(self.parent, "About " + PyAero.__appname__,
                   "<b>" + PyAero.__appname__ +
                   "</b> is used for "

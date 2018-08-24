@@ -19,7 +19,7 @@ class GraphicsCollection:
 
         pen = QtGui.QPen(QtCore.Qt.SolidLine)
         pen.setColor(QtGui.QColor(0, 0, 0, 255))
-        pen.setWidth(2)
+        pen.setWidth(0.2)
         pen.setJoinStyle(QtCore.Qt.MiterJoin)
         self.pen = pen
 
@@ -32,7 +32,6 @@ class GraphicsCollection:
 
         self.scale = (1, 1)
         self.tooltip = ''
-        self.info = ''
 
         self.method = ''
         self.args = []
@@ -54,13 +53,11 @@ class GraphicsCollection:
         self.method = 'drawLine'
         self.args = [x1, y1, x2, y2]
 
-    def Circle(self, x, y, r, marker=False):
+    def Circle(self, x, y, r):
         self.rect = QtCore.QRectF(x-r, y-r, 2.*r, 2.*r)
         self.shape.addEllipse(self.rect)
         self.method = 'drawEllipse'
         self.args = [self.rect]
-        if marker:
-            self.info = 'marker'
 
     def Rectangle(self, x, y, w, h):
         self.rect = QtCore.QRectF(x, y, w, h)

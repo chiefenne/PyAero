@@ -119,15 +119,18 @@ class MainWindow(QtWidgets.QMainWindow):
         sc = ShortCuts.ShortCuts(self)
         sc.addShortcut('ALT+m', 'toggleLogDock', 'shortcut')
 
+        # shortcut for test items
+        sc.addShortcut('ALT+t', 'toggleTestObjects')
+
+        # initialize test items (checked in toggleTestObjects)
+        self.testitems = False
+
         # setup user interface and menus
         self.init_GUI()
 
         # prepare logger so that it logs to
         # dock message window using HTML strings
         Logger.log()
-
-        # toggle for graphics test items (CTRL+t)
-        self.testitems = False
 
     def init_GUI(self):
 
@@ -260,3 +263,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

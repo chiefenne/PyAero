@@ -43,11 +43,10 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         self.rect = QtCore.QRectF(item.rect)
         self.setToolTip(item.tooltip)
         self.scale = item.scale
-        self.info = item.info
         self.font = item.font
         self.item_shape = item.shape
         self.hoverstyle = QtCore.Qt.SolidLine
-        self.hoverwidth = 2.
+        self.hoverwidth = 0.01
         if hasattr(item, 'name'):
             self.name = item.name
 
@@ -57,8 +56,13 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
     def itemChange(self, change, value):
         if change == QtWidgets.QGraphicsItem.ItemSelectedHasChanged:
             # when selecting an airfoil item in the graphics view
-            # select the respective item in PToolbox/MyListWidget
+            # select the respective item in Toolbox/MyListWidget
             # which contains a list of loaded airfoils
+
+            if not hasattr(self, 'name'):
+                # return if no name, e.g. when test items are loaded
+                # from Graphicstest. These are not listed in MyListWidget
+                return
 
             centralwidget = self.mainwindow.centralwidget
             itms = centralwidget.tools.listwidget. \
@@ -82,12 +86,14 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
 
     def mousePressEvent(self, event):
 
-        self.setCursor(QtGui.QCursor(QtCore.Qt.ClosedHandCursor))
+        print('I WAS IN GRAPHICSITEM mousePressEvent')
+        self.setCursor(QtGui.QCursor(QtCore.Qt.SizeAllCursor))
 
         # set item as topmost in stack
-        zstack = [itm.zValue() for itm in self.scene.items()]
-        zmax = max(zstack)
-        self.setZValue(zmax + 1)
+        # zstack = [itm.zValue() for itm in self.scene.items()]
+        # zmax = max(zstack)
+        # self.setZValue(zmax + 1)
+
         self.setSelected(True)
 
         # handle event
@@ -114,8 +120,6 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         # line thickness this rect is bigger than the rect of the ellipse or
         # rect, etc.
         # rect + line thickness is size
-
-        # calculate the bounding rectangle
         return self.boundingrect
 
     def setBoundingRect(self):
