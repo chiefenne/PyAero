@@ -11,8 +11,7 @@ import Logger as logger
 
 class SplineRefine:
 
-    def __init__(self, id):
-        self.id = id
+    def __init__(self):
 
         # get MainWindow instance (overcomes handling parents)
         self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
@@ -23,7 +22,7 @@ class SplineRefine:
         # print('Arrived in doSplineRefine\n')
 
         # get raw coordinates
-        x, y = self.mainwindow.airfoils[self.id].raw_coordinates
+        x, y = self.mainwindow.airfoil.raw_coordinates
 
         # interpolate a spline through the raw contour points
         # constant point distribution used here
@@ -46,34 +45,10 @@ class SplineRefine:
         self.refine_te(ref_te, ref_te_n, ref_te_ratio)
 
         # add spline data to airfoil object
-        self.mainwindow.airfoils[self.id].spline_data = self.spline_data
+        self.mainwindow.airfoil.spline_data = self.spline_data
 
-        # add splined and refined contour to the airfoil contourGroup
-        for airfoil in self.mainwindow.airfoils:
-            # print('Copy back spline points')
-            if airfoil.contourPolygon.isSelected():
-                # print('Copy back spline points inside IF')
-                airfoil.makeContourSpline(self.spline_data[0])
-                airfoil.makeSplineMarkers()
-                airfoil.contourSpline.brush.setStyle(
-                    QtCore.Qt.SolidPattern)
-                color = QtGui.QColor()
-                color.setNamedColor('#7c8696')
-                airfoil.contourSpline.brush.setColor(color)
-                airfoil.polygonMarkersGroup.setZValue(100)
-                airfoil.chord.setZValue(99)
-
-                # switch off raw contour and toogle corresponding checkbox
-                if hasattr(airfoil, 'polygonMarkersGroup') and airfoil.polygonMarkersGroup.isVisible():
-                    self.mainwindow.centralwidget.tools.toggleRawPoints()
-                    self.mainwindow.centralwidget.tools.cb2.setChecked(False)
-
-                airfoil.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
-                airfoil.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
-                self.mainwindow.view.adjustMarkerSize()
-
-        # update contours, i.e. shift contours and associated splined contours
-        self.mainwindow.slots.shiftContours()
+        # print('Copy back spline points inside IF')
+        self.mainwindow.airfoil.makeContourSpline()
 
     def spline(self, x, y, points=200, degree=2, evaluate=False):
         """Interpolate spline through given points

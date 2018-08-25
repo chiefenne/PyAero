@@ -78,48 +78,25 @@ class Slots:
 
         # no error during loading
         if loaded:
+            # clear all items from the scene when new airfoil is loaded
+            self.parent.scene.clear()
             # make contour, markers, chord and add everything to the scene
             airfoil.makeAirfoil()
+            # add all airfoil items (contour markers) to the scene
+            Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
+            # make loaded airfoil the currently active airfoil
+            self.parent.airfoil = airfoil
+            # add airfoil to list of loaded airfoils
             self.parent.airfoils.append(airfoil)
-            # shift the airfoils (vertical stack) if more than one loaded
-            self.shiftContours()
             # fit all airfoils into the view
             self.onViewAll()
             logger.info('Test ABCDEFG')
             logger.info('Airfoil <b><font color=%s>' % (LOGCOLOR) + name +
                             '</b> loaded')
 
-            self.parent.centralwidget.tools.header.setEnabled(True)
-            self.parent.centralwidget.tools.listwidget.setEnabled(True)
-            self.parent.centralwidget.tools.listwidget.addItem(name)
-
-    def shiftContours(self, shift=True):
-        """Shifts airfoils vertically from eachother. This is done when
-        more than one airfoil is loaded.
-
-        Slots.fitAirfoilInView() takes care of this shift when fitting
-        automatically the last loaded airfoil to the view.
-
-        Args:
-            shift (bool, optional): Can be used to re-align all airfoils
-        """
-
-        offset = 0.0
-        for i, airfoil in enumerate(self.parent.airfoils):
-            # don't shift the first airfoil
-            if i == 0:
-                continue
-            if shift:
-                delta = 0.006
-                offset += self.parent.airfoils[i-1].offset[1] + \
-                    abs(self.parent.airfoils[i].offset[0]) + delta
-
-            # do the actual shift
-            airfoil.contourPolygon.setPos(QtCore.QPointF(0.0, offset))
-
-            if airfoil.contourSpline:
-                # with zero shift item gets same position as parent
-                airfoil.contourSpline.setPos(QtCore.QPointF(0.0, 0.0))
+            self.parent.centralwidget.toolbox.header.setEnabled(True)
+            self.parent.centralwidget.toolbox.listwidget.setEnabled(True)
+            self.parent.centralwidget.toolbox.listwidget.addItem(name)
 
     # # @QtCore.pyqtSlot()
     def onPredefinedSTL(self):
@@ -159,6 +136,10 @@ class Slots:
         cx = center.x()
         # not easy to understand (at least for me)
         # this is needed due to the Airfoil.shiftContours() function
+        # FIXME
+        # FIXME myabe "+ item.pos().y()" is not needed as we do not
+        # FIXME shift contours anymore
+        # FIXME
         cy = center.y() + item.pos().y()
         rf.moveCenter(QtCore.QPointF(cx, cy))
 
@@ -244,41 +225,42 @@ class Slots:
 
         # update the checkbox if toggling is done via keyboard shortcut
         if _sender == 'shortcut':
-           checkbox = self.parent.centralwidget.tools.cb1
+           checkbox = self.parent.centralwidget.toolbox.cb1
            checkbox.setChecked(not checkbox.isChecked())
 
     # @QtCore.pyqtSlot()
     def onBlockMesh(self):
         pass
+    
+    def getAirfoilByName(self, name):
+        for airfoil in self.parent.airfoils:
+            if airfoil.name == name:
+                return airfoil
+        return None
 
     # @QtCore.pyqtSlot()
-    def removeAirfoil(self):
-        """Remove all selected airfoils from the scene"""
-        removed = list()
-        for airfoil in self.parent.airfoils:
-            if airfoil.contourPolygon.isSelected():
-                removed.append(airfoil)
-                # remove from scene
-                self.parent.scene.removeItem(airfoil.contourPolygon)
-                logger.info('Airfoil <b><font color=%s>' % (LOGCOLOR) +
-                                airfoil.name + '</b> removed')
+    def removeAirfoil(self, name=None):
+        """Remove all selected airfoils from the scene"""           
+      
+        if name:
+            airfoil = self.getAirfoilByName(name)
+        else:
+            airfoil = self.parent.airfoil
 
-                # remove from listwidget
-                centralwidget = self.parent.centralwidget
-                lw = centralwidget.tools.listwidget
-                itms = lw.findItems(airfoil.name, QtCore.Qt.MatchExactly)
-                for itm in itms:
-                    row = lw.row(itm)
-                    lw.takeItem(row)
+        self.parent.airfoils.remove(airfoil)
 
-        # remove from list of airfoils
-        for r in removed:
-            self.parent.airfoils.remove(r)
+        # remove from scene
+        self.parent.scene.removeItem(self.parent.airfoil.contourPolygon)
 
-        # re-shift everything
-        self.shiftContours(shift=True)
+        # remove also listwidget entry
+        centralwidget = self.parent.centralwidget
+        listwidget = centralwidget.toolbox.listwidget
+        itms = listwidget.findItems(self.parent.airfoil.name, QtCore.Qt.MatchExactly)
+        for itm in itms:
+            row = listwidget.row(itm)
+            listwidget.takeItem(row)
 
-        # fit all airfoils into the view
+        # fit all remaining scene items into the view
         self.onViewAll()
 
     def onMessage(self, msg):
@@ -327,7 +309,15 @@ class Slots:
     def onTabChanged(self):
         """Sync tabs and toolboxes """
         tab = self.parent.centralwidget.tabs.currentIndex()
-        self.parent.centralwidget.tools.setCurrentIndex(tab)
+        self.parent.centralwidget.toolbox.setCurrentIndex(tab)
+        
+    def messageBox(self, message):
+        QtGui.QMessageBox. \
+            information(self.parent, 'Information',
+                        message,
+                        QtGui.QMessageBox.Ok,
+                        QtGui.QMessageBox.NoButton,
+                        QtGui.QMessageBox.NoButton)
 
     # @QtCore.pyqtSlot()
     def onRedo(self):
@@ -353,9 +343,7 @@ class Slots:
                   PyAero.__license__ +
                   " license. (c) " +
                   PyAero.__copyright__ + "<br><br>"
-                  "email to: " + PyAero.__email__ + "<br>"
-                  "Twitter: <a href='http://twitter.com/chiefenne'>\
-                  @chiefenne</a><br><br>"
+                  "email to: " + PyAero.__email__ + "<br><br>"
                   "Embedded <b>Aeropython</b> code under MIT license. <br> \
                   (c) 2014 Lorena A. Barba, Olivier Mesnard<br>"
                   "Link to " +

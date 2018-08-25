@@ -77,7 +77,8 @@ class TrailingEdge:
         # add splined and refined contour to the airfoil contourGroup
         for airfoil in self.mainwindow.airfoils:
             if airfoil.contourPolygon.isSelected():
-                airfoil.addContourSpline(self.spline_data[0])
+                airfoil.makeContourSpline()
+                airfoil.makeSplineMarkers()
                 airfoil.addSplineMarkers()
                 airfoil.contourSpline.brush.setStyle(
                     QtCore.Qt.SolidPattern)
@@ -90,9 +91,6 @@ class TrailingEdge:
                 airfoil.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
                 airfoil.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
                 self.mainwindow.view.adjustMarkerSize()
-
-        # update contours, i.e. shift contours and associated splined contours
-        self.mainwindow.slots.shiftContours()
 
     def trailing(self, xx, yy, blend, ex, thickness, side='upper'):
         xmin = np.min(xx)

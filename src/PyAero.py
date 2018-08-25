@@ -86,9 +86,15 @@ class MainWindow(QtWidgets.QMainWindow):
         style_keys = [x.lower() for x in QtWidgets.QStyleFactory.keys()]
         if DEBUG:
             print(style_keys)
+        # FIXME
+        # FIXME currently leads to segmentation faults
+        # FIXME
         # if self.style.lower() in style_keys:
         #     QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create(style))
 
+        # holds active airfoil
+        self.airfoil = None
+        # container for all loaded airfoils
         self.airfoils = list()
 
         self.scene = GraphicsScene.GraphicsScene(self)
@@ -203,8 +209,8 @@ class CentralWidget(QtWidgets.QWidget):
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
         # add QToolBox widget to the left pane
-        self.tools = ToolBox.Toolbox(self.parent)
-        self.splitter.addWidget(self.tools)
+        self.toolbox = ToolBox.Toolbox(self.parent)
+        self.splitter.addWidget(self.toolbox)
 
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.addTab(self.parent.view, 'Airfoil')

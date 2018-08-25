@@ -66,22 +66,22 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
                 return
 
             centralwidget = self.mainwindow.centralwidget
-            itms = centralwidget.tools.listwidget. \
+            itms = centralwidget.toolbox.listwidget. \
                 findItems(self.name, QtCore.Qt.MatchExactly)
 
             if self.isSelected():
                 for itm in itms:
                     itm.setSelected(True)
-                    # centralwidget.tools.listwidget. \
+                    # centralwidget.toolbox.listwidget. \
                     #     setItemSelected(itm, True)
             else:
                 for itm in itms:
                     itm.setSelected(False)
-                    # centralwidget.tools.listwidget. \
+                    # centralwidget.toolbox.listwidget. \
                     #     setItemSelected(itm, False)
             # give focus to listwidget so that highlighting works
             # (at least for short period until mouse is moved)
-            centralwidget.tools.listwidget.setFocus()
+            centralwidget.toolbox.listwidget.setFocus()
 
         return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 

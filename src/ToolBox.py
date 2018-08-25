@@ -5,6 +5,7 @@ import os
 from PySide2 import QtGui, QtCore, QtWidgets
 
 import PyAero
+import Airfoil
 import FileSystem
 import IconProvider
 import SvpMethod
@@ -50,17 +51,10 @@ class Toolbox(QtWidgets.QToolBox):
 
     def toolboxChanged(self):
 
-        if self.currentIndex() == self.tb4:
-            self.updatePoints()
-
-    def updatePoints(self):
-
-        for airfoil in self.parent.airfoils or len(self.parent.airfoils) == 1:
-            if airfoil.contourPolygon.isSelected():
-                pts = len(airfoil.spline_data[0][0])
-                break
-
-        self.points_on_airfoil.setText(str(pts))
+        # update points on airfoil when toolbox changed to meshing
+        if self.currentIndex() == self.tb4 and self.parent.airfoil:
+            pts = len(self.parent.airfoil.spline_data[0][0])
+            self.points_on_airfoil.setText(str(pts))
 
     def itemFileSystem(self):
 
@@ -104,9 +98,9 @@ class Toolbox(QtWidgets.QToolBox):
 
         self.listwidget = ListWidget(self.parent)
         self.listwidget.setEnabled(False)
-        # allow multiple selections
+        # allow only single selections
         self.listwidget.setSelectionMode(QtWidgets.QAbstractItemView.
-                                         ExtendedSelection)
+                                         SingleSelection)
         layout.addWidget(self.listwidget, stretch=5)
         layout.addStretch(stretch=1)
 
@@ -619,116 +613,92 @@ class Toolbox(QtWidgets.QToolBox):
 
     def toggleRawPoints(self):
         """Toggle points of raw airfoil contour (on/off)"""
-        for airfoil in self.parent.airfoils:
-            if hasattr(airfoil, 'polygonMarkersGroup') and \
-              airfoil.contourPolygon.isSelected():
-                visible = airfoil.polygonMarkersGroup.isVisible()
-                airfoil.polygonMarkersGroup.setVisible(not visible)
-                self.cb2.setChecked(not self.cb2.isChecked())
+        if self.parent.airfoil:
+            visible = self.parent.airfoil.polygonMarkersGroup.isVisible()
+            self.parent.airfoil.polygonMarkersGroup.setVisible(not visible)
+            self.cb2.setChecked(not self.cb2.isChecked())
 
     def toggleSplinePoints(self):
         """Toggle points of raw airfoil contour (on/off)"""
-        for airfoil in self.parent.airfoils:
-            if hasattr(airfoil, 'splineMarkersGroup') and \
-              airfoil.contourPolygon.isSelected():
-                visible = airfoil.splineMarkersGroup.isVisible()
-                airfoil.splineMarkersGroup.setVisible(not visible)
-                self.cb3.setChecked(not self.cb3.isChecked())
+        if self.parent.airfoil:
+            visible = self.parent.airfoil.splineMarkersGroup.isVisible()
+            self.parent.airfoil.splineMarkersGroup.setVisible(not visible)
+            self.cb3.setChecked(not self.cb3.isChecked())
 
     def toggleSpline(self):
-        for airfoil in self.parent.airfoils:
-            if airfoil.contourPolygon.isSelected():
-                visible = airfoil.contourSpline.isVisible()
-                airfoil.contourSpline.setVisible(not visible)
-                self.cb4.setChecked(not self.cb4.isChecked())
+        if self.parent.airfoil:
+            visible = self.parent.airfoil.contourSpline.isVisible()
+            self.parent.airfoil.contourSpline.setVisible(not visible)
+            self.cb4.setChecked(not self.cb4.isChecked())
 
     def toggleChord(self):
         """Toggle visibility of the airfoil chord"""
-        for airfoil in self.parent.airfoils:
-            if hasattr(airfoil, 'chord') and airfoil.contourPolygon.isSelected():
-                visible = airfoil.chord.isVisible()
-                airfoil.chord.setVisible(not visible)
-                self.cb5.setChecked(not self.cb5.isChecked())
+        if self.parent.airfoil:
+            visible = self.parent.airfoil.chord.isVisible()
+            self.parent.airfoil.chord.setVisible(not visible)
+            self.cb5.setChecked(not self.cb5.isChecked())
 
     def runPanelMethod(self):
         """Gui callback to run AeroPython panel method in module PSvpMethod"""
-        if not self.parent.airfoils:
-            self.noairfoilWarning('Can\'t run AeroPython')
+
+        if self.parent.airfoil:
+            x, y = self.parent.airfoil.raw_coordinates
+            u_inf = self.freestream.value()
+            alpha = self.spin.value()
+            panels = self.panels.value()
+            SvpMethod.runSVP(self.parent.airfoil.name, x, y, u_inf, alpha, panels)
+        else:
+            self.parent.slots.messageBox('No airfoil loaded.')
             return
-
-        for airfoil in self.parent.airfoils:
-            if airfoil.contourPolygon.isSelected():
-
-                x, y = airfoil.raw_coordinates
-                u_inf = self.freestream.value()
-                alpha = self.spin.value()
-                panels = self.panels.value()
-                SvpMethod.runSVP(airfoil.name, x, y, u_inf, alpha, panels)
 
     def spline_and_refine(self):
         """Spline and refine airfoil"""
 
-        # print('I am in Spline and Refine, filnally.\n')
-
-        if not self.parent.airfoils:
-            self.noairfoilWarning('Can\'t do splining and refining')
+        if self.parent.airfoil:
+            refine = SplineRefine.SplineRefine()
+            refine.doSplineRefine(tolerance=self.tolerance.value(),
+                                  points=self.points.value(),
+                                  ref_te=self.ref_te.value(),
+                                  ref_te_n=self.ref_te_n.value(),
+                                  ref_te_ratio=self.ref_te_ratio.value())
+        else:
+            self.parent.slots.messageBox('No airfoil loaded.')
             return
-
-        # print('Number of airfoils %s \n' % len(self.parent.airfoils))
-
-        for airfoil in self.parent.airfoils:
-            # print('Before IF\n')
-            if airfoil.contourPolygon.isSelected():
-                # print('Inside IF\n')
-                id = self.parent.airfoils.index(airfoil)
-
-                refine = SplineRefine.SplineRefine(id)
-                # print('\n Tolerance', self.tolerance.value())
-                refine.doSplineRefine(tolerance=self.tolerance.value(),
-                                      points=self.points.value(),
-                                      ref_te=self.ref_te.value(),
-                                      ref_te_n=self.ref_te_n.value(),
-                                      ref_te_ratio=self.ref_te_ratio.value())
 
     def makeTrailingEdge(self):
 
-        if not self.parent.airfoils:
-            self.noairfoilWarning('Can\'t make trailing edge')
+        if self.parent.airfoil:
+            if not hasattr(self.parent.airfoil, 'spline_data'):
+                message = 'Splining needs to be done first.'
+                self.parent.slots.messageBox(message)
+                return
+
+            trailing = TrailingEdge.TrailingEdge()
+            trailing.trailingEdge(blend=self.blend_u.value()/100.0,
+                                  ex=self.exponent_u.value(),
+                                  thickness=self.thickness.value(),
+                                  side='upper')
+            trailing.trailingEdge(blend=self.blend_l.value()/100.0,
+                                  ex=self.exponent_l.value(),
+                                  thickness=self.thickness.value(),
+                                  side='lower')
+        else:
+            self.parent.slots.messageBox('No airfoil loaded.')
             return
-
-        for airfoil in self.parent.airfoils:
-            if airfoil.contourPolygon.isSelected():
-                # check if splining already available
-                if not hasattr(airfoil, 'spline_data'):
-                    QtGui.QMessageBox. \
-                        information(self.parent, 'Information',
-                                    'Splining needs to be done first. %s.' %
-                                    ('Can\'t make trailing edge'),
-                                    QtGui.QMessageBox.Ok,
-                                    QtGui.QMessageBox.NoButton,
-                                    QtGui.QMessageBox.NoButton)
-                    return
-
-                id = self.parent.airfoils.index(airfoil)
-
-                trailing = TrailingEdge.TrailingEdge(id)
-                trailing.trailingEdge(blend=self.blend_u.value()/100.0,
-                                      ex=self.exponent_u.value(),
-                                      thickness=self.thickness.value(),
-                                      side='upper')
-                trailing.trailingEdge(blend=self.blend_l.value()/100.0,
-                                      ex=self.exponent_l.value(),
-                                      thickness=self.thickness.value(),
-                                      side='lower')
 
     def makeMesh(self):
 
-        for airfoil in self.parent.airfoils:
-            if airfoil.contourPolygon.isSelected():
-                contour = airfoil.spline_data[0]
-                break
-            else:
+        if self.parent.airfoil:
+            if not hasattr(self.parent.airfoil, 'spline_data'):
+                message = 'Splining needs to be done first.'
+                self.parent.slots.messageBox(message)
                 return
+
+            contour = self.parent.airfoil.spline_data[0]
+
+        else:
+            self.parent.slots.messageBox('No airfoil loaded.')
+            return
 
         progdialog = QtGui.QProgressDialog(
             "", "Cancel", 0, 4, self.parent)
@@ -792,11 +762,11 @@ class Toolbox(QtWidgets.QToolBox):
         logger.log.info('Mesh has %s vertices' % (len(vertices)))
         logger.log.info('Mesh has %s cells' % (len(connectivity)))
 
-        self.drawMesh(airfoil)
+        self.drawMesh(self.parent.airfoil)
 
         # enable mesh export and set filename
         self.box_meshexport.setEnabled(True)
-        nameroot, extension = os.path.splitext(str(airfoil.name))
+        nameroot, extension = os.path.splitext(str(self.parent.airfoil.name))
         self.lineedit_mesh.setText(nameroot + '_mesh')
 
     def drawMesh(self, airfoil):
@@ -859,8 +829,8 @@ class Toolbox(QtWidgets.QToolBox):
     def analyzeAirfoil(self):
         """Airfoil contour analysis with respect to geometric features"""
 
-        if not self.parent.airfoils:
-            self.noairfoilWarning('Can\'t do contour analysis')
+        if not self.parent.airfoil:
+            self.parent.slots.messageBox('No airfoil loaded.')
             return
 
         # switch tab and toolbox to contour analysis
@@ -884,25 +854,9 @@ class Toolbox(QtWidgets.QToolBox):
         self.cpb3.clicked.connect(lambda:
                                   self.parent.contourview.drawContour(3))
 
-    def noairfoilWarning(self, action):
-        QtGui.QMessageBox. \
-            information(self.parent, 'Information',
-                        'No airfoil loaded. %s.' % (action),
-                        QtGui.QMessageBox.Ok, QtGui.QMessageBox.NoButton,
-                        QtGui.QMessageBox.NoButton)
-        return
-
     def updatename(self):
 
-        name = ' '
-
-        for airfoil in self.parent.airfoils:
-            if airfoil.contourPolygon.isSelected():
-                name = airfoil.name
-                break
-
-        if name == ' ':
-            return
+        name = self.parent.airfoil.name
 
         sending_button = self.parent.sender()
         nameroot, extension = os.path.splitext(str(name))
@@ -946,9 +900,7 @@ class Toolbox(QtWidgets.QToolBox):
         filename = str(names[0])
 
         # get coordinates of modified contour
-        for airfoil in self.parent.airfoils:
-            if airfoil.contourPolygon.isSelected():
-                x, y = airfoil.spline_data[0]
+        x, y = self.parent.airfoil.spline_data[0]
 
         # export modified contour
         with open(filename, 'w') as f:
@@ -1007,33 +959,39 @@ class ListWidget(QtWidgets.QListWidget):
         super().__init__()
         self.parent = parent
 
-        self.itemClicked.connect(self.handleActivated)
+        self.itemClicked.connect(self.listItemClicked)
+        self.itemDoubleClicked.connect(self.listItemDoubleClicked)
 
     def keyPressEvent(self, event):
         key = event.key()
 
         if key == QtCore.Qt.Key_Delete:
-            items = self.selectedItems()
-            for item in items:
-                row = self.row(item)
-                self.takeItem(row)
-                delete = False
-                for airfoil in self.parent.airfoils:
-                    if item.text() == airfoil.name:
-                        delete = True
-                        break
-                if delete:
-                    self.parent.slots.removeAirfoil()
+            item = self.selectedItems()[0]
+            row = self.row(item)
+            self.takeItem(row)
+            delete = False
+            for airfoil in self.parent.airfoils:
+                if item.text() == airfoil.name:
+                    delete = True
+                    name = airfoil.name
+                    break
+            if delete:
+                self.parent.slots.removeAirfoil(name=name)
 
         # call original implementation of QListWidget keyPressEvent handler
         super().keyPressEvent(event)
 
-    def handleActivated(self, item):
+    def listItemClicked(self, item):
+        """show information of airfoil in message window"""
+        pass
 
+    def listItemDoubleClicked(self, item):
+        """make double clicked name in listwidget new active airfoil"""
         for airfoil in self.parent.airfoils:
-            airfoil.contourPolygon.setSelected(False)
-
-        for selecteditem in self.selectedItems():
-            for airfoil in self.parent.airfoils:
-                if airfoil.name == selecteditem.text():
-                    airfoil.contourPolygon.setSelected(True)
+            if airfoil.name == item.text():
+                # first clear all items from the scene
+                self.parent.scene.clear()
+                # activate double clicked airfoil
+                self.parent.airfoil = airfoil
+                Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
+                break

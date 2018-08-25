@@ -366,26 +366,20 @@ class GraphicsView(QtWidgets.QGraphicsView):
         pwr = pw.boundingRect()
         pw_mapped = pwr.width()
 
-        for airfoil in self.parent.airfoils:
-            if airfoil.contourPolygon:
-                if not hasattr(airfoil, 'polygonMarkers'):
-                    continue
-                markers = airfoil.polygonMarkers
-                x, y = airfoil.raw_coordinates
-                for i, marker in enumerate(markers):
-                    # in case of circle, args is a QRectF
-                    marker.args = [QtCore.QRectF(x[i]-r, y[i]-r, 2.*r, 2.*r)]
-                    marker.penwidth = pw_mapped
-            if airfoil.contourSpline:
-                if not hasattr(airfoil, 'splineMarkersGroup'):
-                    continue
-
-                markers = airfoil.splineMarkersGroup.childItems()
-                x, y = airfoil.spline_data[0]
-                for i, marker in enumerate(markers):
-                    # in case of circle, args is a QRectF
-                    marker.args = [QtCore.QRectF(x[i]-r, y[i]-r, 2.*r, 2.*r)]
-                    marker.penwidth = pw_mapped
+        if self.parent.airfoil.contourPolygon:
+            markers = self.parent.airfoil.polygonMarkers
+            x, y = self.parent.airfoil.raw_coordinates
+            for i, marker in enumerate(markers):
+                # in case of circle, args is a QRectF
+                marker.args = [QtCore.QRectF(x[i]-r, y[i]-r, 2.*r, 2.*r)]
+                marker.penwidth = pw_mapped
+        if self.parent.airfoil.contourSpline:
+            markers = self.parent.airfoil.splineMarkersGroup.childItems()
+            x, y = self.parent.airfoil.spline_data[0]
+            for i, marker in enumerate(markers):
+                # in case of circle, args is a QRectF
+                marker.args = [QtCore.QRectF(x[i]-r, y[i]-r, 2.*r, 2.*r)]
+                marker.penwidth = pw_mapped
 
     def getSceneFromView(self):
         """Cache view to be able to keep it during resize"""
@@ -487,11 +481,11 @@ class RubberBand(QtWidgets.QRubberBand):
 
             # zoom rect must be at least RUBBERBANDSIZE % of view to allow zoom
             if QPaintEvent.rect().width() < RUBBERBANDSIZE * self.view.width():
-                color = QtGui.QColor(30, 30, 50, 10)
+                color = QtGui.QColor(30, 30, 50, 1)
                 self.brush.setColor(color)
                 self.brush.setStyle(QtCore.Qt.SolidPattern)
             else:
-                color = QtGui.QColor(30, 30, 100, 35)
+                color = QtGui.QColor(10, 30, 140, 45)
                 self.brush.setColor(color)
                 self.brush.setStyle(QtCore.Qt.SolidPattern)
 
