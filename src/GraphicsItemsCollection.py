@@ -19,7 +19,7 @@ class GraphicsCollection:
 
         pen = QtGui.QPen(QtCore.Qt.SolidLine)
         pen.setColor(QtGui.QColor(0, 0, 0, 255))
-        pen.setWidth(0.2)
+        pen.setWidthF(0.2)
         pen.setJoinStyle(QtCore.Qt.MiterJoin)
         self.pen = pen
 

@@ -177,7 +177,8 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         self.focusbrush = QtGui.QBrush()
         self.focuspen = QtGui.QPen(QtCore.Qt.DashLine)
         self.focuspen.setColor(QtCore.Qt.darkGray)
-        self.focuspen.setWidthF(1.)
+        self.focuspen.setWidthF(1.0)
+        # no pen thickness change when zoomed
         self.focuspen.setCosmetic(True)  # no thickness change when zoomed
         painter.setBrush(self.focusbrush)
         painter.setPen(self.focuspen)

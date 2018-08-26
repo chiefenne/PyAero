@@ -4,7 +4,7 @@ import math
 from PySide2 import QtGui, QtCore, QtWidgets
 
 from Settings import ZOOMANCHOR, SCALEINC, MINZOOM, MAXZOOM, \
-                      MARKERSIZE, MARKERPENWIDTH, RUBBERBANDSIZE, VIEWSTYLE
+                      MARKERSIZE, RUBBERBANDSIZE, VIEWSTYLE
 
 # put constraints on rubberband zoom (relative rectangle wdith)
 RUBBERBANDSIZE = min(RUBBERBANDSIZE, 1.0)
@@ -308,36 +308,42 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def adjustMarkerSize(self):
         """Adjust marker size during zoom. Marker items are circles
-        which are otherwise affected by zoom.
+        which are otherwise affected by zoom. Using MARKERSIZE from
+        Settings a fixed markersize (e.g. 3 pixels) can be kept.
+        This method immitates the behaviour of pen.setCosmetic()
         """
         # markers are drawn in GraphicsItem using scene coordinates
         # in order to keep them constant size, also when zooming
-        # a fixed pixel size is mapped to scene coordinates
-        # depending on the zoom, this leads to always different scene
-        # coordinates
+        # a fixed pixel size (MARKERSIZE from settings) is mapped to
+        # scene coordinates
+        # depending on the zoom, this leads to always different
+        # scene coordinates
         # map a square with side length of MARKERSIZE to the scene coords
-        poly = self.mapToScene(QtCore.QRect(0, 0, MARKERSIZE, MARKERSIZE))
-        pw = self.mapToScene(QtCore.QRect(0, 0, MARKERPENWIDTH,
-                             MARKERPENWIDTH))
-        rect = poly.boundingRect()
-        r = rect.width()
-        pwr = pw.boundingRect()
-        pw_mapped = pwr.width()
+        mappedMarker = self.mapToScene(QtCore.QRect(0, 0,
+                                                        MARKERSIZE,
+                                                        MARKERSIZE))
+
+        mappedMarkerWidth = mappedMarker.boundingRect().width()
 
         if self.parent.airfoil.contourPolygon:
             markers = self.parent.airfoil.polygonMarkers
             x, y = self.parent.airfoil.raw_coordinates
             for i, marker in enumerate(markers):
                 # in case of circle, args is a QRectF
-                marker.args = [QtCore.QRectF(x[i]-r, y[i]-r, 2.*r, 2.*r)]
-                marker.penwidth = pw_mapped
+                marker.args = [QtCore.QRectF(x[i]-mappedMarkerWidth,
+                                             y[i]-mappedMarkerWidth,
+                                             2.*mappedMarkerWidth,
+                                             2.*mappedMarkerWidth)]
+
         if self.parent.airfoil.contourSpline:
             markers = self.parent.airfoil.splineMarkersGroup.childItems()
             x, y = self.parent.airfoil.spline_data[0]
             for i, marker in enumerate(markers):
                 # in case of circle, args is a QRectF
-                marker.args = [QtCore.QRectF(x[i]-r, y[i]-r, 2.*r, 2.*r)]
-                marker.penwidth = pw_mapped
+                marker.args = [QtCore.QRectF(x[i]-mappedMarkerWidth,
+                                             y[i]-mappedMarkerWidth,
+                                             2.*mappedMarkerWidth,
+                                             2.*mappedMarkerWidth)]
 
     def getSceneFromView(self):
         """Cache view to be able to keep it during resize"""
@@ -420,7 +426,7 @@ class RubberBand(QtWidgets.QRubberBand):
         painter = QtGui.QPainter(self)
 
         self.pen.setColor(QtGui.QColor(80, 80, 100))
-        self.pen.setWidth(2)
+        self.pen.setWidthF(1.5)
         self.pen.setStyle(QtCore.Qt.DotLine)
 
         # zoom rect must be at least RUBBERBANDSIZE % of view to allow zoom

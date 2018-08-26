@@ -50,7 +50,6 @@ AIRFOILDATA = PYAEROPATH + '/data/Airfoils'
 
 # size of airfoil coordinate markers in pixels
 MARKERSIZE = 3
-MARKERPENWIDTH = 1
 
 # default airfoil for fast loading
 DEFAULT_CONTOUR = AIRFOILDATA + '/F1K/hn1033a.dat'

@@ -792,7 +792,7 @@ class Toolbox(QtWidgets.QToolBox):
                     contour.Polyline(QtGui.QPolygonF(points), '')
                     # set its properties
                     contour.pen.setColor(QtGui.QColor(0, 0, 0, 255))
-                    contour.pen.setWidth(0.8)
+                    contour.pen.setWidthF(0.8)
                     contour.pen.setCosmetic(True)
                     contour.brush.setStyle(QtCore.Qt.NoBrush)
 
@@ -1000,6 +1000,6 @@ class ListWidget(QtWidgets.QListWidget):
                 # make loaded airfoil the currently active airfoil                
                 self.parent.airfoil = airfoil
                 Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
-                self.mainwindow.view.adjustMarkerSize()
+                # self.mainwindow.view.adjustMarkerSize()
                 break
 

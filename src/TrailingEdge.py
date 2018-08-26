@@ -90,7 +90,7 @@ class TrailingEdge:
                 airfoil.polygonMarkersGroup.setVisible(False)
                 airfoil.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
                 airfoil.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
-                self.mainwindow.view.adjustMarkerSize()
+                # self.mainwindow.view.adjustMarkerSize()
 
     def trailing(self, xx, yy, blend, ex, thickness, side='upper'):
         xmin = np.min(xx)

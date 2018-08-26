@@ -88,8 +88,8 @@ class Slots:
             self.parent.airfoil = airfoil
             # add airfoil to list of loaded airfoils
             self.parent.airfoils.append(airfoil)
-            # fit all airfoils into the view
-            self.onViewAll()
+            # automatically zoom airfoil so that it fits into the view
+            self.fitAirfoilInView()
             logger.info('Test ABCDEFG')
             logger.info('Airfoil <b><font color=%s>' % (LOGCOLOR) + name +
                             '</b> loaded')
@@ -113,30 +113,23 @@ class Slots:
         rectf = item.boundingRect()
         rf = copy.deepcopy(rectf)
 
-        # scale by 4% (seems to be done also by scene.itemsBoundingRect())
-        # after loading a single airfoil this leads to the same zoom as
-        # if onViewAll was called
         center = rf.center()
-
+        # make 4% smaller than width of graphicsview
         w = 1.04 * rf.width()
         h = 1.04 * rf.height()
+        # do not use setWidhtF and setHeightF here!!!
         rf.setWidth(w)
         rf.setHeight(h)
 
         # shift center of rectf
         cx = center.x()
-        # not easy to understand (at least for me)
-        # this is needed due to the Airfoil.shiftContours() function
-        # FIXME
-        # FIXME myabe "+ item.pos().y()" is not needed as we do not
-        # FIXME shift contours anymore
-        # FIXME
-        cy = center.y() + item.pos().y()
+        cy = center.y()
         rf.moveCenter(QtCore.QPointF(cx, cy))
 
         self.parent.view.fitInView(rf,
                                    aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
+        # it is IMPORTANT that this is called after fitInView
         # adjust airfoil marker size to MARKERSIZE setting
         self.parent.view.adjustMarkerSize()
 
@@ -146,10 +139,14 @@ class Slots:
     # # @QtCore.pyqtSlot()
     def onViewAll(self):
         """zoom inorder to view all items in the scene"""
+
+        # take all items except markers (as they are adjusted in size for view)
+
         rectf = self.parent.scene.itemsBoundingRect()
         self.parent.view.fitInView(rectf,
                                    aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
+        # it is IMPORTANT that this is called after fitInView
         # adjust airfoil marker size to MARKERSIZE setting
         self.parent.view.adjustMarkerSize()
 

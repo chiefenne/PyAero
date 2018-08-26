@@ -5,6 +5,7 @@ from PySide2 import QtGui, QtCore, QtWidgets
 
 import GraphicsItemsCollection as gic
 import GraphicsItem
+from Settings import MARKERSIZE
 import logging
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class Airfoil:
         self.spline_data = None
         self.raw_coordinates = None
         self.pencolor = QtGui.QColor(80, 150, 220, 255)
-        self.penwidth = 2.2
+        self.penwidth = 2.0
         self.brushcolor = QtGui.QColor()
         self.brushcolor.setNamedColor('#7c8696')
 
@@ -108,8 +109,9 @@ class Airfoil:
         contour.Polygon(QtGui.QPolygonF(points), self.name)
         # set its properties
         contour.pen.setColor(self.pencolor)
-        contour.pen.setWidth(self.penwidth)
-        contour.pen.setCosmetic(True)  # no pen thickness change when zoomed
+        contour.pen.setWidthF(self.penwidth)
+        # no pen thickness change when zoomed
+        contour.pen.setCosmetic(True)
         contour.brush.setColor(self.brushcolor)
 
         self.contourPolygon = GraphicsItem.GraphicsItem(contour)
@@ -123,11 +125,25 @@ class Airfoil:
 
             marker = gic.GraphicsCollection()
             marker.pen.setColor(QtGui.QColor(60, 60, 80, 255))
-            marker.pen.setWidth(0.08)
-            marker.pen.setCosmetic(True)  # no pen thickness change when zoomed
+            marker.pen.setWidthF(1.6)
+            # no pen thickness change when zoomed
+            marker.pen.setCosmetic(True)
             marker.brush.setColor(QtGui.QColor(217, 63, 122, 150))
-
-            marker.Circle(x, y, 0.035)
+            # circle size doesn't do anything here
+            # this is indirectly deactivated because we don't want to change
+            # marker size during zoom
+            # the sizing is thus handled in graphicsview adjustMarkerSize
+            # there a fixed markersize in pixels is taken from settings which
+            # can be configured by the user
+            
+            # FIXME
+            # FIXME this size still affects the items size for the scene.itemsBoundingRect()
+            # FIXME this is affecting slots.onViewAll()
+            # FIXME there it is not directly visible as adjustMarkerSize is called
+            # FIXME the fit acts to the size that shows up when adjustMarkerSize
+            # FIXME would not be called
+            # FIXME
+            marker.Circle(x, y, 0.002)
 
             markerItem = GraphicsItem.GraphicsItem(marker)
 
@@ -137,9 +153,17 @@ class Airfoil:
         line = gic.GraphicsCollection()
         color = QtGui.QColor(70, 70, 70, 255)
         line.pen.setColor(color)
-        line.pen.setWidth(0.02)
-        line.pen.setCosmetic(True)  # no pen thickness change when zoomed
-        line.pen.setStyle(QtCore.Qt.DashLine)
+        line.pen.setWidthF(0.8)
+        # no pen thickness change when zoomed
+        line.pen.setCosmetic(True)
+        # setting CustomDashLine not needed as it will be set
+        # implicitely by Qt when CustomDashLine is applied
+        # put it just for completness
+        line.pen.setStyle(QtCore.Qt.CustomDashLine)
+        stroke = 10
+        dot = 2
+        space =5
+        line.pen.setDashPattern([stroke, space, dot, space])
         index_min = np.argmin(self.raw_coordinates[0])
         index_max = np.argmax(self.raw_coordinates[0])
         line.Line(self.raw_coordinates[0][index_min],
@@ -164,8 +188,9 @@ class Airfoil:
         splinecontour.Polygon(QtGui.QPolygonF(points), self.name)
         # set its properties
         splinecontour.pen.setColor(self.pencolor)
-        splinecontour.pen.setWidth(self.penwidth)
-        splinecontour.pen.setCosmetic(True)  # no pen thickness change when zoomed
+        splinecontour.pen.setWidthF(self.penwidth)
+        # no pen thickness change when zoomed
+        splinecontour.pen.setCosmetic(True)
         splinecontour.brush.setColor(self.brushcolor)
         # add the pline polygon without filling
         splinecontour.brush.setStyle(QtCore.Qt.NoBrush)
@@ -194,7 +219,7 @@ class Airfoil:
 
             self.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
             self.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
-            self.mainwindow.view.adjustMarkerSize()
+            # self.mainwindow.view.adjustMarkerSize()
 
     def makeSplineMarkers(self):
         """Create marker for polygon contour"""
@@ -207,7 +232,9 @@ class Airfoil:
             splinemarker = gic.GraphicsCollection()
             splinemarker.pen.setColor(QtGui.QColor(60, 60, 80, 255))
             splinemarker.brush.setColor(QtGui.QColor(180, 180, 50, 230))
-            splinemarker.pen.setCosmetic(True)  # no pen thickness change when zoomed
+            splinemarker.pen.setWidthF(1.6)
+            # no pen thickness change when zoomed
+            splinemarker.pen.setCosmetic(True)
 
             splinemarker.Circle(x, y, 0.03)
 
