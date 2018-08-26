@@ -44,30 +44,6 @@ class Airfoil:
         self.brushcolor = QtGui.QColor()
         self.brushcolor.setNamedColor('#7c8696')
 
-        #
-        # QGraphicsItemGroup do not seem to completely act like
-        # individual items. Therefore no groups are used for the time being.
-        # Status from 24.8. 2018
-        #
-        # self.contourItemGroup = QtWidgets.QGraphicsItemGroup()        
-        # self.markersItemGroup = QtWidgets.QGraphicsItemGroup()       
-        # self.polygonMarkersItemGroup = QtWidgets.QGraphicsItemGroup()
-        # self.splineMarkersItemGroup = QtWidgets.QGraphicsItemGroup()
-        # set flags for QGraphicsItemGroup
-        # these flags seem to be default for QGraphicsItem but not for group
-        # self.contourItemGroup.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
-        # self.contourItemGroup.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
-        # self.contourItemGroup.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, True)
-        #
-        # hover events do not seem to work for the group, even if set to accepted
-        # according to the docs (link split on 3 lines):
-        # http://doc.qt.io/qtforpython/PySide2/QtWidgets/QGraphicsItem.html?
-        # highlight=setaccepthoverevents#PySide2.QtWidgets.PySide2.QtWidgets.
-        # QGraphicsItem.setAcceptHoverEvents
-        # it seems that the group is a parent item to the items which are grouped.
-        # Therefore it does not receive hover events
-        # self.contourItemGroup.setAcceptHoverEvents(True)
-        
     def readContour(self, filename, comment):
 
         try:
@@ -154,9 +130,6 @@ class Airfoil:
             marker.Circle(x, y, 0.035)
 
             markerItem = GraphicsItem.GraphicsItem(marker)
-            markerItem.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
-            markerItem.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
-            markerItem.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
 
             self.polygonMarkers.append(markerItem)
 
@@ -175,9 +148,6 @@ class Airfoil:
                   self.raw_coordinates[1][index_max])
 
         self.chord = GraphicsItem.GraphicsItem(line)
-        self.chord.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
-        self.chord.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
-        self.chord.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
         self.chord.setAcceptHoverEvents(False)
 
     def makeContourSpline(self):
@@ -242,9 +212,6 @@ class Airfoil:
             splinemarker.Circle(x, y, 0.03)
 
             splineMarkerItem = GraphicsItem.GraphicsItem(splinemarker)
-            splineMarkerItem.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
-            splineMarkerItem.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
-            splineMarkerItem.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
 
             self.splineMarkers.append(splineMarkerItem)
 

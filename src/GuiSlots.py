@@ -108,27 +108,18 @@ class Slots:
         if len(self.parent.airfoils) == 0:
             return
 
-        nothing_selected = True
-        for id, airfoil in enumerate(self.parent.airfoils):
-            if airfoil.contourPolygon.isSelected():
-                nothing_selected = False
-                break
-
-        if nothing_selected:
-            id = 0
-
         # get bounding rect in scene coordinates
-        item = self.parent.airfoils[id].contourPolygon
+        item = self.parent.airfoil.contourPolygon
         rectf = item.boundingRect()
         rf = copy.deepcopy(rectf)
 
-        # scale by 2% (seems to be done also by scene.itemsBoundingRect())
+        # scale by 4% (seems to be done also by scene.itemsBoundingRect())
         # after loading a single airfoil this leads to the same zoom as
         # if onViewAll was called
         center = rf.center()
 
-        w = 1.02 * rf.width()
-        h = 1.02 * rf.height()
+        w = 1.04 * rf.width()
+        h = 1.04 * rf.height()
         rf.setWidth(w)
         rf.setHeight(h)
 
@@ -143,7 +134,8 @@ class Slots:
         cy = center.y() + item.pos().y()
         rf.moveCenter(QtCore.QPointF(cx, cy))
 
-        self.parent.view.fitInView(rf, aspectRadioMode=QtCore.Qt.KeepAspectRatio)
+        self.parent.view.fitInView(rf,
+                                   aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
         # adjust airfoil marker size to MARKERSIZE setting
         self.parent.view.adjustMarkerSize()
@@ -153,9 +145,10 @@ class Slots:
 
     # # @QtCore.pyqtSlot()
     def onViewAll(self):
-        # calculates and returns the bounding rect of all items on the scene
+        """zoom inorder to view all items in the scene"""
         rectf = self.parent.scene.itemsBoundingRect()
-        self.parent.view.fitInView(rectf, aspectRadioMode=QtCore.Qt.KeepAspectRatio)
+        self.parent.view.fitInView(rectf,
+                                   aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
         # adjust airfoil marker size to MARKERSIZE setting
         self.parent.view.adjustMarkerSize()
@@ -242,6 +235,8 @@ class Slots:
     def removeAirfoil(self, name=None):
         """Remove all selected airfoils from the scene"""           
       
+        # the name parameter is only set when coming from listwidget
+        # and the deleting is done via DEL key
         if name:
             airfoil = self.getAirfoilByName(name)
         else:
@@ -249,8 +244,11 @@ class Slots:
 
         self.parent.airfoils.remove(airfoil)
 
-        # remove from scene
-        self.parent.scene.removeItem(self.parent.airfoil.contourPolygon)
+        # remove from scene only if active airfoil was chosen
+        if airfoil.name == self.parent.airfoil.name:
+            self.parent.scene.removeItem(self.parent.airfoil.contourPolygon)
+            self.parent.scene.removeItem(self.parent.airfoil.chord)
+            self.parent.scene.removeItem(self.parent.airfoil.polygonMarkersGroup)
 
         # remove also listwidget entry
         centralwidget = self.parent.centralwidget

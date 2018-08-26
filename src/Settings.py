@@ -71,9 +71,6 @@ FILEFILTER = ['*.dat', '*.txt', '*.msh']
 # 'center' means zooming wrt to the view center
 ZOOMANCHOR = 'mouse'
 
-# visibility of scroolbars in graphicsview (True, False)
-SCROLLBARS = False
-
 # background of graphicsview ('solid', 'gradient')
 VIEWSTYLE = 'gradient'
 
@@ -85,7 +82,7 @@ MAXZOOM = 100000.
 # i.e. width of zoom rectangle wrt to viewer window width
 # for smaller rectangles zoom is deactivated to avoid accidential zooms
 # valid values between 0.05 and 1.0
-RUBBERBANDSIZE = 0.06
+RUBBERBANDSIZE = 0.08
 
 # scale increment
 SCALEINC = 1.1

@@ -25,7 +25,7 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         self.scene = self.mainwindow.scene
 
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, True)
 
         # docs: For performance reasons, these notifications
@@ -86,10 +86,6 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):
-
-        if DEBUG:
-            print('I WAS IN GRAPHICSITEM mousePressEvent')
-        self.setCursor(QtGui.QCursor(QtCore.Qt.SizeAllCursor))
 
         # set item as topmost in stack
         # zstack = [itm.zValue() for itm in self.scene.items()]

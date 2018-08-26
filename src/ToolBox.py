@@ -436,7 +436,7 @@ class Toolbox(QtWidgets.QToolBox):
         layout.setAlignment(QtCore.Qt.AlignTop)
 
         # connect signals to slots
-        # lambda allows to easily send extra parameters to the slot
+        # lambda allows to send extra parameters
         self.cb1.clicked.connect(lambda: self.parent.slots.toggleLogDock('tick'))
         self.cb2.clicked.connect(self.toggleRawPoints)
         self.cb3.clicked.connect(self.toggleSplinePoints)
@@ -847,6 +847,7 @@ class Toolbox(QtWidgets.QToolBox):
         self.parent.contourview.analyze(plot)
 
         # connect signals to slots
+        # lambda allows to send extra parameters
         self.cpb1.clicked.connect(lambda:
                                   self.parent.contourview.drawContour(1))
         self.cpb2.clicked.connect(lambda:
@@ -962,6 +963,9 @@ class ListWidget(QtWidgets.QListWidget):
         self.itemClicked.connect(self.listItemClicked)
         self.itemDoubleClicked.connect(self.listItemDoubleClicked)
 
+        # get MainWindow instance (overcomes handling parents)
+        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+
     def keyPressEvent(self, event):
         key = event.key()
 
@@ -969,14 +973,12 @@ class ListWidget(QtWidgets.QListWidget):
             item = self.selectedItems()[0]
             row = self.row(item)
             self.takeItem(row)
-            delete = False
+
             for airfoil in self.parent.airfoils:
                 if item.text() == airfoil.name:
-                    delete = True
                     name = airfoil.name
+                    self.parent.slots.removeAirfoil(name=name)
                     break
-            if delete:
-                self.parent.slots.removeAirfoil(name=name)
 
         # call original implementation of QListWidget keyPressEvent handler
         super().keyPressEvent(event)
@@ -992,6 +994,12 @@ class ListWidget(QtWidgets.QListWidget):
                 # first clear all items from the scene
                 self.parent.scene.clear()
                 # activate double clicked airfoil
+                airfoil.makeAirfoil()
+                # add all airfoil items (contour markers) to the scene
+                Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
+                # make loaded airfoil the currently active airfoil                
                 self.parent.airfoil = airfoil
                 Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
+                self.mainwindow.view.adjustMarkerSize()
                 break
+
