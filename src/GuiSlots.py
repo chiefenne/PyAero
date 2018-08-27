@@ -165,7 +165,7 @@ class Slots:
 
     # @QtCore.pyqtSlot()
     def onSave(self):
-        (fname, thefilter) = QtGui.QFileDialog. \
+        (fname, thefilter) = QtWidgets.QFileDialog. \
             getSaveFileNameAndFilter(self.parent,
                                      'Save file', '.', filter=DIALOGFILTER)
         if not fname:

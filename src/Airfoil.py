@@ -1,11 +1,10 @@
 
 import numpy as np
 
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide2 import QtGui, QtCore
 
 import GraphicsItemsCollection as gic
 import GraphicsItem
-from Settings import MARKERSIZE
 import logging
 
 logger = logging.getLogger(__name__)
@@ -143,7 +142,7 @@ class Airfoil:
             # FIXME the fit acts to the size that shows up when adjustMarkerSize
             # FIXME would not be called
             # FIXME
-            marker.Circle(x, y, 0.002)
+            marker.Circle(x, y, 0.004)
 
             markerItem = GraphicsItem.GraphicsItem(marker)
 
@@ -195,31 +194,34 @@ class Airfoil:
         # add the pline polygon without filling
         splinecontour.brush.setStyle(QtCore.Qt.NoBrush)
 
-        self.contourSpline = GraphicsItem.GraphicsItem(splinecontour)
-
-        self.makeSplineMarkers()
-        
+        # remove items from iterated uses of spline/refine and trailing edge
+        if hasattr(self, 'contourSpline'):
+            self.mainwindow.scene.removeItem(self.contourSpline)
+        self.contourSpline = GraphicsItem.GraphicsItem(splinecontour)      
         self.mainwindow.scene.addItem(self.contourSpline)
+
+        # remove items from iterated uses of spline/refine and trailing edge
+        if hasattr(self, 'splineMarkersGroup'):
+            self.mainwindow.scene.removeItem(self.splineMarkersGroup)
+        self.makeSplineMarkers()
         self.splineMarkersGroup = self.mainwindow.scene. \
                                         createItemGroup(self.splineMarkers)
-
 
         self.mainwindow.airfoil.contourSpline.brush.setStyle(
                 QtCore.Qt.SolidPattern)
         color = QtGui.QColor()
         color.setNamedColor('#7c8696')
-        self.mainwindow.airfoil.contourSpline.brush.setColor(color)
-        self.mainwindow.airfoil.polygonMarkersGroup.setZValue(100)
-        self.mainwindow.airfoil.chord.setZValue(99)
+        self.contourSpline.brush.setColor(color)
+        self.polygonMarkersGroup.setZValue(100)
+        self.chord.setZValue(99)
 
         # switch off raw contour and toogle corresponding checkbox
-        if hasattr(self, 'polygonMarkersGroup') and \
-                   self.polygonMarkersGroup.isVisible():
+        if self.polygonMarkersGroup.isVisible():
             self.mainwindow.centralwidget.toolbox.toggleRawPoints()
 
-            self.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
-            self.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
-            # self.mainwindow.view.adjustMarkerSize()
+        self.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
+        self.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
+        self.mainwindow.view.adjustMarkerSize()
 
     def makeSplineMarkers(self):
         """Create marker for polygon contour"""
@@ -236,7 +238,7 @@ class Airfoil:
             # no pen thickness change when zoomed
             splinemarker.pen.setCosmetic(True)
 
-            splinemarker.Circle(x, y, 0.03)
+            splinemarker.Circle(x, y, 0.004)
 
             splineMarkerItem = GraphicsItem.GraphicsItem(splinemarker)
 

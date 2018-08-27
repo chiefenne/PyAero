@@ -9,15 +9,13 @@ import ContourAnalysis as pca
 
 class TrailingEdge:
 
-    def __init__(self, id):
-
-        self.id = id
+    def __init__(self):
 
         # get MainWindow instance (overcomes handling parents)
         self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
 
         # get spline data from airfoil object
-        self.spline_data = self.mainwindow.airfoils[self.id].spline_data
+        self.spline_data = self.mainwindow.airfoil.spline_data
 
         # contour analysis instance (no canvas/drawing needed)
         self.contour = pca.ContourAnalysis(None, canvas=False)
@@ -72,25 +70,23 @@ class TrailingEdge:
         xt = np.concatenate([xnu, xnl[1:]])
         yt = np.concatenate([ynu, ynl[1:]])
         self.spline_data[0] = (xt, yt)
-        self.mainwindow.airfoils[self.id].spline_data[0] = (xt, yt)
+        self.mainwindow.airfoil.spline_data[0] = (xt, yt)
 
-        # add splined and refined contour to the airfoil contourGroup
-        for airfoil in self.mainwindow.airfoils:
-            if airfoil.contourPolygon.isSelected():
-                airfoil.makeContourSpline()
-                airfoil.makeSplineMarkers()
-                airfoil.addSplineMarkers()
-                airfoil.contourSpline.brush.setStyle(
-                    QtCore.Qt.SolidPattern)
-                color = QtGui.QColor()
-                color.setNamedColor('#7c8696')
-                airfoil.contourSpline.brush.setColor(color)
-                airfoil.polygonMarkersGroup.setZValue(100)
-                airfoil.chord.setZValue(99)
-                airfoil.polygonMarkersGroup.setVisible(False)
-                airfoil.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
-                airfoil.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
-                # self.mainwindow.view.adjustMarkerSize()
+        # add modified splined contour to the airfoil contourGroup
+        # makeSplineMarkers call within makeContourSpline
+        self.mainwindow.airfoil.makeContourSpline()
+        self.mainwindow.airfoil.contourSpline.brush.setStyle(QtCore.Qt.SolidPattern)
+        color = QtGui.QColor()
+        color.setNamedColor('#7c8696')
+        self.mainwindow.airfoil.contourSpline.brush.setColor(color)
+        self.mainwindow.airfoil.polygonMarkersGroup.setZValue(100)
+        self.mainwindow.airfoil.chord.setZValue(99)
+        # switch off raw contour and toogle corresponding checkbox
+        if self.mainwindow.airfoil.polygonMarkersGroup.isVisible():
+            self.mainwindow.centralwidget.toolbox.toggleRawPoints()
+        self.mainwindow.airfoil.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
+        self.mainwindow.airfoil.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
+        self.mainwindow.view.adjustMarkerSize()
 
     def trailing(self, xx, yy, blend, ex, thickness, side='upper'):
         xmin = np.min(xx)

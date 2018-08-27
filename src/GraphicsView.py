@@ -322,7 +322,6 @@ class GraphicsView(QtWidgets.QGraphicsView):
         mappedMarker = self.mapToScene(QtCore.QRect(0, 0,
                                                         MARKERSIZE,
                                                         MARKERSIZE))
-
         mappedMarkerWidth = mappedMarker.boundingRect().width()
 
         if self.parent.airfoil.contourPolygon:
@@ -336,7 +335,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
                                              2.*mappedMarkerWidth)]
 
         if self.parent.airfoil.contourSpline:
-            markers = self.parent.airfoil.splineMarkersGroup.childItems()
+            markers = self.parent.airfoil.splineMarkers
             x, y = self.parent.airfoil.spline_data[0]
             for i, marker in enumerate(markers):
                 # in case of circle, args is a QRectF

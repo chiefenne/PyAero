@@ -47,7 +47,8 @@ class SplineRefine:
         # add spline data to airfoil object
         self.mainwindow.airfoil.spline_data = self.spline_data
 
-        # print('Copy back spline points inside IF')
+        # add splined and refined contour to the airfoil contourGroup
+        # makeSplineMarkers call within makeContourSpline
         self.mainwindow.airfoil.makeContourSpline()
 
     def spline(self, x, y, points=200, degree=2, evaluate=False):

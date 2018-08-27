@@ -130,13 +130,13 @@ class Toolbox(QtWidgets.QToolBox):
         self.panels.setValue(40)
         form.addRow(label3, self.panels)
 
-        runbtn = QtWidgets.QPushButton('Calculate lift coefficient')
-        form.addRow(runbtn)
+        panelMethodButton = QtWidgets.QPushButton('Calculate lift coefficient')
+        form.addRow(panelMethodButton)
 
         self.item_ap = QtWidgets.QGroupBox('AeroPython Panel Method')
         self.item_ap.setLayout(form)
 
-        runbtn.clicked.connect(self.runPanelMethod)
+        panelMethodButton.clicked.connect(self.runPanelMethod)
 
     def itemContourAnalysis(self):
 
@@ -165,16 +165,16 @@ class Toolbox(QtWidgets.QToolBox):
         self.cgb.setEnabled(False)
         box.addWidget(self.cgb)
 
-        button1 = QtWidgets.QPushButton('Analyze')
-        button1.setGeometry(10, 10, 200, 50)
-        box.addWidget(button1)
+        analyzeButton = QtWidgets.QPushButton('Analyze')
+        analyzeButton.setGeometry(10, 10, 200, 50)
+        box.addWidget(analyzeButton)
 
         box.addStretch(1)
 
         self.item_ca = QtWidgets.QWidget()
         self.item_ca.setLayout(box)
 
-        button1.clicked.connect(self.analyzeAirfoil)
+        analyzeButton.clicked.connect(self.analyzeAirfoil)
 
     def itemMeshing(self):
 
@@ -346,10 +346,10 @@ class Toolbox(QtWidgets.QToolBox):
         box_wake = QtWidgets.QGroupBox('Windtunnel mesh (wake)')
         box_wake.setLayout(vbox)
 
-        button = QtWidgets.QPushButton('Create Mesh')
+        createMeshButton = QtWidgets.QPushButton('Create Mesh')
         hbl_cm = QtWidgets.QHBoxLayout()
         hbl_cm.addStretch(stretch=1)
-        hbl_cm.addWidget(button, stretch=4)
+        hbl_cm.addWidget(createMeshButton, stretch=4)
         hbl_cm.addStretch(stretch=1)
 
         # export menu
@@ -357,15 +357,15 @@ class Toolbox(QtWidgets.QToolBox):
         hbox = QtWidgets.QHBoxLayout()
         lbl = QtWidgets.QLabel('Filename')
         self.lineedit_mesh = QtWidgets.QLineEdit(name)
-        btn = QtWidgets.QPushButton('Browse')
+        browseMeshButton = QtWidgets.QPushButton('Browse')
         hbox.addWidget(lbl)
         hbox.addWidget(self.lineedit_mesh)
-        hbox.addWidget(btn)
+        hbox.addWidget(browseMeshButton)
 
-        button1 = QtWidgets.QPushButton('Export Mesh')
+        exportMeshButton = QtWidgets.QPushButton('Export Mesh')
         hbl = QtWidgets.QHBoxLayout()
         hbl.addStretch(stretch=1)
-        hbl.addWidget(button1, stretch=4)
+        hbl.addWidget(exportMeshButton, stretch=4)
         hbl.addStretch(stretch=1)
 
         rdl = QtWidgets.QHBoxLayout()
@@ -409,9 +409,9 @@ class Toolbox(QtWidgets.QToolBox):
         self.item_msh = QtWidgets.QWidget()
         self.item_msh.setLayout(vbl)
 
-        btn.clicked.connect(self.onBrowseMesh)
-        button.clicked.connect(self.makeMesh)
-        button1.clicked.connect(self.exportMesh)
+        browseMeshButton.clicked.connect(self.onBrowseMesh)
+        createMeshButton.clicked.connect(self.makeMesh)
+        exportMeshButton.clicked.connect(self.exportMesh)
 
     def itemViewingOptions(self):
 
@@ -484,10 +484,10 @@ class Toolbox(QtWidgets.QToolBox):
         self.points.setValue(200)
         form.addRow(label, self.points)
 
-        button = QtWidgets.QPushButton('Spline and Refine')
+        splineButton = QtWidgets.QPushButton('Spline and Refine')
         hbl = QtWidgets.QHBoxLayout()
         hbl.addStretch(stretch=1)
-        hbl.addWidget(button, stretch=4)
+        hbl.addWidget(splineButton, stretch=4)
         hbl.addStretch(stretch=1)
 
         vbox = QtWidgets.QVBoxLayout()
@@ -536,10 +536,10 @@ class Toolbox(QtWidgets.QToolBox):
         self.thickness.setValue(0.4)
         form1.addRow(label, self.thickness)
 
-        button1 = QtWidgets.QPushButton('Add Trailing Edge')
+        trailingButton = QtWidgets.QPushButton('Add Trailing Edge')
         hbl1 = QtWidgets.QHBoxLayout()
         hbl1.addStretch(stretch=1)
-        hbl1.addWidget(button1, stretch=4)
+        hbl1.addWidget(trailingButton, stretch=4)
         hbl1.addStretch(stretch=1)
 
         vbox = QtWidgets.QVBoxLayout()
@@ -553,10 +553,10 @@ class Toolbox(QtWidgets.QToolBox):
         hbox = QtWidgets.QHBoxLayout()
         lbl = QtWidgets.QLabel('Filename')
         self.lineedit = QtWidgets.QLineEdit(name)
-        btn = QtWidgets.QPushButton('Browse')
+        exportContourButton = QtWidgets.QPushButton('Export Contour')
         hbox.addWidget(lbl)
         hbox.addWidget(self.lineedit)
-        hbox.addWidget(btn)
+        hbox.addWidget(exportContourButton)
 
         box2 = QtWidgets.QGroupBox('Export modified contour')
         box2.setLayout(hbox)
@@ -573,11 +573,11 @@ class Toolbox(QtWidgets.QToolBox):
         self.item_cm = QtWidgets.QWidget()
         self.item_cm.setLayout(vbl)
 
-        button.clicked.connect(self.spline_and_refine)
-        button1.clicked.connect(self.makeTrailingEdge)
-        button.clicked.connect(self.updatename)
-        button1.clicked.connect(self.updatename)
-        btn.clicked.connect(self.onBrowse)
+        splineButton.clicked.connect(self.spline_and_refine)
+        trailingButton.clicked.connect(self.makeTrailingEdge)
+        splineButton.clicked.connect(lambda: self.updatename('spline'))
+        trailingButton.clicked.connect(lambda: self.updatename('trailing'))
+        exportContourButton.clicked.connect(self.onBrowse)
 
     def makeToolbox(self):
 
@@ -855,17 +855,16 @@ class Toolbox(QtWidgets.QToolBox):
         self.cpb3.clicked.connect(lambda:
                                   self.parent.contourview.drawContour(3))
 
-    def updatename(self):
+    def updatename(self, sender_button):
 
         name = self.parent.airfoil.name
 
-        sending_button = self.parent.sender()
         nameroot, extension = os.path.splitext(str(name))
 
-        if 'Spline' in sending_button.text():
+        if 'spline' in sender_button:
             nameroot += '_Spline'
             self.lineedit.setText(nameroot + extension)
-        if 'Trailing' in sending_button.text():
+        if 'trailing' in sender_button:
             nameroot += '_Spline_TE'
             self.lineedit.setText(nameroot + extension)
 
@@ -873,7 +872,7 @@ class Toolbox(QtWidgets.QToolBox):
 
         names = []
 
-        dialog = QtGui.QFileDialog()
+        dialog = QtWidgets.QFileDialog()
 
         provider = IconProvider.IconProvider()
         dialog.setIconProvider(provider)
@@ -881,11 +880,11 @@ class Toolbox(QtWidgets.QToolBox):
         dialog.setNameFilterDetailsVisible(True)
         dialog.setDirectory(OUTPUTDATA)
         # allow only to select one file
-        dialog.setFileMode(QtGui.QFileDialog.AnyFile)
+        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
         # display also size and date
-        dialog.setViewMode(QtGui.QFileDialog.Detail)
+        dialog.setViewMode(QtWidgets.QFileDialog.Detail)
         # make it a save dialog
-        dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
+        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
         # put default name in the save dialog
         dialog.selectFile(self.lineedit.text())
 
@@ -902,6 +901,7 @@ class Toolbox(QtWidgets.QToolBox):
 
         # get coordinates of modified contour
         x, y = self.parent.airfoil.spline_data[0]
+        airfoil_name = self.parent.airfoil.name
 
         # export modified contour
         with open(filename, 'w') as f:
@@ -910,7 +910,7 @@ class Toolbox(QtWidgets.QToolBox):
             f.write('# Version: ' + PyAero.__version__ + '\n')
             f.write('# Author: ' + PyAero.__author__ + '\n')
             f.write('#\n')
-            f.write('# Derived from: %s\n' % (str(airfoil.name).strip()))
+            f.write('# Derived from: %s\n' % (str(airfoil_name).strip()))
             f.write('# Number of points: %s\n' % (len(x)))
             f.write('#\n')
             for i, xx in enumerate(x):
@@ -920,7 +920,7 @@ class Toolbox(QtWidgets.QToolBox):
 
         names = []
 
-        dialog = QtGui.QFileDialog()
+        dialog = QtWidgets.QFileDialog()
 
         provider = IconProvider.IconProvider()
         dialog.setIconProvider(provider)
@@ -928,11 +928,11 @@ class Toolbox(QtWidgets.QToolBox):
         dialog.setNameFilterDetailsVisible(True)
         dialog.setDirectory(OUTPUTDATA)
         # allow only to select one file
-        dialog.setFileMode(QtGui.QFileDialog.AnyFile)
+        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
         # display also size and date
-        dialog.setViewMode(QtGui.QFileDialog.Detail)
+        dialog.setViewMode(QtWidgets.QFileDialog.Detail)
         # make it a save dialog
-        dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
+        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
         # put default name in the save dialog
         dialog.selectFile(self.lineedit_mesh.text())
 
