@@ -24,17 +24,15 @@ class Windtunnel:
 
         # make a list point tuples
         # [(x1, y1), (x2, y2), (x3, y3), ... , (xn, yn)]
-        line = zip(x, y)
+        line = list(zip(x, y))
 
         # block mesh around airfoil contour
-        block_airfoil = BlockMesh(name=name)
-        block_airfoil.addLine(line)
-        block_airfoil.extrudeLine(line, length=thickness, direction=3,
-                                  divisions=divisions, ratio=ratio)
+        self.block_airfoil = BlockMesh(name=name)
+        self.block_airfoil.addLine(line)
+        self.block_airfoil.extrudeLine(line, length=thickness, direction=3,
+                                       divisions=divisions, ratio=ratio)
 
-        self.block_airfoil = block_airfoil
-        # self.block_airfoil.boundary = self.block_airfoil.getULines()[0]
-        self.blocks.append(block_airfoil)
+        self.blocks.append(self.block_airfoil)
 
     def TrailingEdgeMesh(self, name='', te_divisions=3,
                          length=0.04, divisions=6, ratio=3.0):
@@ -130,7 +128,7 @@ class Windtunnel:
         t = (np.tanh(xx) + 1.0) / 2.0
 
         line = si.splev(t, tck, der=0)
-        line = zip(line[0].tolist(), line[1].tolist())
+        line = list(zip(line[0].tolist(), line[1].tolist()))
 
         block_tunnel.addLine(line)
 
@@ -163,7 +161,7 @@ class Windtunnel:
                 continue
 
             line = list()
-            xo, yo = zip(*old_ulines[0])
+            xo, yo = list(zip(*old_ulines[0]))
             xo = np.array(xo)
             yo = np.array(yo)
             normals = BlockMesh.curveNormals(xo, yo)
@@ -351,16 +349,16 @@ class BlockMesh:
 
     def extrudeLine(self, line, direction=0, length=0.1, divisions=1,
                     ratio=1.00001, constant=False):
-        x, y = zip(*line)
+        x, y = list(zip(*line))
         x = np.array(x)
         y = np.array(y)
         if constant and direction == 0:
             x.fill(length)
-            line = zip(x.tolist(), y.tolist())
+            line = list(zip(x.tolist(), y.tolist()))
             self.addLine(line)
         elif constant and direction == 1:
             y.fill(length)
-            line = zip(x.tolist(), y.tolist())
+            line = list(zip(x.tolist(), y.tolist()))
             self.addLine(line)
         elif direction == 3:
             spacing = self.spacing(divisions=divisions,
@@ -370,7 +368,7 @@ class BlockMesh:
             for i in range(1, len(spacing)):
                 xo = x + spacing[i] * normals[:, 0]
                 yo = y + spacing[i] * normals[:, 1]
-                line = zip(xo.tolist(), yo.tolist())
+                line = list(zip(xo.tolist(), yo.tolist()))
                 self.addLine(line)
         elif direction == 4:
             spacing = self.spacing(divisions=divisions,
@@ -382,7 +380,7 @@ class BlockMesh:
             for i in range(1, len(spacing)):
                 xo = x + spacing[i] * normalx
                 yo = y + spacing[i] * normaly
-                line = zip(xo.tolist(), yo.tolist())
+                line = list(zip(xo.tolist(), yo.tolist()))
                 self.addLine(line)
 
     def distribute(self, direction='u', number=0, type='constant'):
@@ -414,7 +412,7 @@ class BlockMesh:
 
         # evaluate function at any parameter "0<=t<=1"
         line = si.splev(t, tck, der=0)
-        line = zip(line[0].tolist(), line[1].tolist())
+        line = list(zip(line[0].tolist(), line[1].tolist()))
 
         if direction == 'u':
             self.getULines()[number] = line

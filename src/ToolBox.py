@@ -30,7 +30,7 @@ class Toolbox(QtWidgets.QToolBox):
             parent (QWidget): MainWindow from PyAero.py
         """
         super().__init__()
-        
+
         self.parent = parent
 
         # set the style
@@ -65,7 +65,7 @@ class Toolbox(QtWidgets.QToolBox):
         # instance of QFileSystemModel
         filesystem_model = FileSystem.FileSystemModel()
         root_path = filesystem_model.rootPath()
-        
+
         self.tree = QtWidgets.QTreeView()
         self.tree.setModel(filesystem_model)
         self.tree.setRootIndex(filesystem_model.index(root_path))
@@ -700,7 +700,7 @@ class Toolbox(QtWidgets.QToolBox):
             self.parent.slots.messageBox('No airfoil loaded.')
             return
 
-        progdialog = QtGui.QProgressDialog(
+        progdialog = QtWidgets.QProgressDialog(
             "", "Cancel", 0, 4, self.parent)
         progdialog.setWindowTitle('Generating the CFD mesh')
         progdialog.setWindowModality(QtCore.Qt.WindowModal)
@@ -759,8 +759,8 @@ class Toolbox(QtWidgets.QToolBox):
         self.tunnel.mesh = connect.connectAllBlocks(self.tunnel.blocks)
         vertices, connectivity = self.tunnel.mesh
 
-        logger.log.info('Mesh has %s vertices' % (len(vertices)))
-        logger.log.info('Mesh has %s cells' % (len(connectivity)))
+        # logger.info('Mesh has %s vertices' % (len(vertices)))
+        # logger.info('Mesh has %s cells' % (len(connectivity)))
 
         self.drawMesh(self.parent.airfoil)
 
@@ -777,8 +777,7 @@ class Toolbox(QtWidgets.QToolBox):
         if hasattr(airfoil, 'mesh'):
             self.parent.scene.removeItem(airfoil.mesh)
 
-        airfoil.mesh = QtWidgets.QGraphicsItemGroup(parent=airfoil.contourPolygon)
-        self.parent.scene.addItem(airfoil.mesh)
+        mesh = list()
 
         for block in self.tunnel.blocks:
             for lines in [block.getULines(),
@@ -800,9 +799,8 @@ class Toolbox(QtWidgets.QToolBox):
                     # these are the objects which are drawn in the GraphicsView
                     meshline = GraphicsItem.GraphicsItem(contour)
 
-                    airfoil.mesh.addToGroup(meshline)
-
-        airfoil.contourItemGroup.addToGroup(airfoil.mesh)
+                    mesh.append(meshline)
+        airfoil.mesh = self.parent.scene.createItemGroup(mesh)
 
     def exportMesh(self, from_browse_mesh=False):
 
@@ -997,7 +995,7 @@ class ListWidget(QtWidgets.QListWidget):
                 airfoil.makeAirfoil()
                 # add all airfoil items (contour markers) to the scene
                 Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
-                # make loaded airfoil the currently active airfoil                
+                # make loaded airfoil the currently active airfoil
                 self.parent.airfoil = airfoil
                 Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
                 # self.mainwindow.view.adjustMarkerSize()

@@ -19,8 +19,6 @@ class Airfoil:
     Attributes:
         brushcolor (QColor): fill color for airfoil
         chord (QGraphicsItem): Description
-        contourItemGroup (QGraphicsItemGroup): Container for all items
-            which belong to the airfoil contour
         item (QGraphicsItem): graphics item derived from QPolygonF object
         name (str): airfoil name (without path)
         pencolor (QColor): color for airoil outline
@@ -91,12 +89,13 @@ class Airfoil:
         self.makeChord()
         self.makePolygonMarkers()
 
-    @staticmethod        
+    @staticmethod
     def addToScene(airfoil, scene):
         """add all items to the scene"""
         scene.addItem(airfoil.contourPolygon)
         scene.addItem(airfoil.chord)
-        airfoil.polygonMarkersGroup = scene.createItemGroup(airfoil.polygonMarkers)
+        airfoil.polygonMarkersGroup = scene. \
+            createItemGroup(airfoil.polygonMarkers)
 
     def makeContourPolygon(self, coordinates):
         """Add airfoil points as GraphicsItem to the scene"""
@@ -117,7 +116,7 @@ class Airfoil:
 
     def makePolygonMarkers(self):
         """Create marker for polygon contour"""
-        
+
         self.polygonMarkers = list()
 
         for x, y in zip(*self.raw_coordinates):
@@ -134,7 +133,7 @@ class Airfoil:
             # the sizing is thus handled in graphicsview adjustMarkerSize
             # there a fixed markersize in pixels is taken from settings which
             # can be configured by the user
-            
+
             # FIXME
             # FIXME this size still affects the items size for the scene.itemsBoundingRect()
             # FIXME this is affecting slots.onViewAll()
@@ -161,7 +160,7 @@ class Airfoil:
         line.pen.setStyle(QtCore.Qt.CustomDashLine)
         stroke = 10
         dot = 2
-        space =5
+        space = 5
         line.pen.setDashPattern([stroke, space, dot, space])
         index_min = np.argmin(self.raw_coordinates[0])
         index_max = np.argmax(self.raw_coordinates[0])
@@ -197,7 +196,7 @@ class Airfoil:
         # remove items from iterated uses of spline/refine and trailing edge
         if hasattr(self, 'contourSpline'):
             self.mainwindow.scene.removeItem(self.contourSpline)
-        self.contourSpline = GraphicsItem.GraphicsItem(splinecontour)      
+        self.contourSpline = GraphicsItem.GraphicsItem(splinecontour)
         self.mainwindow.scene.addItem(self.contourSpline)
 
         # remove items from iterated uses of spline/refine and trailing edge
@@ -205,10 +204,10 @@ class Airfoil:
             self.mainwindow.scene.removeItem(self.splineMarkersGroup)
         self.makeSplineMarkers()
         self.splineMarkersGroup = self.mainwindow.scene. \
-                                        createItemGroup(self.splineMarkers)
+            createItemGroup(self.splineMarkers)
 
-        self.mainwindow.airfoil.contourSpline.brush.setStyle(
-                QtCore.Qt.SolidPattern)
+        self.mainwindow.airfoil.contourSpline.brush. \
+            setStyle(QtCore.Qt.SolidPattern)
         color = QtGui.QColor()
         color.setNamedColor('#7c8696')
         self.contourSpline.brush.setColor(color)
@@ -225,7 +224,7 @@ class Airfoil:
 
     def makeSplineMarkers(self):
         """Create marker for polygon contour"""
-        
+
         self.splineMarkers = list()
 
         for x, y in zip(*self.spline_data[0]):
@@ -252,3 +251,4 @@ class Airfoil:
 
     def setBrushColor(self, r, g, b, a):
         self.brushcolor = QtGui.QColor(r, g, b, a)
+

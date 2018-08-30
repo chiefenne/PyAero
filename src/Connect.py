@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.spatial as ssp
 
-from PySide2 import QtGui, QtCore
+from PySide2 import QtGui, QtCore, QtWidgets
 
 
 class Connect:
@@ -41,7 +41,7 @@ class Connect:
 
     def connectAllBlocks(self, blocks):
 
-        progdialog = QtGui.QProgressDialog(
+        progdialog = QtWidgets.QProgressDialog(
             "", "Cancel", 0, 3, self.mainwindow)
         progdialog.setWindowTitle('Connect mesh blocks')
         progdialog.setWindowModality(QtCore.Qt.WindowModal)
