@@ -3,10 +3,7 @@
    <br />
 
 .. important::
-   VERSION 1.1 is released.
-   Meshes in AVL-FIRE, SU2, and GMSH formats can be generated now.
-
-   SU2 is not tested yet.
+   This is the new version of PyAero. It is based on Python 3 and Qt for Python (PySide2).
 
 
 ********************
