@@ -7,9 +7,6 @@ from PySide2 import QtCore
 
 from Settings import LOGDATA
 
-# have a class member to store the existing logger
-logger = logging.getLogger(__name__)
-
 
 '''
 class GuiHandler(logging.Handler):
@@ -48,46 +45,27 @@ class GuiHandler(logging.Handler):
 
 def log():
     
-    # f = io.StringIO()
-    # sys.stdout = f
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger('PyAero')
 
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    # logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-    
-    # create file handler which logs even debug messages
-    fh = logging.FileHandler(os.path.join(LOGDATA, 'PyAero.log'))
-    fh.setLevel(logging.DEBUG)
+    # create a file handler
+    logfile = os.path.join(LOGDATA, 'PyAero.log')
+    # remove any existing logfile
+    if os.path.exists(logfile):
+        os.remove(logfile)
+    file_handler = logging.FileHandler(logfile)
+    file_handler.setLevel(logging.DEBUG)
 
-    # create console handler with a higher log level
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.ERROR)
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setLevel(logging.ERROR)
 
-
-    # create GUI handler that reports to message window
-    # gh = GuiHandler()
-    # gh.setLevel(logging.DEBUG)
-
-    # create formatter and add it to the handlers
+    # create a logging format
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(formatter)
+    stream_handler.setFormatter(formatter)
 
-    fh.setFormatter(formatter)
-    ch.setFormatter(formatter)
+    # add the handlers to the root logger
+    logging.getLogger('').addHandler(file_handler)
+    logging.getLogger('').addHandler(stream_handler)
 
-    # add the handlers to logger
-    logger.addHandler(ch)
-    logger.addHandler(fh)
-    # logger.addHandler(gh)
-
-
-"""
-
-# application code
-
-logger.debug('debug message')
-logger.info('info message')
-logger.warn('warn message')
-logger.error('error message')
-logger.critical('critical message')
-
-"""
+    logger.info('Start logging.')

@@ -59,7 +59,6 @@ __version__ = '1.1.0'
 __email__ = 'andreas.ennemoser@aon.at'
 __status__ = 'Release'
 
-DEBUG = False
 
 class MainWindow(QtWidgets.QMainWindow):
     """PyAero's main QT window"""
@@ -76,16 +75,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.app = app
         self.app.mainwindow = self
 
-        if DEBUG:
-            attr = inspect.getmembers(app, lambda a:not(inspect.isroutine(a)))
-            print(attr)
-
-        self.style = style
-        
+        self.style = style        
         ### styles do not work anymore; need to come back      
         style_keys = [x.lower() for x in QtWidgets.QStyleFactory.keys()]
-        if DEBUG:
-            print(style_keys)
         # FIXME
         # FIXME currently leads to segmentation faults
         # FIXME
@@ -133,10 +125,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # setup user interface and menus
         self.init_GUI()
-
-        # prepare logger so that it logs to
-        # dock message window using HTML strings
-        Logger.log()
 
     def init_GUI(self):
 
@@ -190,7 +178,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if key == QtCore.Qt.Key_Escape and EXITONESCAPE:
             sys.exit(QtGui.qApp.quit())
         elif key == QtCore.Qt.Key_Home:
-            # logger.log.info('Home hit in mainwindow')
             self.slots.onViewAll()
         else:
             # progress event
@@ -240,6 +227,9 @@ class CentralWidget(QtWidgets.QWidget):
 
 
 def main():
+
+    # prepare logger
+    Logger.log()
 
     # main application (contains the main event loop)
     app = QtWidgets.QApplication(sys.argv)

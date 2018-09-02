@@ -4,8 +4,10 @@ from PySide2 import QtGui, QtWidgets
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 import PyAero
-import Logger as logger
 from Settings import LOGCOLOR
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class VtkWindow(QtWidgets.QFrame):
@@ -108,7 +110,8 @@ class VtkWindow(QtWidgets.QFrame):
         QVTKRenderWindowInteractor.
         """
         key = obj.GetKeyCode()
-        # logger.log.debug('Key code returned is %s' % (key))
+        logger.debug('Key code returned is {}'.format(key))
+
         if key == 'o':
             self.toggleOutline()
         elif key == 'p':

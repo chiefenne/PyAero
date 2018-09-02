@@ -9,7 +9,8 @@ import numpy as np
 
 from PySide2 import QtGui, QtCore, QtWidgets
 
-import Logger as logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ContourAnalysis(QtWidgets.QFrame):
@@ -157,7 +158,7 @@ class ContourAnalysis(QtWidgets.QFrame):
     def analyze(self, plot, reset=True):
 
         if reset:
-            # logger.stack(logger.log)
+            logger.debug('Printing stack', exc_info=True)
             self.reset()
 
         # get specific curve properties
@@ -190,8 +191,8 @@ class ContourAnalysis(QtWidgets.QFrame):
         xr, yr = self.spline_data[0]
         xle = xr[le_id]
         yle = yr[le_id]
-        # logger.log.info('Leading edge radius id: %s' % (le_id))
-        # logger.log.info('Leading edge radius: %s' % (rc))
+        logger.info('Leading edge radius id: {}'.format(le_id))
+        logger.info('Leading edge radius: {}'.format(rc))
 
         return rc, xc, yc, xle, yle, le_id
 

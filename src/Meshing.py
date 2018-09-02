@@ -7,7 +7,8 @@ import scipy.interpolate as si
 import PyAero
 from Utils import Utils as Utils
 from Settings import OUTPUTDATA
-import Logger as logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Windtunnel:
@@ -724,8 +725,8 @@ class BlockMesh:
             f.write('2\n')
             f.write('0 5\n')
 
-            logger.log.info('FIRE mesh <b><font color=%s> %s</b> saved to folder %s'
-                            % ('#005511', basename, OUTPUTDATA))
+            logger.info('FIRE mesh {} saved to folder {}'. \
+                        format(basename, OUTPUTDATA))
 
     @staticmethod
     def writeSU2(mesh, name=''):
@@ -821,8 +822,8 @@ class BlockMesh:
             f.write('3 2 5\n')
             f.write('3 5 8\n')
 
-            logger.log.info('SU2 mesh <b><font color=%s> %s</b> saved to folder %s'
-                            % ('#CC5511', basename, OUTPUTDATA))
+            logger.info('SU2 mesh {} saved to folder {}'. \
+                        format(basename, OUTPUTDATA))
 
     @staticmethod
     def writeGMSH(mesh, name=''):
@@ -871,8 +872,8 @@ class BlockMesh:
                 f.write(cell_connect)
             f.write('$EndElements\n')
 
-            logger.log.info('SU2 mesh <b><font color=%s> %s</b> saved to folder %s'
-                            % ('#224CCC', basename, OUTPUTDATA))
+            logger.info('GMSH mesh {} saved to folder {}'. \
+                        format(basename, OUTPUTDATA))
 
 
 class Smooth:

@@ -1,6 +1,5 @@
 from PySide2 import QtGui, QtCore, QtWidgets
 
-DEBUG = False
 
 class GraphicsItem(QtWidgets.QGraphicsItem):
     """

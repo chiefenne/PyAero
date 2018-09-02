@@ -5,7 +5,9 @@ from PySide2 import QtGui, QtCore, QtWidgets
 
 from Settings import ICONS_S, ICONS_L, MENUDATA
 
-DEBUG = False
+import logging
+logger = logging.getLogger(__name__)
+
 
 class MenusTools:
     # call constructor of MenusTools
@@ -84,8 +86,7 @@ class MenusTools:
 
             icon = QtGui.QIcon(ICONS_S + icon)
 
-            if DEBUG:
-                print('HANDLER', handler)
+            logger.debug('HANDLER: {}'.format(handler))
 
             if 'aboutQt' not in handler:
                 handler = 'self.parent.slots.' + handler

@@ -15,7 +15,9 @@ from scipy import integrate
 from PySide2 import QtCore
 
 from Settings import LOGCOLOR
-import Logger as logger
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Panel:
@@ -383,9 +385,6 @@ def runSVP(name, x, y, u_inf, alpha, npanel=40):
     cl = gamma*sum(panel.length for panel in panels) / \
         (0.5*freestream.u_inf*(x_max-x_min))
 
-    logger.log.info('Aerodynamic properties <b><font color=%s> %s</b>' %
-                    (LOGCOLOR, name))
-    logger.log.info('&nbsp;&nbsp;&nbsp;<b>Lift coefficient: Cl = %.3f [-]</b>'
-                    % (cl))
-    logger.log.info('&nbsp;&nbsp;&nbsp;<b>Uinf = %.2f [m/s], AOA = %.1f [&deg;] \
-                     </b>' % (u_inf, alpha))
+    logger.info('Aerodynamic properties {}'.format(name))
+    logger.info('Lift coefficient: Cl = {0:6.3f} [-]'.format(cl))
+    logger.info('Uinf = {0:6.3f} [m/s], AOA = {1:6.3f} [degree]'.format(u_inf, alpha))

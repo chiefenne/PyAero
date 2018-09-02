@@ -1,6 +1,5 @@
 import sys
 import copy
-import logging
 import webbrowser
 
 import PySide2
@@ -12,10 +11,8 @@ import GraphicsTest
 import IconProvider
 from Settings import DIALOGFILTER, AIRFOILDATA, LOGCOLOR, DEFAULT_CONTOUR, \
                       DEFAULT_STL
-
+import logging
 logger = logging.getLogger(__name__)
-
-getframe_expr = 'sys._getframe({}).f_code.co_name'
 
 
 class Slots:
@@ -54,7 +51,7 @@ class Slots:
             filenames
         # do nothing if CANCEL button was pressed
         except NameError as error:
-            logger.info('Error during file load: %s' % (error))
+            logger.info('Error during file load: {}'.format(error))
             return
 
         if 'stl' in selfilter.lower():  # method of QString object
@@ -90,9 +87,7 @@ class Slots:
             self.parent.airfoils.append(airfoil)
             # automatically zoom airfoil so that it fits into the view
             self.fitAirfoilInView()
-            logger.info('Test ABCDEFG')
-            logger.info('Airfoil <b><font color=%s>' % (LOGCOLOR) + name +
-                            '</b> loaded')
+            logger.info('Airfoil {} loaded.'.format(name))
 
             self.parent.centralwidget.toolbox.header.setEnabled(True)
             self.parent.centralwidget.toolbox.listwidget.setEnabled(True)
@@ -207,8 +202,8 @@ class Slots:
     def toggleLogDock(self, _sender):
         """Switch message log window on/off"""
 
-        print('I am toggleLogDock:')
-        print('This is _sender:', _sender)
+        logger.debug('I am toggleLogDock')
+        logger.debug('This is _sender: {}'.format(sender))
         
         visible = self.parent.messagedock.isVisible()
         self.parent.messagedock.setVisible(not visible)

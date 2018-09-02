@@ -3,7 +3,9 @@ import os
 from PySide2 import QtGui, QtCore, QtWidgets
 
 from Settings import AIRFOILDATA, FILEFILTER, ICONS_L
-import Logger as logger
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class FileSystemModel(QtWidgets.QFileSystemModel):
@@ -54,7 +56,7 @@ class FileSystemModel(QtWidgets.QFileSystemModel):
         if fileInfo.isDir():
             return
         name = self.getFileInfo(index)[0]
-        logger.info('<b><font color="#2784CB">%s</b> selected' % (name))
+        logger.info('Airfoil {} selected'.format(name))
 
     # @QtCore.Slot(QtCore.QModelIndex)
     def onFileLoad(self, index):
@@ -70,5 +72,7 @@ class FileSystemModel(QtWidgets.QFileSystemModel):
         name = fileInfo.fileName()
         ext = fileInfo.suffix()
         fullname = fileInfo.absoluteFilePath()
-        # print('FileInfo', [name, path, fullname, ext, fileInfo])
+        
+        logger.debug('FileInfo', [name, path, fullname, ext, fileInfo])
+
         return [name, path, fullname, ext, fileInfo]

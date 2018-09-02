@@ -13,10 +13,12 @@ import GraphicsItemsCollection as gic
 import GraphicsItem
 import SplineRefine
 import TrailingEdge
-import Logger as logger
 import Meshing
 import Connect
 from Settings import ICONS_L, DIALOGFILTER, DIALOGFILTER_MESH, OUTPUTDATA
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Toolbox(QtWidgets.QToolBox):
@@ -759,8 +761,8 @@ class Toolbox(QtWidgets.QToolBox):
         self.tunnel.mesh = connect.connectAllBlocks(self.tunnel.blocks)
         vertices, connectivity = self.tunnel.mesh
 
-        # logger.info('Mesh has %s vertices' % (len(vertices)))
-        # logger.info('Mesh has %s cells' % (len(connectivity)))
+        logger.debug('Mesh has {} vertices'.format(len(vertices)))
+        logger.debug('Mesh has {} cells'.format(len(connectivity)))
 
         self.drawMesh(self.parent.airfoil)
 
@@ -775,6 +777,7 @@ class Toolbox(QtWidgets.QToolBox):
 
         # delete old mesh if existing
         if hasattr(airfoil, 'mesh'):
+            logger.debug('MESH item type: {}'.format(type(airfoil.mesh)))
             self.parent.scene.removeItem(airfoil.mesh)
 
         mesh = list()

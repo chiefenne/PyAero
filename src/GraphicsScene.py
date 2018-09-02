@@ -1,6 +1,8 @@
 from PySide2 import QtWidgets
 
-DEBUG = False
+import logging
+logger = logging.getLogger(__name__)
+
 
 class GraphicsScene(QtWidgets.QGraphicsScene):
     """The graphics scene manages all items which are drawn in the graphics view
@@ -25,10 +27,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def mousePressEvent(self, event):
         """Re-implement QGraphicsView's mousePressEvent handler"""
 
-        if DEBUG:
-            print('I WAS IN GraphicsScene mousePressEvent')
-            print('Event accepted:', event.isAccepted())
-        #self.clearSelection()
+        logger.debug('I WAS IN GraphicsScene mousePressEvent')
+        logger.debug('Event accepted: {}'.format(event.isAccepted()))
 
         # call original implementation of QGraphicsView mousePressEvent handler
         super().mousePressEvent(event)

@@ -5,8 +5,8 @@ from PySide2 import QtGui, QtCore
 
 import GraphicsItemsCollection as gic
 import GraphicsItem
-import logging
 
+import logging
 logger = logging.getLogger(__name__)
 
 
@@ -48,8 +48,9 @@ class Airfoil:
             with open(filename, mode='r') as f:
                 lines = f.readlines()
         except IOError as error:
-            logger.log.error('Unable to open file %s. Error was: %s' %
-                             (filename, error))
+            # exc_info=True sends traceback to the logger
+            logger.error('Failed to open file {} with error {}'. \
+                         format(filename, error), exc_info=True)
             return False
 
         data = [line for line in lines if comment not in line]
@@ -60,13 +61,14 @@ class Airfoil:
             x = [float(l.split()[0]) for l in data]
             y = [float(l.split()[1]) for l in data]
         except (ValueError, IndexError) as error:
-            logger.log.error('Unable to parse file %s. Error was: %s' %
-                             (filename, error))
-            logger.log.info('Maybe not a valid airfoil file was used.')
+            logger.error('Unable to parse file file {}'. \
+                         format(filename))
+            logger.error('Following error occured: {}'.format(error))
             return False
         except:
-            logger.log.error('Unable to parse file %s. Unknown error caught.' %
-                             (filename))
+            # exc_info=True sends traceback to the logger
+            logger.error('Unable to parse file file {}. Unknown error caught.'\
+                         .format(filename), exc_info=True)
             return False
 
         # store airfoil coordinates as list of tuples

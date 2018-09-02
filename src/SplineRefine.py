@@ -6,7 +6,9 @@ import scipy.interpolate as si
 from PySide2 import QtGui, QtCore
 
 from Utils import Utils
-import Logger as logger
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class SplineRefine:
@@ -19,7 +21,7 @@ class SplineRefine:
     def doSplineRefine(self, tolerance=172.0, points=150, ref_te=3,
                        ref_te_n=6, ref_te_ratio=3.0):
 
-        # print('Arrived in doSplineRefine\n')
+        logger.debug('Arrived in doSplineRefine\n')
 
         # get raw coordinates
         x, y = self.mainwindow.airfoil.raw_coordinates
@@ -32,7 +34,7 @@ class SplineRefine:
         # refine the contour in order to meet the tolerance
         # this keeps the constant distribution but refines around the nose
         spline_data = copy.deepcopy(self.spline_data)
-        self.refine(spline_data, tolerance=tolerance, verbose=False)
+        self.refine(spline_data, tolerance=tolerance)
 
         # redo spline on refined contour
         # spline only evaluated at refined contour points (evaluate=True)
@@ -89,8 +91,7 @@ class SplineRefine:
 
         return spline_data
 
-    def refine(self, spline_data, tolerance=170.0, recursions=0,
-               verbose=False):
+    def refine(self, spline_data, tolerance=170.0, recursions=0):
         """Recursive refinement with respect to angle criterion (tol).
         If angle between two adjacent line segments is less than tol,
         a recursive refinement of the contour is performed until
@@ -101,7 +102,6 @@ class SplineRefine:
             recursions (int, optional): NO USER INPUT HERE
                                         Needed just for level information
                                         during recursions
-            verbose (bool, optional): Activate logger messages
         """
 
         # self.spline_data = [coo, u, t, der1, der2, tck]
@@ -109,8 +109,7 @@ class SplineRefine:
         t = spline_data[2]
         tck = spline_data[5]
 
-        if verbose:
-            logger.log.info('\nPoints before refining: %s \n' % (len(xx)))
+        logger.debug('\nPoints before refining: {} \n'.format(len(xx)))
 
         xn = copy.deepcopy(xx)
         yn = copy.deepcopy(yy)
@@ -132,10 +131,9 @@ class SplineRefine:
 
             if angle < tolerance:
 
-                if verbose:
-                    logger.log.info('Refining between segments %s %s,' %
-                                    (i, i + 1) + ' Tol=%05.1f, Angle=%05.1f\n'
-                                    % (tolerance, angle))
+                logger.debug('Refining between segments {} {},'.format(i, i + 1))
+                logger.debug('Tol={0:5.1f}, Angle={1:05.1f}\n'. \
+                             format(tolerance, angle))
 
                 refined[i] = True
                 refinements += 1
@@ -160,13 +158,10 @@ class SplineRefine:
                 j += 1
 
                 if first and recursions > 0:
-                    if verbose:
-                        logger.log.info('Recursion level: %s \n' %
-                                        (recursions))
+                    logger.debug('Recursion level: {} \n'.format(recursions))
                     first = False
 
-        if verbose:
-            logger.log.info('Points after refining: %s' % (len(xn)))
+        logger.debug('Points after refining: {}'.format(len(xn)))
 
         # update coordinate array, including inserted points
         spline_data[0] = (xn, yn)
@@ -175,7 +170,7 @@ class SplineRefine:
 
         # this is the recursion :)
         if refinements > 0:
-            self.refine(spline_data, tolerance, recursions + 1, verbose)
+            self.refine(spline_data, tolerance, recursions + 1)
 
         # stopping from recursion if no refinements done in this recursion
         else:
@@ -184,10 +179,9 @@ class SplineRefine:
             spline_data[3] = si.splev(tn, tck, der=1)
             spline_data[4] = si.splev(tn, tck, der=2)
 
-            if verbose:
-                logger.log.info('No more refinements.')
-                logger.log.info('\nTotal number of recursions: %s'
-                                % (recursions - 1))
+            logger.debug('No more refinements.')
+            logger.debug('\nTotal number of recursions: {}'. \
+                         format(recursions - 1))
 
             # due to recursive call to refine, here no object can be returned
             # instead use self to transfer data to the outer world :)
