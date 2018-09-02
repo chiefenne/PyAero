@@ -378,8 +378,7 @@ def runSVP(name, x, y, u_inf, alpha, npanel=40):
 
     # calculates the accuracy
     # accuracy = sum([panel.sigma*panel.length for panel in panels])
-    # logger.log.info('Accuracy (sum of source/sink strengths) = %s' %
-    #                 (accuracy))
+    logger.debug('Accuracy (sum of source/sink strengths) = {}'.format(accuracy))
 
     # calculates of the lift
     cl = gamma*sum(panel.length for panel in panels) / \

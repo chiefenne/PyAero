@@ -87,7 +87,7 @@ class Slots:
             self.parent.airfoils.append(airfoil)
             # automatically zoom airfoil so that it fits into the view
             self.fitAirfoilInView()
-            logger.info('Airfoil {} loaded.'.format(name))
+            logger.info('Airfoil {} loaded'.format(name))
 
             self.parent.centralwidget.toolbox.header.setEnabled(True)
             self.parent.centralwidget.toolbox.listwidget.setEnabled(True)
@@ -258,7 +258,7 @@ class Slots:
         # so in case text inside the log window was selected before
         # the new text is pastes correct
         self.parent.messages.moveCursor(QtGui.QTextCursor.End)
-        self.parent.messages.insertHtml(msg)
+        self.parent.messages.append(msg)
 
     # @QtCore.pyqtSlot()
     def onExit(self):

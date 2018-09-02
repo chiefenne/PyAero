@@ -126,6 +126,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # setup user interface and menus
         self.init_GUI()
 
+        # prepare logger
+        Logger.log(self)
+
     def init_GUI(self):
 
         # window size, position and title
@@ -227,9 +230,6 @@ class CentralWidget(QtWidgets.QWidget):
 
 
 def main():
-
-    # prepare logger
-    Logger.log()
 
     # main application (contains the main event loop)
     app = QtWidgets.QApplication(sys.argv)

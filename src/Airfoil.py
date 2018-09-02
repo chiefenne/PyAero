@@ -67,7 +67,7 @@ class Airfoil:
             return False
         except:
             # exc_info=True sends traceback to the logger
-            logger.error('Unable to parse file file {}. Unknown error caught.'\
+            logger.error('Unable to parse file file {}. Unknown error caught'\
                          .format(filename), exc_info=True)
             return False
 

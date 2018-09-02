@@ -4,7 +4,7 @@ import numpy as np
 
 from PySide2 import QtGui, QtCore
 from Utils import Utils
-import ContourAnalysis as pca
+import ContourAnalysis
 
 
 class TrailingEdge:
@@ -18,7 +18,7 @@ class TrailingEdge:
         self.spline_data = self.mainwindow.airfoil.spline_data
 
         # contour analysis instance (no canvas/drawing needed)
-        self.contour = pca.ContourAnalysis(None, canvas=False)
+        self.contour = ContourAnalysis.ContourAnalysis(None, canvas=False)
         self.contour.spline_data = self.spline_data
         self.contour.getCurvature()
 

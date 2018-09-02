@@ -191,8 +191,6 @@ class ContourAnalysis(QtWidgets.QFrame):
         xr, yr = self.spline_data[0]
         xle = xr[le_id]
         yle = yr[le_id]
-        logger.info('Leading edge radius id: {}'.format(le_id))
-        logger.info('Leading edge radius: {}'.format(rc))
 
         return rc, xc, yc, xle, yle, le_id
 

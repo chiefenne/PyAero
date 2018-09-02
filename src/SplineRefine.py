@@ -6,6 +6,7 @@ import scipy.interpolate as si
 from PySide2 import QtGui, QtCore
 
 from Utils import Utils
+import ContourAnalysis
 
 import logging
 logger = logging.getLogger(__name__)
@@ -18,10 +19,14 @@ class SplineRefine:
         # get MainWindow instance (overcomes handling parents)
         self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
 
+        # contour analysis instance (no canvas/drawing needed)
+        # needed to get LE radius, etc. after splining
+        self.contour = ContourAnalysis.ContourAnalysis(None, canvas=False)
+
     def doSplineRefine(self, tolerance=172.0, points=150, ref_te=3,
                        ref_te_n=6, ref_te_ratio=3.0):
 
-        logger.debug('Arrived in doSplineRefine\n')
+        logger.debug('Arrived in doSplineRefine')
 
         # get raw coordinates
         x, y = self.mainwindow.airfoil.raw_coordinates
@@ -52,6 +57,15 @@ class SplineRefine:
         # add splined and refined contour to the airfoil contourGroup
         # makeSplineMarkers call within makeContourSpline
         self.mainwindow.airfoil.makeContourSpline()
+
+        # get LE radius, etc.
+        self.contour.spline_data = self.spline_data
+        self.contour.getCurvature()
+        rc, xc, yc, xle, yle, le_id = self.contour.getLeRadius()
+
+        logger.info('Leading edge radius: {:11.8f}'.format(rc))
+        logger.info('Leading edge circle tangent at point: {}'.format(le_id))
+        
 
     def spline(self, x, y, points=200, degree=2, evaluate=False):
         """Interpolate spline through given points
