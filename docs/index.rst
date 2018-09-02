@@ -99,7 +99,7 @@ Or check this `PyAero tutorial on YouTube <https://www.youtube.com/watch?v=RBrBE
 Code repository
 ===============
 
-The code ist hosted on GitHub: `PyAero source code <https://github.com/chiefenne/PyAero>`_
+The code ist hosted on GitHub: `PyAero source code <https://github.com/chiefenne/PyAero-Qt-for-Python>`_
 
 .. toctree::
    :hidden:
