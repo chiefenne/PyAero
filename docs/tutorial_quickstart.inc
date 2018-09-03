@@ -3,9 +3,6 @@ Quickstart
 
 The general steps for mesh generation in `PyAero <index.html>`_ can be explained as follows:
 
-.. important::
-   It is important for the each of the following steps, that the airfoil is *selected*. I.e., after loading, click once onto the airfoil contour. You see that the contour is selected if a dashed black frame is drawn around the airfoil contour. If you click anywhere else in the graphics view, the contour will be deselected again, and none of the splining or meshing tasks will work.
-
 1. Load an airfoil contour file
 
    - Loading can be done in several ways (see also :ref:`tutorial_load`).

@@ -60,11 +60,11 @@ Features
  
  - Airfoil contour analysis
  
-   - Analyze gradient, curvature, and curvature circle at the leading edge
+   - Analyze gradient, curvature, and curvature circle at the leading edge, i.e. leadinge edge radius
  
  - Trailing edge generation
  
-   - Specification of the trailing edge thickness
+   - Specification of the trailing edge thickness (blunt trailing edge)
    - Smart blending functions (arbitrary polynomial)
    - Independent blending for upper and lower contour (e.g. for strong cambered airfoils)
  
