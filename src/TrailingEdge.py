@@ -4,7 +4,7 @@ import numpy as np
 
 from PySide2 import QtGui, QtCore
 from Utils import Utils
-import ContourAnalysis
+import ContourAnalysis as ca
 
 
 class TrailingEdge:
@@ -14,14 +14,6 @@ class TrailingEdge:
         # get MainWindow instance (overcomes handling parents)
         self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
 
-        # get spline data from airfoil object
-        self.spline_data = self.mainwindow.airfoil.spline_data
-
-        # contour analysis instance (no canvas/drawing needed)
-        self.contour = ContourAnalysis.ContourAnalysis(None, canvas=False)
-        self.contour.spline_data = self.spline_data
-        self.contour.getCurvature()
-
     def getUpperLower(self):
         """Split contour in upper and lower parts
 
@@ -29,9 +21,13 @@ class TrailingEdge:
             TYPE: Coordinates of upper and lower contours
         """
         # leading edge radius
-        rc, xc, yc, xle, yle, le_id = self.contour.getLeRadius()
+        # get LE radius, etc.
+        spline_data = self.mainwindow.airfoil.spline_data
+        curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
+        rc, xc, yc, xle, yle, le_id = ca.ContourAnalysis.getLeRadius(spline_data,
+                                                               curvature_data)
 
-        x, y = self.spline_data[0]
+        x, y = spline_data[0]
         upper = (x[:le_id + 1], y[:le_id + 1])
         lower = (x[le_id:], y[le_id:])
 
@@ -69,7 +65,6 @@ class TrailingEdge:
                                      side='lower')
         xt = np.concatenate([xnu, xnl[1:]])
         yt = np.concatenate([ynu, ynl[1:]])
-        self.spline_data[0] = (xt, yt)
         self.mainwindow.airfoil.spline_data[0] = (xt, yt)
 
         # add modified splined contour to the airfoil contourGroup
@@ -83,7 +78,7 @@ class TrailingEdge:
         self.mainwindow.airfoil.chord.setZValue(99)
         # switch off raw contour and toogle corresponding checkbox
         if self.mainwindow.airfoil.polygonMarkersGroup.isVisible():
-            self.mainwindow.centralwidget.toolbox.toggleRawPoints()
+            self.mainwindow.centralwidget.toolbox.cb2.cklick()
         self.mainwindow.airfoil.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
         self.mainwindow.airfoil.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
         self.mainwindow.view.adjustMarkerSize()

@@ -144,30 +144,30 @@ class Toolbox(QtWidgets.QToolBox):
 
         box = QtWidgets.QVBoxLayout()
 
-        hlayout = QtWidgets.QHBoxLayout()
-        gb = QtWidgets.QGroupBox('Select contour to analyse')
+        vlayout = QtWidgets.QVBoxLayout()
+        gb = QtWidgets.QGroupBox('Select contour to analyze')
         self.b1 = QtWidgets.QRadioButton('Original')
         self.b2 = QtWidgets.QRadioButton('Refined')
-        self.b1.setChecked(True)
-        hlayout.addWidget(self.b1)
-        hlayout.addWidget(self.b2)
-        gb.setLayout(hlayout)
+        self.b2.setChecked(True)
+        vlayout.addWidget(self.b1)
+        vlayout.addWidget(self.b2)
+        gb.setLayout(vlayout)
         box.addWidget(gb)
 
-        hlayout = QtWidgets.QHBoxLayout()
+        vlayout = QtWidgets.QVBoxLayout()
         self.cgb = QtWidgets.QGroupBox('Select plot quantity')
         self.cpb1 = QtWidgets.QRadioButton('Gradient')
         self.cpb2 = QtWidgets.QRadioButton('Curvature')
         self.cpb3 = QtWidgets.QRadioButton('Radius of Curvature')
         self.cpb1.setChecked(True)
-        hlayout.addWidget(self.cpb1)
-        hlayout.addWidget(self.cpb2)
-        hlayout.addWidget(self.cpb3)
-        self.cgb.setLayout(hlayout)
+        vlayout.addWidget(self.cpb1)
+        vlayout.addWidget(self.cpb2)
+        vlayout.addWidget(self.cpb3)
+        self.cgb.setLayout(vlayout)
         self.cgb.setEnabled(False)
         box.addWidget(self.cgb)
 
-        analyzeButton = QtWidgets.QPushButton('Analyze')
+        analyzeButton = QtWidgets.QPushButton('Analyze Contour')
         analyzeButton.setGeometry(10, 10, 200, 50)
         box.addWidget(analyzeButton)
 
@@ -423,13 +423,18 @@ class Toolbox(QtWidgets.QToolBox):
         self.cb1 = QtWidgets.QCheckBox('Message Window')
         self.cb1.setChecked(True)
         self.cb2 = QtWidgets.QCheckBox('Airfoil Points')
-        self.cb2.setChecked(True)
+        self.cb2.setChecked(False)
+        self.cb2.setEnabled(False)
         self.cb3 = QtWidgets.QCheckBox('Airfoil Spline Points')
-        self.cb3.setChecked(True)
+        self.cb3.setChecked(False)
+        self.cb3.setEnabled(False)
         self.cb4 = QtWidgets.QCheckBox('Airfoil Spline Contour')
-        self.cb4.setChecked(True)
+        self.cb4.setChecked(False)
+        self.cb4.setEnabled(False)
         self.cb5 = QtWidgets.QCheckBox('Airfoil Chord')
-        self.cb5.setChecked(True)
+        self.cb5.setChecked(False)
+        self.cb5.setEnabled(False)
+
         layout.addWidget(self.cb1)
         layout.addWidget(self.cb2)
         layout.addWidget(self.cb3)
@@ -590,7 +595,6 @@ class Toolbox(QtWidgets.QToolBox):
         self.tb4 = self.addItem(self.item_msh, 'Meshing')
         self.tb5 = self.addItem(self.item_ap, 'Aerodynamics')
         self.tb3 = self.addItem(self.item_ca, 'Contour Analysis')
-        self.setItemEnabled(self.tb3, False)
         self.tb6 = self.addItem(self.item_vo, 'Viewing options')
 
         self.setItemToolTip(0, 'Airfoil database ' +
@@ -611,34 +615,30 @@ class Toolbox(QtWidgets.QToolBox):
         self.setItemIcon(5, QtGui.QIcon(ICONS_L + 'Configuration.png'))
 
         # preselect airfoil database box
-        self.setCurrentIndex(0)
+        self.setCurrentIndex(self.tb1)
 
     def toggleRawPoints(self):
         """Toggle points of raw airfoil contour (on/off)"""
-        if self.parent.airfoil:
+        if hasattr(self.parent.airfoil, 'polygonMarkersGroup'):
             visible = self.parent.airfoil.polygonMarkersGroup.isVisible()
             self.parent.airfoil.polygonMarkersGroup.setVisible(not visible)
-            self.cb2.setChecked(not self.cb2.isChecked())
 
     def toggleSplinePoints(self):
         """Toggle points of raw airfoil contour (on/off)"""
-        if self.parent.airfoil:
+        if hasattr(self.parent.airfoil, 'splineMarkersGroup'):
             visible = self.parent.airfoil.splineMarkersGroup.isVisible()
             self.parent.airfoil.splineMarkersGroup.setVisible(not visible)
-            self.cb3.setChecked(not self.cb3.isChecked())
 
     def toggleSpline(self):
-        if self.parent.airfoil:
+        if hasattr(self.parent.airfoil, 'contourSpline'):
             visible = self.parent.airfoil.contourSpline.isVisible()
             self.parent.airfoil.contourSpline.setVisible(not visible)
-            self.cb4.setChecked(not self.cb4.isChecked())
 
     def toggleChord(self):
         """Toggle visibility of the airfoil chord"""
-        if self.parent.airfoil:
+        if hasattr(self.parent.airfoil, 'chord'):
             visible = self.parent.airfoil.chord.isVisible()
             self.parent.airfoil.chord.setVisible(not visible)
-            self.cb5.setChecked(not self.cb5.isChecked())
 
     def runPanelMethod(self):
         """Gui callback to run AeroPython panel method in module PSvpMethod"""
@@ -773,7 +773,8 @@ class Toolbox(QtWidgets.QToolBox):
 
     def drawMesh(self, airfoil):
 
-        self.toggleSplinePoints()
+        # toggle spline points
+        self.cb3.click()
 
         # delete old mesh if existing
         if hasattr(airfoil, 'mesh'):
@@ -834,27 +835,25 @@ class Toolbox(QtWidgets.QToolBox):
             self.parent.slots.messageBox('No airfoil loaded.')
             return
 
-        # switch tab and toolbox to contour analysis
+        # switch tab contour analysis
         self.parent.centralwidget.tabs.setCurrentIndex(1)
-        self.setCurrentIndex(1)
+        # keep tab 'Contour Analysis'
+        self.setCurrentIndex(self.tb3)
 
         # enable radio buttons for plotting when analysis starts
         self.cgb.setEnabled(True)
 
-        # select plot variable based on radio button state
-        plot = 1*self.cpb1.isChecked() + 2*self.cpb2.isChecked() + \
-            3*self.cpb3.isChecked()
         # analyse contour
-        self.parent.contourview.analyze(plot)
+        self.parent.contourview.analyze()
 
         # connect signals to slots
         # lambda allows to send extra parameters
         self.cpb1.clicked.connect(lambda:
-                                  self.parent.contourview.drawContour(1))
+                                  self.parent.contourview.drawContour('gradient'))
         self.cpb2.clicked.connect(lambda:
-                                  self.parent.contourview.drawContour(2))
+                                  self.parent.contourview.drawContour('curvature'))
         self.cpb3.clicked.connect(lambda:
-                                  self.parent.contourview.drawContour(3))
+                                  self.parent.contourview.drawContour('radius'))
 
     def updatename(self, sender_button):
 
@@ -998,9 +997,9 @@ class ListWidget(QtWidgets.QListWidget):
                 airfoil.makeAirfoil()
                 # add all airfoil items (contour markers) to the scene
                 Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
-                # make loaded airfoil the currently active airfoil
+                # make double clicked airfoil the currently active airfoil
                 self.parent.airfoil = airfoil
-                Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
-                # self.mainwindow.view.adjustMarkerSize()
+                # adjust the marker size again
+                self.mainwindow.view.adjustMarkerSize()
                 break
 

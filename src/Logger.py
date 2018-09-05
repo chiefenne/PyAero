@@ -1,9 +1,5 @@
-import sys
 import os
-import io
 import logging
-
-from PySide2 import QtCore
 
 from Settings import LOGDATA
 
@@ -67,6 +63,9 @@ def log(mainwindow):
 
     # add the handlers to the root logger
     logging.getLogger('').addHandler(file_handler)
+    # FIXME
+    # FIXME make console logger active/non-active via settings option
+    # FIXME
     # logging.getLogger('').addHandler(console_handler)
     logging.getLogger('').addHandler(gui_handler)
 

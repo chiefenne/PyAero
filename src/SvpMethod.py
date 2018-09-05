@@ -14,7 +14,6 @@ from scipy import integrate
 
 from PySide2 import QtCore
 
-from Settings import LOGCOLOR
 
 import logging
 logger = logging.getLogger(__name__)
@@ -94,7 +93,7 @@ def define_panels(x, y, N=40):
 
     # computes the y-coordinate of end-points
     I = 0
-    for i in xrange(N):
+    for i in range(N):
         while I < len(x)-1:
             if (x[I] <= x_ends[i] <= x[I+1]) or (x[I+1] <= x_ends[i] <= x[I]):
                 break
@@ -107,7 +106,7 @@ def define_panels(x, y, N=40):
     y_ends[N] = y_ends[0]
 
     panels = numpy.empty(N, dtype=object)
-    for i in xrange(N):
+    for i in range(N):
         panels[i] = Panel(x_ends[i], y_ends[i], x_ends[i+1], y_ends[i+1])
 
     return panels
@@ -298,8 +297,8 @@ def get_velocity_field(panels, freestream, X, Y):
     Nx, Ny = X.shape
     u, v = numpy.empty((Nx, Ny), dtype=float), numpy.empty((Nx, Ny), dtype=float)
 
-    for i in xrange(Nx):
-        for j in xrange(Ny):
+    for i in range(Nx):
+        for j in range(Ny):
             u[i,j] = freestream.u_inf*math.cos(freestream.alpha)\
                      + 0.5/math.pi*sum([p.sigma*integral(X[i,j], Y[i,j], p, 1, 0) for p in panels])
             v[i,j] = freestream.u_inf*math.sin(freestream.alpha)\
@@ -377,7 +376,7 @@ def runSVP(name, x, y, u_inf, alpha, npanel=40):
     get_pressure_coefficient(panels, freestream)
 
     # calculates the accuracy
-    # accuracy = sum([panel.sigma*panel.length for panel in panels])
+    accuracy = sum([panel.sigma*panel.length for panel in panels])
     logger.debug('Accuracy (sum of source/sink strengths) = {}'.format(accuracy))
 
     # calculates of the lift

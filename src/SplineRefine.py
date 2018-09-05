@@ -6,7 +6,7 @@ import scipy.interpolate as si
 from PySide2 import QtGui, QtCore
 
 from Utils import Utils
-import ContourAnalysis
+import ContourAnalysis as ca
 
 import logging
 logger = logging.getLogger(__name__)
@@ -18,10 +18,6 @@ class SplineRefine:
 
         # get MainWindow instance (overcomes handling parents)
         self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
-
-        # contour analysis instance (no canvas/drawing needed)
-        # needed to get LE radius, etc. after splining
-        self.contour = ContourAnalysis.ContourAnalysis(None, canvas=False)
 
     def doSplineRefine(self, tolerance=172.0, points=150, ref_te=3,
                        ref_te_n=6, ref_te_ratio=3.0):
@@ -59,9 +55,10 @@ class SplineRefine:
         self.mainwindow.airfoil.makeContourSpline()
 
         # get LE radius, etc.
-        self.contour.spline_data = self.spline_data
-        self.contour.getCurvature()
-        rc, xc, yc, xle, yle, le_id = self.contour.getLeRadius()
+        spline_data = self.mainwindow.airfoil.spline_data
+        curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
+        rc, xc, yc, xle, yle, le_id = ca.ContourAnalysis.getLeRadius(spline_data,
+                                                               curvature_data)
 
         logger.info('Leading edge radius: {:11.8f}'.format(rc))
         logger.info('Leading edge circle tangent at point: {}'.format(le_id))
@@ -188,7 +185,6 @@ class SplineRefine:
 
         # stopping from recursion if no refinements done in this recursion
         else:
-
             # update derivatives, including inserted points
             spline_data[3] = si.splev(tn, tck, der=1)
             spline_data[4] = si.splev(tn, tck, der=2)

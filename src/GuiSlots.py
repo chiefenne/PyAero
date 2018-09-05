@@ -203,7 +203,7 @@ class Slots:
         """Switch message log window on/off"""
 
         logger.debug('I am toggleLogDock')
-        logger.debug('This is _sender: {}'.format(sender))
+        logger.debug('This is _sender: {}'.format(_sender))
         
         visible = self.parent.messagedock.isVisible()
         self.parent.messagedock.setVisible(not visible)
@@ -302,7 +302,7 @@ class Slots:
         self.parent.centralwidget.toolbox.setCurrentIndex(tab)
         
     def messageBox(self, message):
-        QtGui.QMessageBox. \
+        QtWidgets.QMessageBox. \
             information(self.parent, 'Information',
                         message,
                         QtGui.QMessageBox.Ok,

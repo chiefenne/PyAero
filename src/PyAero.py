@@ -14,7 +14,6 @@ accurate input to the subsequent meshing process.
 
 import os
 import sys
-import inspect
 
 path_of_this_file = os.path.dirname(__file__)
 sys.path.append(path_of_this_file)
@@ -33,12 +32,6 @@ from Settings import ICONS, LOCALE, STYLE, EXITONESCAPE, \
                       OUTPUTDATA, MENUDATA, VIEWSTYLE, LOGDATA
 import Logger
 import ShortCuts
-
-try:
-    import matplotlib
-    matplotlib_installed = True
-except ImportError:
-    matplotlib_installed = False
 
 try:
     import VtkView
@@ -77,7 +70,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.style = style        
         ### styles do not work anymore; need to come back      
-        style_keys = [x.lower() for x in QtWidgets.QStyleFactory.keys()]
+        # style_keys = [x.lower() for x in QtWidgets.QStyleFactory.keys()]
         # FIXME
         # FIXME currently leads to segmentation faults
         # FIXME
@@ -95,8 +88,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view.viewstyle = VIEWSTYLE
 
         # prepare additional views for tabs in right splitter window
-        if matplotlib_installed:
-            self.contourview = ContourAnalysis.ContourAnalysis(self)
+        self.contourview = ContourAnalysis.ContourAnalysis()
 
         # send same scene to meshingview as above
         # self.meshingview = GraphicsView.GraphicsView(self, self.scene)
@@ -202,18 +194,14 @@ class CentralWidget(QtWidgets.QWidget):
         self.toolbox = ToolBox.Toolbox(self.parent)
         self.splitter.addWidget(self.toolbox)
 
+        # create tabbed windows for viewing
         self.tabs = QtWidgets.QTabWidget()
-        self.tabs.addTab(self.parent.view, 'Airfoil')
-
-        if matplotlib_installed:
-            self.tabs.addTab(self.parent.contourview, 'Contour Analysis')
-
+        self.tabs.addTab(self.parent.view, 'Airfoil Viewer')
+        self.tabs.addTab(self.parent.contourview, 'Contour Analysis')
         # self.tabs.addTab(self.parent.meshingview, 'Meshing')
-
+        # self.tabs.addTab(self.parent.htmlview, 'HTML View')
         if VTK_installed:
             self.tabs.addTab(self.parent.postview, 'Post Processing')
-
-        # self.tabs.addTab(self.parent.htmlview, 'HTML View')
 
         # connect tab changed signal to slot
         self.tabs.currentChanged.connect(self.parent.slots.onTabChanged)
