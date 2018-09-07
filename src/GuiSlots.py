@@ -304,10 +304,7 @@ class Slots:
     def messageBox(self, message):
         QtWidgets.QMessageBox. \
             information(self.parent, 'Information',
-                        message,
-                        QtGui.QMessageBox.Ok,
-                        QtGui.QMessageBox.NoButton,
-                        QtGui.QMessageBox.NoButton)
+                        message, QtWidgets.QMessageBox.Ok)
 
     # @QtCore.pyqtSlot()
     def onRedo(self):

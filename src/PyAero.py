@@ -33,14 +33,6 @@ from Settings import ICONS, LOCALE, STYLE, EXITONESCAPE, \
 import Logger
 import ShortCuts
 
-try:
-    import VtkView
-    VTK_installed = True
-except ImportError:
-    VTK_installed = False
-
-# VTK needs to be extra investigated by me as the old
-VTK_installed = False
 
 __appname__ = 'PyAero'
 __author__ = 'Andreas Ennemoser'
@@ -88,14 +80,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view.viewstyle = VIEWSTYLE
 
         # prepare additional views for tabs in right splitter window
-        self.contourview = ContourAnalysis.ContourAnalysis()
-
-        # send same scene to meshingview as above
-        # self.meshingview = GraphicsView.GraphicsView(self, self.scene)
-
-        if VTK_installed:
-            self.postview = VtkView.VtkWindow(self)
-        # self.htmlview = PHtmlView.HtmlView(self)
+        self.contourview = ContourAnalysis.ContourAnalysis(canvas=True)
 
         # create slots (i.e. handlers or callbacks)
         self.slots = GuiSlots.Slots(self)
@@ -198,10 +183,6 @@ class CentralWidget(QtWidgets.QWidget):
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.addTab(self.parent.view, 'Airfoil Viewer')
         self.tabs.addTab(self.parent.contourview, 'Contour Analysis')
-        # self.tabs.addTab(self.parent.meshingview, 'Meshing')
-        # self.tabs.addTab(self.parent.htmlview, 'HTML View')
-        if VTK_installed:
-            self.tabs.addTab(self.parent.postview, 'Post Processing')
 
         # connect tab changed signal to slot
         self.tabs.currentChanged.connect(self.parent.slots.onTabChanged)

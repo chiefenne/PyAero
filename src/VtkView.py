@@ -230,7 +230,7 @@ class VtkWindow(QtWidgets.QFrame):
         writer.Write()
 
         text = 'Screenshot <b>%s</b> generated in current folder.' % (fname)
-        msgbox = QtGui.QMessageBox()
+        msgbox = QtWidgets.QMessageBox()
         msgbox.setWindowTitle(title)
         msgbox.setText(text)
         msgbox.exec_()
