@@ -60,8 +60,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.app = app
         self.app.mainwindow = self
 
-        self.style = style        
-        ### styles do not work anymore; need to come back      
+        self.style = style
+        ### styles do not work anymore; need to come back
         # style_keys = [x.lower() for x in QtWidgets.QStyleFactory.keys()]
         # FIXME
         # FIXME currently leads to segmentation faults
@@ -175,9 +175,27 @@ class CentralWidget(QtWidgets.QWidget):
         # split main window horizontally into two panes
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
-        # add QToolBox widget to the left pane
+        # create QToolBox widget
         self.toolbox = ToolBox.Toolbox(self.parent)
-        self.splitter.addWidget(self.toolbox)
+
+        # create box where viewing options are placed
+        self.viewingOptions()
+
+        verticalSpacer = QtWidgets.QSpacerItem(50, 15, QtWidgets.QSizePolicy.Minimum,
+            QtWidgets.QSizePolicy.Fixed)
+
+        horizontal_line = QtWidgets.QFrame()
+        horizontal_line.setFrameShape(QtWidgets.QFrame.HLine)
+        horizontal_line.setFrameShadow(QtWidgets.QFrame.Sunken)
+
+        self.left_pane = QtWidgets.QWidget()
+        vbox = QtWidgets.QVBoxLayout(self)
+        vbox.addWidget(self.toolbox)
+        vbox.addItem(verticalSpacer)
+        vbox.addWidget(horizontal_line)
+        vbox.addItem(verticalSpacer)
+        vbox.addWidget(self.viewing_options)
+        self.left_pane.setLayout(vbox)
 
         # create tabbed windows for viewing
         self.tabs = QtWidgets.QTabWidget()
@@ -187,7 +205,8 @@ class CentralWidget(QtWidgets.QWidget):
         # connect tab changed signal to slot
         self.tabs.currentChanged.connect(self.parent.slots.onTabChanged)
 
-        # add Tabs to the right pane of the splitter
+        # add splitter panes
+        self.splitter.addWidget(self.left_pane)
         self.splitter.addWidget(self.tabs)
 
         self.splitter.setSizes([100, 400])  # initial hint for splitter spacing
@@ -196,6 +215,43 @@ class CentralWidget(QtWidgets.QWidget):
         hbox = QtWidgets.QHBoxLayout(self)
         hbox.addWidget(self.splitter)
         self.setLayout(hbox)
+
+    def viewingOptions(self):
+        self.viewing_options = QtWidgets.QGroupBox('Viewing Options')
+        vbox = QtWidgets.QVBoxLayout()
+        self.viewing_options.setLayout(vbox)
+        self.cb1 = QtWidgets.QCheckBox('Message Window')
+        self.cb1.setChecked(True)
+        self.cb2 = QtWidgets.QCheckBox('Airfoil Points')
+        self.cb2.setChecked(False)
+        self.cb2.setEnabled(False)
+        self.cb3 = QtWidgets.QCheckBox('Airfoil Spline Points')
+        self.cb3.setChecked(False)
+        self.cb3.setEnabled(False)
+        self.cb4 = QtWidgets.QCheckBox('Airfoil Spline Contour')
+        self.cb4.setChecked(False)
+        self.cb4.setEnabled(False)
+        self.cb5 = QtWidgets.QCheckBox('Airfoil Chord')
+        self.cb5.setChecked(False)
+        self.cb5.setEnabled(False)
+        self.cb6 = QtWidgets.QCheckBox('Mesh')
+        self.cb6.setChecked(False)
+        self.cb6.setEnabled(False)
+        vbox.addWidget(self.cb1)
+        vbox.addWidget(self.cb2)
+        vbox.addWidget(self.cb3)
+        vbox.addWidget(self.cb4)
+        vbox.addWidget(self.cb5)
+        vbox.addWidget(self.cb6)
+        vbox.setAlignment(QtCore.Qt.AlignTop)
+        # connect signals to slots
+        # lambda allows to send extra parameters
+        self.cb1.clicked.connect(lambda: self.parent.slots.toggleLogDock('tick'))
+        self.cb2.clicked.connect(self.toolbox.toggleRawPoints)
+        self.cb3.clicked.connect(self.toolbox.toggleSplinePoints)
+        self.cb4.clicked.connect(self.toolbox.toggleSpline)
+        self.cb5.clicked.connect(self.toolbox.toggleChord)
+        self.cb6.clicked.connect(self.toolbox.toggleMesh)
 
 
 def main():

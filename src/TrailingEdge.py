@@ -78,7 +78,7 @@ class TrailingEdge:
         self.mainwindow.airfoil.chord.setZValue(99)
         # switch off raw contour and toogle corresponding checkbox
         if self.mainwindow.airfoil.polygonMarkersGroup.isVisible():
-            self.mainwindow.centralwidget.toolbox.cb2.cklick()
+            self.mainwindow.centralwidget.cb2.cklick()
         self.mainwindow.airfoil.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
         self.mainwindow.airfoil.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
         self.mainwindow.view.adjustMarkerSize()

@@ -22,7 +22,7 @@ class ContourAnalysis(QtWidgets.QFrame):
 
         # get MainWindow instance (overcomes handling parents)
         self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
-        
+
         # run the gui part only when canvas set to true
         if canvas:
             self.initUI()
@@ -30,32 +30,32 @@ class ContourAnalysis(QtWidgets.QFrame):
     def initUI(self):
         self.lineSeries = QtCharts.QLineSeries()
         # legend name
-        # self.lineSeries.setName("trend")           
-        self.lineSeries.append(QtCore.QPoint(0, 4))    
-        self.lineSeries.append(QtCore.QPoint(1, 15))    
-        self.lineSeries.append(QtCore.QPoint(2, 20))    
-        self.lineSeries.append(QtCore.QPoint(3, 14))    
-        self.lineSeries.append(QtCore.QPoint(4, 12))    
+        # self.lineSeries.setName("trend")
+        self.lineSeries.append(QtCore.QPoint(0, 4))
+        self.lineSeries.append(QtCore.QPoint(1, 15))
+        self.lineSeries.append(QtCore.QPoint(2, 20))
+        self.lineSeries.append(QtCore.QPoint(3, 14))
+        self.lineSeries.append(QtCore.QPoint(4, 12))
         self.lineSeries.append(QtCore.QPoint(5, 17))
         self.lineSeries.append(QtCore.QPoint(6, 20))
         self.lineSeries.append(QtCore.QPoint(7, 10))
         self.lineSeries.append(QtCore.QPoint(8, 5))
-        
+
         pen = QtGui.QPen(QtCore.Qt.red, 6, QtCore.Qt.SolidLine)
         self.lineSeries.setPen(pen)
-          
-        self.chart = QtCharts.QChart()                    
-        # self.chart.setTitle("Line chart example")  
-        self.chart.addSeries(self.lineSeries)
+
+        self.chart = QtCharts.QChart()
+        # self.chart.setTitle("Line chart example")
+        # self.chart.addSeries(self.lineSeries)
 
         self.chart.legend().setVisible(False)
         self.chart.legend().setAlignment(QtCore.Qt.AlignBottom)
-         
+
         self.axisX = QtCharts.QValueAxis()
         self.axisY = QtCharts.QValueAxis()
         self.chart.setAxisX(self.axisX, self.lineSeries)
         self.chart.setAxisY(self.axisY, self.lineSeries)
-         
+
         self.chartView = QtCharts.QChartView(self.chart)
         self.chartView.setRenderHint(QtGui.QPainter.Antialiasing)
         # self.mainwindow.contourview(self.chartView)
@@ -63,7 +63,7 @@ class ContourAnalysis(QtWidgets.QFrame):
         vlayout = QtWidgets.QVBoxLayout()
         vlayout.addWidget(self.chartView)
         self.setLayout(vlayout)
-         
+
     @staticmethod
     def getCurvature(spline_data):
         """Curvature and radius of curvature of a parametric curve
@@ -135,7 +135,7 @@ class ContourAnalysis(QtWidgets.QFrame):
         if not self.mainwindow.airfoil.spline_data:
             self.mainwindow.slots.messageBox('Please do splining first')
             return
-        
+
         spline_data = self.mainwindow.airfoil.spline_data
         curvature_data = ContourAnalysis.getCurvature(spline_data)
 

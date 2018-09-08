@@ -204,19 +204,19 @@ class Slots:
 
         logger.debug('I am toggleLogDock')
         logger.debug('This is _sender: {}'.format(_sender))
-        
+
         visible = self.parent.messagedock.isVisible()
         self.parent.messagedock.setVisible(not visible)
 
         # update the checkbox if toggling is done via keyboard shortcut
         if _sender == 'shortcut':
-           checkbox = self.parent.centralwidget.toolbox.cb1
+           checkbox = self.parent.centralwidget.cb1
            checkbox.setChecked(not checkbox.isChecked())
 
     # @QtCore.pyqtSlot()
     def onBlockMesh(self):
         pass
-    
+
     def getAirfoilByName(self, name):
         for airfoil in self.parent.airfoils:
             if airfoil.name == name:
@@ -225,8 +225,8 @@ class Slots:
 
     # @QtCore.pyqtSlot()
     def removeAirfoil(self, name=None):
-        """Remove all selected airfoils from the scene"""           
-      
+        """Remove all selected airfoils from the scene"""
+
         # the name parameter is only set when coming from listwidget
         # and the deleting is done via DEL key
         if name:
@@ -300,7 +300,7 @@ class Slots:
         """Sync tabs and toolboxes """
         tab = self.parent.centralwidget.tabs.currentIndex()
         self.parent.centralwidget.toolbox.setCurrentIndex(tab)
-        
+
     def messageBox(self, message):
         QtWidgets.QMessageBox. \
             information(self.parent, 'Information',

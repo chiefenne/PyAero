@@ -90,12 +90,12 @@ class Airfoil:
         self.makeContourPolygon(self.raw_coordinates)
         self.makeChord()
         self.makePolygonMarkers()
-        
+
         # activate ckeck boxes for contour points and chord in viewing options
-        self.mainwindow.centralwidget.toolbox.cb2.setChecked(True)
-        self.mainwindow.centralwidget.toolbox.cb2.setEnabled(True)
-        self.mainwindow.centralwidget.toolbox.cb5.setChecked(True)
-        self.mainwindow.centralwidget.toolbox.cb5.setEnabled(True)
+        self.mainwindow.centralwidget.cb2.setChecked(True)
+        self.mainwindow.centralwidget.cb2.setEnabled(True)
+        self.mainwindow.centralwidget.cb5.setChecked(True)
+        self.mainwindow.centralwidget.cb5.setEnabled(True)
 
     @staticmethod
     def addToScene(airfoil, scene):
@@ -224,13 +224,13 @@ class Airfoil:
 
         # switch off raw contour and toogle corresponding checkbox
         if self.polygonMarkersGroup.isVisible():
-            self.mainwindow.centralwidget.toolbox.cb2.click()
+            self.mainwindow.centralwidget.cb2.click()
 
         # activate ckeck boxes for contour points and chord in viewing options
-        self.mainwindow.centralwidget.toolbox.cb3.setChecked(True)
-        self.mainwindow.centralwidget.toolbox.cb3.setEnabled(True)
-        self.mainwindow.centralwidget.toolbox.cb4.setChecked(True)
-        self.mainwindow.centralwidget.toolbox.cb4.setEnabled(True)
+        self.mainwindow.centralwidget.cb3.setChecked(True)
+        self.mainwindow.centralwidget.cb3.setEnabled(True)
+        self.mainwindow.centralwidget.cb4.setChecked(True)
+        self.mainwindow.centralwidget.cb4.setEnabled(True)
 
         self.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
         self.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)

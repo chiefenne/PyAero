@@ -45,7 +45,6 @@ class Toolbox(QtWidgets.QToolBox):
         self.itemContourAnalysis()
         self.itemContourModification()
         self.itemMeshing()
-        self.itemViewingOptions()
 
         self.makeToolbox()
 
@@ -415,41 +414,6 @@ class Toolbox(QtWidgets.QToolBox):
         createMeshButton.clicked.connect(self.makeMesh)
         exportMeshButton.clicked.connect(self.exportMesh)
 
-    def itemViewingOptions(self):
-
-        self.item_vo = QtWidgets.QWidget()
-        layout = QtWidgets.QVBoxLayout()
-        self.item_vo.setLayout(layout)
-        self.cb1 = QtWidgets.QCheckBox('Message Window')
-        self.cb1.setChecked(True)
-        self.cb2 = QtWidgets.QCheckBox('Airfoil Points')
-        self.cb2.setChecked(False)
-        self.cb2.setEnabled(False)
-        self.cb3 = QtWidgets.QCheckBox('Airfoil Spline Points')
-        self.cb3.setChecked(False)
-        self.cb3.setEnabled(False)
-        self.cb4 = QtWidgets.QCheckBox('Airfoil Spline Contour')
-        self.cb4.setChecked(False)
-        self.cb4.setEnabled(False)
-        self.cb5 = QtWidgets.QCheckBox('Airfoil Chord')
-        self.cb5.setChecked(False)
-        self.cb5.setEnabled(False)
-
-        layout.addWidget(self.cb1)
-        layout.addWidget(self.cb2)
-        layout.addWidget(self.cb3)
-        layout.addWidget(self.cb4)
-        layout.addWidget(self.cb5)
-        layout.setAlignment(QtCore.Qt.AlignTop)
-
-        # connect signals to slots
-        # lambda allows to send extra parameters
-        self.cb1.clicked.connect(lambda: self.parent.slots.toggleLogDock('tick'))
-        self.cb2.clicked.connect(self.toggleRawPoints)
-        self.cb3.clicked.connect(self.toggleSplinePoints)
-        self.cb4.clicked.connect(self.toggleSpline)
-        self.cb5.clicked.connect(self.toggleChord)
-
     def itemContourModification(self):
 
         form = QtWidgets.QFormLayout()
@@ -595,7 +559,6 @@ class Toolbox(QtWidgets.QToolBox):
         self.tb4 = self.addItem(self.item_msh, 'Meshing')
         self.tb5 = self.addItem(self.item_ap, 'Aerodynamics')
         self.tb3 = self.addItem(self.item_ca, 'Contour Analysis')
-        self.tb6 = self.addItem(self.item_vo, 'Viewing options')
 
         self.setItemToolTip(0, 'Airfoil database ' +
                                        '(browse filesystem)')
@@ -639,6 +602,12 @@ class Toolbox(QtWidgets.QToolBox):
         if hasattr(self.parent.airfoil, 'chord'):
             visible = self.parent.airfoil.chord.isVisible()
             self.parent.airfoil.chord.setVisible(not visible)
+
+    def toggleMesh(self):
+        """Toggle visibility of the mesh lines"""
+        if hasattr(self.parent.airfoil, 'mesh'):
+            visible = self.parent.airfoil.mesh.isVisible()
+            self.parent.airfoil.mesh.setVisible(not visible)
 
     def runPanelMethod(self):
         """Gui callback to run AeroPython panel method in module PSvpMethod"""
@@ -774,7 +743,7 @@ class Toolbox(QtWidgets.QToolBox):
     def drawMesh(self, airfoil):
 
         # toggle spline points
-        self.cb3.click()
+        self.parent.centralwidget.cb3.click()
 
         # delete old mesh if existing
         if hasattr(airfoil, 'mesh'):
@@ -805,6 +774,10 @@ class Toolbox(QtWidgets.QToolBox):
 
                     mesh.append(meshline)
         airfoil.mesh = self.parent.scene.createItemGroup(mesh)
+
+        # activate viewing options if mesh is created and displayed
+        self.parent.centralwidget.cb6.setChecked(True)
+        self.parent.centralwidget.cb6.setEnabled(True)
 
     def exportMesh(self, from_browse_mesh=False):
 
