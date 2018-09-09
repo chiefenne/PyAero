@@ -51,6 +51,17 @@ class Toolbox(QtWidgets.QToolBox):
         self.currentChanged.connect(self.toolboxChanged)
 
     def toolboxChanged(self):
+        # tb1 = 'Airfoil Database'
+        # tb2 = 'Contour Splining and Refinement'
+        # tb4 = 'Meshing'
+        # tb5 = 'Aerodynamics'
+        # tb3 = 'Contour Analysis'
+
+        if self.currentIndex() == self.tb1:
+            self.parent.centralwidget.tabs.setCurrentIndex(0)
+
+        if self.currentIndex() == self.tb3:
+            self.parent.centralwidget.tabs.setCurrentIndex(1)
 
         # update points on airfoil when toolbox changed to meshing
         if self.currentIndex() == self.tb4 and self.parent.airfoil:
@@ -608,6 +619,12 @@ class Toolbox(QtWidgets.QToolBox):
         if hasattr(self.parent.airfoil, 'mesh'):
             visible = self.parent.airfoil.mesh.isVisible()
             self.parent.airfoil.mesh.setVisible(not visible)
+
+    def toggleLeCircle(self):
+        """Toggle visibility of the leading edge circle"""
+        if hasattr(self.parent.airfoil, 'le_circle'):
+            visible = self.parent.airfoil.le_circle.isVisible()
+            self.parent.airfoil.le_circle.setVisible(not visible)
 
     def runPanelMethod(self):
         """Gui callback to run AeroPython panel method in module PSvpMethod"""

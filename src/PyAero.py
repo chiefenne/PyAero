@@ -237,12 +237,16 @@ class CentralWidget(QtWidgets.QWidget):
         self.cb6 = QtWidgets.QCheckBox('Mesh')
         self.cb6.setChecked(False)
         self.cb6.setEnabled(False)
+        self.cb7 = QtWidgets.QCheckBox('Leading Edge Circle')
+        self.cb7.setChecked(False)
+        self.cb7.setEnabled(False)
         vbox.addWidget(self.cb1)
         vbox.addWidget(self.cb2)
         vbox.addWidget(self.cb3)
         vbox.addWidget(self.cb4)
         vbox.addWidget(self.cb5)
         vbox.addWidget(self.cb6)
+        vbox.addWidget(self.cb7)
         vbox.setAlignment(QtCore.Qt.AlignTop)
         # connect signals to slots
         # lambda allows to send extra parameters
@@ -252,6 +256,7 @@ class CentralWidget(QtWidgets.QWidget):
         self.cb4.clicked.connect(self.toolbox.toggleSpline)
         self.cb5.clicked.connect(self.toolbox.toggleChord)
         self.cb6.clicked.connect(self.toolbox.toggleMesh)
+        self.cb7.clicked.connect(self.toolbox.toggleLeCircle)
 
 
 def main():

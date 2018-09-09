@@ -150,7 +150,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
             newPos = event.pos()
             diff = newPos - self._dragPos
             self._dragPos = newPos
-            
+
             # this actually does the pan
             # no matter if scroll bars are displayed or not
             self.horizontalScrollBar().setValue(
@@ -312,6 +312,10 @@ class GraphicsView(QtWidgets.QGraphicsView):
         Settings a fixed markersize (e.g. 3 pixels) can be kept.
         This method immitates the behaviour of pen.setCosmetic()
         """
+
+        if not self.parent.airfoil:
+            return
+
         # markers are drawn in GraphicsItem using scene coordinates
         # in order to keep them constant size, also when zooming
         # a fixed pixel size (MARKERSIZE from settings) is mapped to
@@ -431,7 +435,7 @@ class RubberBand(QtWidgets.QRubberBand):
         # zoom rect must be at least RUBBERBANDSIZE % of view to allow zoom
         if (QPaintEvent.rect().width() < RUBBERBANDSIZE * self.view.width()) or \
            (QPaintEvent.rect().height() < RUBBERBANDSIZE * self.view.width()):
-                             
+
             self.brush.setStyle(QtCore.Qt.NoBrush)
         else:
             # if rubberband rect is big enough indicate this by fill color

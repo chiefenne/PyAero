@@ -298,8 +298,14 @@ class Slots:
 
     def onTabChanged(self):
         """Sync tabs and toolboxes """
-        tab = self.parent.centralwidget.tabs.currentIndex()
-        self.parent.centralwidget.toolbox.setCurrentIndex(tab)
+        tabs = self.parent.centralwidget.tabs
+        tab_text = self.parent.centralwidget.tabs.tabText(tabs.currentIndex())
+        toolbox = self.parent.centralwidget.toolbox
+
+        if tab_text == 'Airfoil Viewer':
+            toolbox.setCurrentIndex(toolbox.tb1)
+        if tab_text == 'Contour Analysis':
+            toolbox.setCurrentIndex(toolbox.tb3)
 
     def messageBox(self, message):
         QtWidgets.QMessageBox. \

@@ -6,6 +6,8 @@ import scipy.interpolate as si
 from PySide2 import QtGui, QtCore
 
 from Utils import Utils
+import GraphicsItemsCollection as gic
+import GraphicsItem
 import ContourAnalysis as ca
 
 import logging
@@ -59,10 +61,59 @@ class SplineRefine:
         curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
         rc, xc, yc, xle, yle, le_id = ca.ContourAnalysis.getLeRadius(spline_data,
                                                                curvature_data)
+        self.makeLeCircle(rc, xc, yc, xle, yle)
 
         logger.info('Leading edge radius: {:11.8f}'.format(rc))
         logger.info('Leading edge circle tangent at point: {}'.format(le_id))
-        
+
+    def makeLeCircle(self, rc, xc, yc, xle, yle):
+
+        # put LE circle, center and tangent point in a list
+        circles = list()
+
+        circle = gic.GraphicsCollection()
+        circle.pen.setColor(QtGui.QColor(0, 150, 0, 255))
+        circle.pen.setWidthF(1.6)
+        # no pen thickness change when zoomed
+        circle.pen.setCosmetic(True)
+        circle.brush.setColor(QtGui.QColor(10, 200, 10, 150))
+        circle.Circle(xc, yc, rc)
+
+        circle = GraphicsItem.GraphicsItem(circle)
+        circles.append(circle)
+
+
+
+        circle = gic.GraphicsCollection()
+        circle.pen.setColor(QtGui.QColor(255, 0, 0, 255))
+        circle.pen.setWidthF(1.6)
+        # no pen thickness change when zoomed
+        circle.pen.setCosmetic(True)
+        circle.brush.setColor(QtGui.QColor(255, 0, 0, 255))
+        circle.Circle(xc, yc, 0.0004)
+
+        circle = GraphicsItem.GraphicsItem(circle)
+        circles.append(circle)
+
+
+
+        circle = gic.GraphicsCollection()
+        circle.pen.setColor(QtGui.QColor(255, 0, 0, 255))
+        circle.pen.setWidthF(1.6)
+        # no pen thickness change when zoomed
+        circle.pen.setCosmetic(True)
+        circle.brush.setColor(QtGui.QColor(255, 0, 0, 255))
+        circle.Circle(xle, yle, 0.0004)
+
+        circle = GraphicsItem.GraphicsItem(circle)
+        circles.append(circle)
+
+
+
+        self.mainwindow.scene.createItemGroup(circles)
+
+        self.mainwindow.centralwidget.cb7.setChecked(True)
+        self.mainwindow.centralwidget.cb7.setEnabled(True)
 
     def spline(self, x, y, points=200, degree=2, evaluate=False):
         """Interpolate spline through given points
@@ -303,3 +354,4 @@ class SplineRefine:
             for i in range(len(xc)):
                 data = '{:10.8f} {:10.8f} \n'.format(xc[i], yc[i])
                 f.write(data)
+
