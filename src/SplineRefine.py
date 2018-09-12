@@ -32,7 +32,7 @@ class SplineRefine:
         # interpolate a spline through the raw contour points
         # constant point distribution used here
         # typically nose radius poorly resolevd by that
-        self.spline_data = self.spline(x, y, points=points, degree=2)
+        self.spline_data = self.spline(x, y, points=points, degree=3)
 
         # refine the contour in order to meet the tolerance
         # this keeps the constant distribution but refines around the nose
@@ -43,8 +43,8 @@ class SplineRefine:
         # spline only evaluated at refined contour points (evaluate=True)
         coo, u, t, der1, der2, tck = self.spline_data
         x, y = coo
-        self.spline_data = self.spline(x, y, points=points, degree=2,
-                                       evaluate=True)
+        self.spline_data = self.spline(x, y, points=points, degree=3,
+            evaluate=True)
 
         # refine the trailing edge of the spline
         self.refine_te(ref_te, ref_te_n, ref_te_ratio)
@@ -130,7 +130,9 @@ class SplineRefine:
         # tck ... tuple (t,c,k) containing the vector of knots,
         # the B-spline coefficients, and the degree of the spline.
         # u ... array of the parameters for each knot
-        tck, u = si.splprep([x, y], s=0, k=degree)
+        # NOTE: s=0.0 is important as no smoothing should be done on the spline
+        # after interpolating it
+        tck, u = si.splprep([x, y], s=0.0, k=degree)
 
         # number of points on interpolated B-spline (parameter t)
         t = np.linspace(0.0, 1.0, points)
