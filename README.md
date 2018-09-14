@@ -41,7 +41,7 @@
 
 ## Documentation
 
-The [PyAero documentation](http://pyaero.readthedocs.io) is hosted at [Read the Docs](https://readthedocs.org/).
+The [PyAero documentation](http://pyaero.readthedocs.io) is hosted at [https://readthedocs.org](https://readthedocs.org/).
 
 An introductory [PyAero tutorial video](https://www.youtube.com/watch?v=RBrBEyHAAss) can be found on YouTube.
 
