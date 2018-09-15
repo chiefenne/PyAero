@@ -138,4 +138,4 @@ Short online research revealed to me that meanwhile Qt themselves are developing
 
 Andreas Ennemoser – andreas.ennemoser@aon.at
  
-Distributed under the MIT license. See LICENSE for more information.
+Distributed under the MIT license. See [LICENSE](https://raw.githubusercontent.com/chiefenne/PyAero/master/LICENSE) for more information.
