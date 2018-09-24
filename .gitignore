@@ -1,0 +1,13 @@
+#
+backup2Diskstation.csh
+data/OUTPUT/
+data/LOGS/
+docs/Reused_annotations.pptx
+howto_commit_and_push_to_Git.txt
+todo.txt
+QT_for_Python_Tutorials_from_Webinar/
+Deploy/
+lib_AE/
+src/__pycache__/
+PyAero_Qt-for-Python-Anaconda_Environment.txt
+Pyaero.spec

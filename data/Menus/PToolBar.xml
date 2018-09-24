@@ -13,7 +13,6 @@
         <Tool tip='Print preview' icon='Print preview.png' handler='onPreview'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
         <Tool tip='Open predefined airfoil contour' icon='profil.png' handler='onOpenPredefined'></Tool>
-        <Tool tip='Open predefined STL file' icon='Fast delivery.png' handler='onPredefinedSTL'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
         <Tool tip='Delete selected airfoil(s)' icon='Erase.png' handler='removeAirfoil'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>

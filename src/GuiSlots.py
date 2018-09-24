@@ -9,8 +9,7 @@ import PyAero
 import Airfoil
 import GraphicsTest
 import IconProvider
-from Settings import DIALOGFILTER, AIRFOILDATA, LOGCOLOR, DEFAULT_CONTOUR, \
-                      DEFAULT_STL
+from Settings import DIALOGFILTER, AIRFOILDATA, LOGCOLOR, DEFAULT_CONTOUR
 import logging
 logger = logging.getLogger(__name__)
 
@@ -54,13 +53,8 @@ class Slots:
             logger.info('Error during file load: {}'.format(error))
             return
 
-        if 'stl' in selfilter.lower():  # method of QString object
-            # currently limited to load only one STL file
-            self.parent.postview.readStl(filenames[0])
-        else:
-            # load one or more airfoils
-            for filename in filenames:
-                self.loadAirfoil(filename)
+        for filename in filenames:
+            self.loadAirfoil(filename)
 
     # # @QtCore.pyqtSlot()
     def onOpenPredefined(self):
@@ -92,10 +86,6 @@ class Slots:
             self.parent.centralwidget.toolbox.header.setEnabled(True)
             self.parent.centralwidget.toolbox.listwidget.setEnabled(True)
             self.parent.centralwidget.toolbox.listwidget.addItem(name)
-
-    # # @QtCore.pyqtSlot()
-    def onPredefinedSTL(self):
-        self.parent.postview.readStl(DEFAULT_STL)
 
     # # @QtCore.pyqtSlot()
     def fitAirfoilInView(self):

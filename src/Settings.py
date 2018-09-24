@@ -40,7 +40,7 @@ EXITONESCAPE = True
 CHORDLENGTH = 1.
 
 # path to icons
-ICONS = PYAEROPATH + '/icons/'
+ICONS = PYAEROPATH + '/data/Icons/'
 ICONS_S = ICONS + '16x16/'
 ICONS_L = ICONS + '24x24/'
 
@@ -54,12 +54,8 @@ MARKERSIZE = 3
 # default airfoil for fast loading
 DEFAULT_CONTOUR = AIRFOILDATA + '/F1K/hn1033a.dat'
 
-# default STL file for demo purposes
-DEFAULT_STL = PYAEROPATH + '/data/STL/Beevolution.stl'
-
-
 # set the filter for files to be shown in dialogs
-DIALOGFILTER = 'Airfoil contour files (*.dat *.txt);;STL files (*.stl)'
+DIALOGFILTER = 'Airfoil contour files (*.dat *.txt)'
 DIALOGFILTER_MESH = 'Mesh files FIRE(*.flma);;Mesh files SU2 (*.su2);;Mesh files GMSH (*.msh)'
 
 # set the filter for files to be shown in the airfoil browser
