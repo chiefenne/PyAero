@@ -58,7 +58,11 @@ Currently there are no binaries available. Therefore, the source code needs to b
 
 ## Download
 
-### Option 1: Download using Git:
+### Option 1: Download Windows executable:
+
+
+
+### Option 2: Download source version using Git:
 The $ symbol represents the prompt at command shell. It is not part of the command.
 
 ```bash
@@ -66,7 +70,7 @@ $ cd anywhere_on_your_computer
 $ git clone https://github.com/chiefenne/PyAero.git
 ```
 
-### Option 2: Download a ZIP file:
+### Option 3: Download source version as a ZIP file:
 
 From the [PyAero GitHub repository](https://github.com/chiefenne/PyAero). There is on the upper right side a green pull down menu "Clone or download". Click on it and then click "Download ZIP". You get a file "PyAero-master.zip" which you store anywhere on your computer.
 
@@ -137,5 +141,5 @@ Short online research revealed to me that meanwhile Qt themselves are developing
 
 
 Andreas Ennemoser – andreas.ennemoser@aon.at
- 
+
 Distributed under the MIT license. See [LICENSE](https://raw.githubusercontent.com/chiefenne/PyAero/master/LICENSE) for more information.
