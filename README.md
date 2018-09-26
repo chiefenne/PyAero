@@ -112,6 +112,12 @@ To keep everything stored across sessions, you might want to add PYAERO_PATH and
 
 ### Windows
 
+#### If runnining the binary:
+
+See [download option 1](#Option-1).
+
+#### If running from source:
+
 In a cmd shell type (if the installation is on drive *D:* in the folder *My_PyAero_Installation_Path*):
 
 ```bash
