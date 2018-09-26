@@ -50,7 +50,7 @@ The documentation is automatically generated using the files in the [docs](https
 ## Dependencies
 
  - Python (3.x)
- - PySide2 (5.11 of higher)
+ - PySide2 (5.11.x)
  - Numpy
  - Scipy
 
