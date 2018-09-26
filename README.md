@@ -60,7 +60,8 @@ Currently there are no binaries available. Therefore, the source code needs to b
 
 ### Option 1: Download Windows executable:
 
-
+Go to the Windows folder and doanload *PyAero.zip*. Extract that file in an arbitrary location. There will be a file and a folder extracted, *PyAero.zip* and *data* respectively.
+Run PyAero by double-clicking the executable.
 
 ### Option 2: Download source version using Git:
 The $ symbol represents the prompt at command shell. It is not part of the command.
