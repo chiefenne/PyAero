@@ -60,7 +60,7 @@ At the moment a inary is available only for Windows. On other platforms the sour
 
 ### Option 1: Download Windows executable:
 
-Go to the *Windows* folder and download *PyAero.zip*. Extract that file in an arbitrary location on the PC. There will be a file and a folder extracted, *PyAero.exe* and *data* respectively.
+Go to the [Windows](https://github.com/chiefenne/PyAero/tree/master/Windows) folder and download *PyAero.zip*. Extract that file in an arbitrary location on the PC. There will be a file and a folder extracted, *PyAero.exe* and *data* respectively.
 Run PyAero by double-clicking the executable.
 
 ### Option 2: Download source version using Git:
