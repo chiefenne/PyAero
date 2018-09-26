@@ -114,7 +114,7 @@ To keep everything stored across sessions, you might want to add PYAERO_PATH and
 
 #### If runnining the binary:
 
-See [download option 1](#Option-1).
+See [download option 1](#option-1-download-windows-executable).
 
 #### If running from source:
 
