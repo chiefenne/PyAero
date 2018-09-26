@@ -54,7 +54,7 @@ The documentation is automatically generated using the files in the [docs](https
  - Numpy
  - Scipy
 
-At the moment a inary is available only for Windows. On other platforms the source code needs to be copied to your computer. Of course it can be done on Windows as well.
+At the moment a binary is available for Windows. On other platforms the source code needs to be copied to your computer. Of course it can be done on Windows as well.
 
 ## Download
 
