@@ -29,15 +29,15 @@
 <br><br>
 
 ![](docs/images/mesh_RAE2822.png)
-**Example mesh around HN1033 airfoil**
+**Example mesh around RAE2822 airfoil**
 <br><br>
 
-![](docs/images/LE_mesh.png)
-**Example mesh around HN1033 airfoil - Leading Edge**
+![](docs/images/LE_mesh_RAE2822.png)
+**Example mesh around RAE2822 airfoil - Leading Edge**
 <br><br>
 
-![](docs/images/TE_mesh1.png)
-**Example mesh around HN1033 airfoil - Trailing Edge (with finite thickness)**
+![](docs/images/TE_mesh_RAE2822.png)
+**Example mesh around RAE2822 airfoil - Trailing Edge (with finite thickness)**
 <br><br>
 
 ![](docs/images/RG15_mesh_part.png)
