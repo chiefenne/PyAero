@@ -32,7 +32,7 @@
 **Example mesh around RAE2822 airfoil**
 <br><br>
 
-![](docs/images/LE_mesh_RAE2822.png)
+![](docs/images/LE_mesh_888x382_RAE2822.png)
 **Example mesh around RAE2822 airfoil - Leading Edge**
 <br><br>
 
