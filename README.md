@@ -18,7 +18,7 @@
  - NOT YET IMPLEMENTED: Automatic definition of boundary faces for various CFD solvers
  - Mesh export
    - [AVL FIRE](http://www.avl.com/fire-m) (.flma)
-   - pending: [SU2](http://su2.stanford.edu) (.su2)
+   - pending: [SU2](https://su2code.github.io/) (.su2)
    - [GMSH](http://gmsh.info) (.msh)
  - Simple aerodynamic analysis using [AeroPython](http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb)
  - NOT YET IMPLEMENTED: Advanced aerodynamic analysis
