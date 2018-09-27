@@ -41,7 +41,7 @@
 <br><br>
 
 ![](docs/images/MAKAROV_KPS_mesh.gif)
-**Example mesh as used in the CFD code AVL-FIRE.**
+**Example mesh around MAKAROV KPS airfoil as used in the CFD code AVL-FIRE.**
 <br><br>
 
 ![](docs/images/MAKAROV_KPS_Veloyity.gif)
