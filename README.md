@@ -28,7 +28,7 @@
 **PyAero GUI at a glance**
 <br><br>
 
-![](docs/images/mesh1.png)
+![](docs/images/mesh_RAE2822.png)
 **Example mesh around HN1033 airfoil**
 <br><br>
 
