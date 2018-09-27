@@ -45,11 +45,11 @@
 <br><br>
 
 ![](docs/images/MAKAROV_KPS_Veloyity.gif)
-**Example flow (velocity field) around MAKAROV KPS airfoil using the CFD code AVL-FIRE.**
+**Velocity field (RE=50000) around MAKAROV KPS airfoil using the CFD code AVL-FIRE.**
 <br><br>
 
 ![](docs/images/MAKAROV_KPS_TKE.gif)
-**Example flow (turbulence kinetic energy field) around MAKAROV KPS airfoil using the CFD code AVL-FIRE.**
+**Turbulence kinetic energy field (RE=50000) around MAKAROV KPS airfoil using the CFD code AVL-FIRE.**
 <br><br>
 
 ## Documentation
