@@ -54,10 +54,10 @@ The documentation is automatically generated using the files in the [docs](https
 
 ## Dependencies
 
- - Python (3.x)
- - PySide2 (5.11.x)
- - Numpy
- - Scipy
+ - [Python 3.x](https://www.python.org/)
+ - [Qt for Python (PySide2) 5.11.x](https://www.qt.io/qt-for-python)
+ - [Numpy](http://www.numpy.org/)
+ - [Scipy](https://www.scipy.org/)
 
 At the moment a binary is available for Windows. On other platforms the source code needs to be copied to your computer. Of course it can be done on Windows as well.
 
