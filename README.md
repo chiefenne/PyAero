@@ -40,8 +40,8 @@
 **Example mesh around RAE2822 airfoil - Trailing Edge (with finite thickness)**
 <br><br>
 
-![](docs/images/RG15_mesh_part.png)
-**Example mesh as used in the CFD code AVL-FIRE. Third mesh dimension in 2D is 1 cell layer.**
+![](docs/images/MAKAROV_KPS_mesh.gif)
+**Example mesh as used in the CFD code AVL-FIRE.**
 <br><br>
 
 ![](docs/images/MAKAROV_KPS_Veloyity.gif)
