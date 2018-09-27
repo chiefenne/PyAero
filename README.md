@@ -41,7 +41,15 @@
 <br><br>
 
 ![](docs/images/RG15_mesh_part.png)
-**Example mesh as used in the AVL-FIRE CFD code. Third mesh dimension in 2D is 1 cell layer.**
+**Example mesh as used in the CFD code AVL-FIRE. Third mesh dimension in 2D is 1 cell layer.**
+<br><br>
+
+![](docs/images/MAKAROV_KPS_Veloyity.gif)
+**Example flow (velocity field) around MAKAROV KPS airfoil using the CFD code AVL-FIRE.**
+<br><br>
+
+![](docs/images/MAKAROV_KPS_TKE.gif)
+**Example flow (turbulence kinetic energy field) around MAKAROV KPS airfoil using the CFD code AVL-FIRE.**
 <br><br>
 
 ## Documentation
