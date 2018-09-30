@@ -689,68 +689,70 @@ class Toolbox(QtWidgets.QToolBox):
             return
 
         progdialog = QtWidgets.QProgressDialog(
-            "", "Cancel", 0, 4, self.parent)
+            "", "Cancel", 0, 100, self.parent)
+        progdialog.setFixedWidth(300)
+        progdialog.setMinimumDuration(0)
         progdialog.setWindowTitle('Generating the CFD mesh')
         progdialog.setWindowModality(QtCore.Qt.WindowModal)
         progdialog.show()
 
         self.tunnel = Meshing.Windtunnel()
 
-        progdialog.setValue(0)
-        progdialog.setLabelText('making part 1/4')
+        progdialog.setValue(10)
+        # progdialog.setLabelText('making blocks')
 
         self.tunnel.AirfoilMesh(name='block_airfoil',
                                 contour=contour,
                                 divisions=self.points_n.value(),
                                 ratio=self.ratio.value(),
                                 thickness=self.normal_thickness.value()/100.0)
-        progdialog.setValue(1)
+        progdialog.setValue(20)
 
         if progdialog.wasCanceled():
             return
-        progdialog.setLabelText('making part 2/4')
 
         self.tunnel.TrailingEdgeMesh(name='block_TE',
                                      te_divisions=self.te_div.value(),
                                      length=self.length_te.value()/100.0,
                                      divisions=self.points_te.value(),
                                      ratio=self.ratio_te.value())
-        progdialog.setValue(2)
+        progdialog.setValue(30)
 
         if progdialog.wasCanceled():
             return
-        progdialog.setLabelText('making part 3/4')
 
         self.tunnel.TunnelMesh(name='block_tunnel',
                                tunnel_height=self.tunnel_height.value(),
                                divisions_height=self.divisions_height.value(),
                                ratio_height=self.ratio_height.value(),
                                dist=self.dist.currentText())
-        progdialog.setValue(3)
+        progdialog.setValue(40)
 
         if progdialog.wasCanceled():
             return
-        progdialog.setLabelText('making part 4/4')
 
         self.tunnel.TunnelMeshWake(name='block_tunnel_wake',
                                    tunnel_wake=self.tunnel_wake.value(),
                                    divisions=self.divisions_wake.value(),
                                    ratio=self.ratio_wake.value(),
                                    spread=self.spread.value()/100.0)
-        progdialog.setValue(4)
+        progdialog.setValue(50)
 
         if progdialog.wasCanceled():
             return
 
         # connect mesh blocks
-        connect = Connect.Connect()
-        self.tunnel.mesh = connect.connectAllBlocks(self.tunnel.blocks)
-        vertices, connectivity = self.tunnel.mesh
+        connect = Connect.Connect(progdialog)
+        vertices, connectivity = connect.connectAllBlocks(self.tunnel.blocks)
+        self.tunnel.mesh = vertices, connectivity
 
-        logger.debug('Mesh has {} vertices'.format(len(vertices)))
-        logger.debug('Mesh has {} cells'.format(len(connectivity)))
+        logger.info('Mesh around {} created'.format(self.parent.airfoil.name))
+        logger.info('Mesh has {} vertices and {} elements'. \
+            format(len(vertices), len(connectivity)))
 
         self.drawMesh(self.parent.airfoil)
+
+        progdialog.setValue(100)
 
         # enable mesh export and set filename
         self.box_meshexport.setEnabled(True)

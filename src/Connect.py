@@ -6,10 +6,12 @@ from PySide2 import QtGui, QtCore, QtWidgets
 
 class Connect:
     """docstring"""
-    def __init__(self):
+    def __init__(self, progdialog):
 
         # get MainWindow instance (overcomes handling parents)
         self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+
+        self.progdialog = progdialog
 
     def getVertices(self, block):
         vertices = list()
@@ -41,37 +43,28 @@ class Connect:
 
     def connectAllBlocks(self, blocks):
 
-        progdialog = QtWidgets.QProgressDialog(
-            "", "Cancel", 0, 3, self.mainwindow)
-        progdialog.setMinimumDuration(0)
-        progdialog.setWindowTitle('Connect mesh blocks')
-        progdialog.setWindowModality(QtCore.Qt.WindowModal)
-        progdialog.show()
-
-        progdialog.setValue(0)
-        progdialog.setLabelText('connecting part 1/3')
+        self.progdialog.setValue(60)
+        # self.progdialog.setLabelText('connecting blocks')
 
         connected_1 = self.connectBlocks(blocks[0], blocks[1],
                                          radius=0.0001, type_='block')
-        progdialog.setValue(1)
+        self.progdialog.setValue(70)
 
-        if progdialog.wasCanceled():
+        if self.progdialog.wasCanceled():
             return
-        progdialog.setLabelText('connecting part 2/3')
 
         connected_2 = self.connectBlocks(blocks[2], blocks[3],
                                          radius=0.0001, type_='block')
 
-        progdialog.setValue(2)
+        self.progdialog.setValue(80)
 
-        if progdialog.wasCanceled():
+        if self.progdialog.wasCanceled():
             return
-        progdialog.setLabelText('connecting part 3/3')
 
         connected = self.connectBlocks(connected_1, connected_2,
                                        radius=0.0001, type_='connected')
 
-        progdialog.setValue(3)
+        self.progdialog.setValue(90)
 
         return connected
 

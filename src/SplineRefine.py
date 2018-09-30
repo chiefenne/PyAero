@@ -73,7 +73,7 @@ class SplineRefine:
 
         circle = gic.GraphicsCollection()
         circle.pen.setColor(QtGui.QColor(0, 150, 0, 255))
-        circle.pen.setWidthF(1.6)
+        circle.pen.setWidthF(0.3)
         # no pen thickness change when zoomed
         circle.pen.setCosmetic(True)
         circle.brush.setColor(QtGui.QColor(10, 200, 10, 150))
@@ -84,11 +84,11 @@ class SplineRefine:
 
         circle = gic.GraphicsCollection()
         circle.pen.setColor(QtGui.QColor(255, 0, 0, 255))
-        circle.pen.setWidthF(1.6)
+        circle.pen.setWidthF(0.3)
         # no pen thickness change when zoomed
         circle.pen.setCosmetic(True)
         circle.brush.setColor(QtGui.QColor(255, 0, 0, 255))
-        circle.Circle(xc, yc, 0.0004)
+        circle.Circle(xc, yc, 0.0002)
 
         circle = GraphicsItem.GraphicsItem(circle)
         circles.append(circle)
@@ -99,7 +99,7 @@ class SplineRefine:
         # no pen thickness change when zoomed
         circle.pen.setCosmetic(True)
         circle.brush.setColor(QtGui.QColor(255, 0, 0, 255))
-        circle.Circle(xle, yle, 0.0004)
+        circle.Circle(xle, yle, 0.0002)
 
         circle = GraphicsItem.GraphicsItem(circle)
         circles.append(circle)
