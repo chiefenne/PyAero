@@ -33,7 +33,7 @@ class Connect:
 
         return connectivity
 
-    def getNearestNeighbours(self, vertices, radius=0.001):
+    def getNearestNeighbours(self, vertices, radius=0.0001):
         V = np.array(vertices)
         tree = ssp.cKDTree(V)
         pairs = tree.query_pairs(radius, p=2., eps=0)
@@ -43,6 +43,7 @@ class Connect:
 
         progdialog = QtWidgets.QProgressDialog(
             "", "Cancel", 0, 3, self.mainwindow)
+        progdialog.setMinimumDuration(0)
         progdialog.setWindowTitle('Connect mesh blocks')
         progdialog.setWindowModality(QtCore.Qt.WindowModal)
         progdialog.show()
@@ -74,7 +75,7 @@ class Connect:
 
         return connected
 
-    def connectBlocks(self, block_1, block_2, radius=0.001, type_='block'):
+    def connectBlocks(self, block_1, block_2, radius=0.0001, type_='block'):
 
         if type_ == 'block':
             vertices_1 = self.getVertices(block_1)
@@ -86,17 +87,22 @@ class Connect:
             vertices_2, connectivity_2 = block_2
 
         vertices = vertices_1 + vertices_2
-        lv1 = len(vertices_1)
+        shift_nodes = len(vertices_1)
 
+        # shift node numbering for second block
         connectivity_2mod = list()
         for cell in connectivity_2:
-            new_cell = [vertex+lv1 for vertex in cell]
+            new_cell = [node + shift_nodes for node in cell]
             connectivity_2mod.append(new_cell)
 
+        # identify interface between blocks via coordinate identities
         pairs = self.getNearestNeighbours(vertices, radius=radius)
         pairs = list(pairs)
         I, J = zip(*pairs)
 
+        # FIXME
+        # FIXME
+        # FIXME
         # this is dirty, but seems to work
         # vertices which are not used need somehow to be
         # "removed" without removing them

@@ -53,6 +53,12 @@ class Slots:
             logger.info('Error during file load: {}'.format(error))
             return
 
+        if len(filenames) == 1:
+            fileinfo = QtCore.QFileInfo(filenames[0])
+            if 'su2' in fileinfo.suffix().lower():
+                self.loadSU2(fileinfo.fileName())
+                return
+
         for filename in filenames:
             self.loadAirfoil(filename)
 
@@ -87,7 +93,20 @@ class Slots:
             self.parent.centralwidget.toolbox.listwidget.setEnabled(True)
             self.parent.centralwidget.toolbox.listwidget.addItem(name)
 
-    # # @QtCore.pyqtSlot()
+    def loadSU2(self, filename):
+        comment = '%'
+
+        try:
+            with open(filename, mode='r') as f:
+                lines = f.readlines()
+        except IOError as error:
+            # exc_info=True sends traceback to the logger
+            logger.error('Failed to open file {} with error {}'. \
+                         format(filename, error), exc_info=True)
+            return False
+
+        data = [line for line in lines if comment not in line]
+
     def fitAirfoilInView(self):
 
         if len(self.parent.airfoils) == 0:

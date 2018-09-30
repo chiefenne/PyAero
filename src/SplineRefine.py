@@ -82,8 +82,6 @@ class SplineRefine:
         circle = GraphicsItem.GraphicsItem(circle)
         circles.append(circle)
 
-
-
         circle = gic.GraphicsCollection()
         circle.pen.setColor(QtGui.QColor(255, 0, 0, 255))
         circle.pen.setWidthF(1.6)
@@ -94,8 +92,6 @@ class SplineRefine:
 
         circle = GraphicsItem.GraphicsItem(circle)
         circles.append(circle)
-
-
 
         circle = gic.GraphicsCollection()
         circle.pen.setColor(QtGui.QColor(255, 0, 0, 255))
@@ -108,9 +104,8 @@ class SplineRefine:
         circle = GraphicsItem.GraphicsItem(circle)
         circles.append(circle)
 
-
-
-        self.mainwindow.scene.createItemGroup(circles)
+        self.mainwindow.airfoil.le_circle = self.mainwindow.scene.createItemGroup(circles)
+        self.mainwindow.airfoil.le_circle.setZValue(110)
 
         self.mainwindow.centralwidget.cb7.setChecked(True)
         self.mainwindow.centralwidget.cb7.setEnabled(True)

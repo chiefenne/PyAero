@@ -59,7 +59,7 @@ DIALOGFILTER = 'Airfoil contour files (*.dat *.txt)'
 DIALOGFILTER_MESH = 'Mesh files FIRE(*.flma);;Mesh files SU2 (*.su2);;Mesh files GMSH (*.msh)'
 
 # set the filter for files to be shown in the airfoil browser
-FILEFILTER = ['*.dat', '*.txt', '*.msh']
+FILEFILTER = ['*.dat', '*.txt', '*.su2']
 
 # set anchor for zooming
 # 'mouse' means zooming wrt to mouse pointer location

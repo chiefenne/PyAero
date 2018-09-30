@@ -31,15 +31,7 @@ class ContourAnalysis(QtWidgets.QFrame):
         self.lineSeries = QtCharts.QLineSeries()
         # legend name
         # self.lineSeries.setName("trend")
-        self.lineSeries.append(QtCore.QPoint(0, 4))
-        self.lineSeries.append(QtCore.QPoint(1, 15))
-        self.lineSeries.append(QtCore.QPoint(2, 20))
-        self.lineSeries.append(QtCore.QPoint(3, 14))
-        self.lineSeries.append(QtCore.QPoint(4, 12))
-        self.lineSeries.append(QtCore.QPoint(5, 17))
-        self.lineSeries.append(QtCore.QPoint(6, 20))
-        self.lineSeries.append(QtCore.QPoint(7, 10))
-        self.lineSeries.append(QtCore.QPoint(8, 5))
+        self.lineSeries.append(QtCore.QPoint(0, 0))
 
         pen = QtGui.QPen(QtCore.Qt.red, 6, QtCore.Qt.SolidLine)
         self.lineSeries.setPen(pen)
@@ -47,7 +39,7 @@ class ContourAnalysis(QtWidgets.QFrame):
         self.chart = QtCharts.QChart()
         self.chart.setAnimationOptions(QtCharts.QChart.AllAnimations)
         self.chart.setTitle("Airfoil contour analysis")
-        # self.chart.addSeries(self.lineSeries)
+        self.chart.addSeries(self.lineSeries)
 
         self.chart.legend().setVisible(False)
         self.chart.legend().setAlignment(QtCore.Qt.AlignBottom)

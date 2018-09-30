@@ -810,7 +810,7 @@ class Toolbox(QtWidgets.QToolBox):
         mesh = self.tunnel.mesh
 
         if self.check_FIRE.isChecked():
-            Meshing.BlockMesh.writeFLMA(mesh, name=fullname, depth=0.3)
+            Meshing.BlockMesh.writeFLMA(mesh, name=fullname)
 
         if self.check_SU2.isChecked():
             Meshing.BlockMesh.writeSU2(mesh, name=fullname)

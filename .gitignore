@@ -9,3 +9,5 @@ lib_AE/
 src/__pycache__/
 .spyproject/
 Windows/
+PyAero.sublime-project
+PyAero.sublime-workspace

@@ -63,7 +63,7 @@ class Windtunnel:
         block_te.distribute(direction='u', number=-1)
 
         # make a transfinite interpolation
-        # i.e., recreate pooints inside the block
+        # i.e. recreate pooints inside the block
         block_te.transfinite()
 
         self.block_te = block_te
@@ -632,7 +632,7 @@ class BlockMesh:
         return beta
 
     @staticmethod
-    def writeFLMA(mesh, name='', depth=0.1):
+    def writeFLMA(mesh, name='', depth=0.3):
 
         if not name[-5:] == '.flma':
             name += '.flma'
@@ -768,8 +768,7 @@ class BlockMesh:
                     str(cell[0]) + ' ' + \
                     str(cell[1]) + ' ' + \
                     str(cell[2]) + ' ' + \
-                    str(cell[3]) + ' ' + \
-                    str(cell_id) + '\n'
+                    str(cell[3]) + '\n'
 
                 f.write(cell_connect)
 
@@ -779,7 +778,7 @@ class BlockMesh:
             # x- and y-coordinates
             for node, vertex in enumerate(vertices):
                 x, y = vertex[0], vertex[1]
-                f.write(' {:24.16e} {:24.16e} {:} \n'.format(x, y, node))
+                f.write(' {:24.16e} {:24.16e} \n'.format(x, y))
 
             # get all edges in the mesh
             all_edges = list()
