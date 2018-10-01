@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'PyAero'
-copyright = u'2016-2018, Andreas Ennemoser'
+copyright = u'2014-2018, Andreas Ennemoser'
 author = u'Andreas Ennemoser'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -106,7 +106,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
 #
-show_authors = True
+show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
