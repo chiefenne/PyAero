@@ -82,8 +82,8 @@ Features
  
  - Mesh export
  
-   - `AVL FIRE <http://www.avl.com/fire-m>`_ (*.flma)
-   - `SU2 <http://su2.stanford.edu/>`_ (*.su2)
+   - `AVL FIRE <https://www.avl.com/fire>`_ (*.flma)
+   - `SU2 <https://su2code.github.io/>`_ (*.su2)
    - `GMSH <http://gmsh.info>`_ (*.msh)
  
  - Simple aerodynamic analysis, i.e. panel methods
