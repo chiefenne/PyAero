@@ -9,12 +9,9 @@ import Airfoil
 import FileSystem
 import IconProvider
 import SvpMethod
-import GraphicsItemsCollection as gic
-import GraphicsItem
 import SplineRefine
 import TrailingEdge
 import Meshing
-import Connect
 from Settings import ICONS_L, DIALOGFILTER, DIALOGFILTER_MESH, OUTPUTDATA
 
 import logging
@@ -43,7 +40,7 @@ class Toolbox(QtWidgets.QToolBox):
         self.itemFileSystem()
         self.itemAeropython()
         self.itemContourAnalysis()
-        self.itemContourModification()
+        self.itemSplineRefine()
         self.itemMeshing()
 
         self.makeToolbox()
@@ -422,10 +419,10 @@ class Toolbox(QtWidgets.QToolBox):
         self.item_msh.setLayout(vbl)
 
         browseMeshButton.clicked.connect(self.onBrowseMesh)
-        createMeshButton.clicked.connect(self.makeMesh)
+        createMeshButton.clicked.connect(self.generateMesh)
         exportMeshButton.clicked.connect(self.exportMesh)
 
-    def itemContourModification(self):
+    def itemSplineRefine(self):
 
         form = QtWidgets.QFormLayout()
 
@@ -566,27 +563,26 @@ class Toolbox(QtWidgets.QToolBox):
         # populate toolbox
         self.tb1 = self.addItem(self.item_fs, 'Airfoil Database')
         self.tb2 = self.addItem(self.item_cm,
-                                        'Contour Splining and Refinement')
+                                'Contour Splining and Refinement')
         self.tb4 = self.addItem(self.item_msh, 'Meshing')
         self.tb5 = self.addItem(self.item_ap, 'Aerodynamics')
         self.tb3 = self.addItem(self.item_ca, 'Contour Analysis')
 
         self.setItemToolTip(0, 'Airfoil database ' +
-                                       '(browse filesystem)')
+                            '(browse filesystem)')
         self.setItemToolTip(1, 'Spline and refine the contour')
         self.setItemToolTip(2, 'Generate a 2D mesh around the ' +
-                                       'selected airfoil')
+                            'selected airfoil')
         self.setItemToolTip(3, 'Compute panel based aerodynamic ' +
-                                    'coefficients')
+                            'coefficients')
         self.setItemToolTip(4, 'Analyze the curvature of the ' +
-                                       'selected airfoil')
+                            'selected airfoil')
 
         self.setItemIcon(0, QtGui.QIcon(ICONS_L + 'airfoil.png'))
         self.setItemIcon(1, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
         self.setItemIcon(2, QtGui.QIcon(ICONS_L + 'mesh.png'))
         self.setItemIcon(3, QtGui.QIcon(ICONS_L + 'Fast delivery.png'))
         self.setItemIcon(4, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
-        self.setItemIcon(5, QtGui.QIcon(ICONS_L + 'Configuration.png'))
 
         # preselect airfoil database box
         self.setCurrentIndex(self.tb1)
@@ -674,129 +670,9 @@ class Toolbox(QtWidgets.QToolBox):
             self.parent.slots.messageBox('No airfoil loaded.')
             return
 
-    def makeMesh(self):
-
-        if self.parent.airfoil:
-            if not hasattr(self.parent.airfoil, 'spline_data'):
-                message = 'Splining needs to be done first.'
-                self.parent.slots.messageBox(message)
-                return
-
-            contour = self.parent.airfoil.spline_data[0]
-
-        else:
-            self.parent.slots.messageBox('No airfoil loaded.')
-            return
-
-        progdialog = QtWidgets.QProgressDialog(
-            "", "Cancel", 0, 100, self.parent)
-        progdialog.setFixedWidth(300)
-        progdialog.setMinimumDuration(0)
-        progdialog.setWindowTitle('Generating the CFD mesh')
-        progdialog.setWindowModality(QtCore.Qt.WindowModal)
-        progdialog.show()
-
-        self.tunnel = Meshing.Windtunnel()
-
-        progdialog.setValue(10)
-        # progdialog.setLabelText('making blocks')
-
-        self.tunnel.AirfoilMesh(name='block_airfoil',
-                                contour=contour,
-                                divisions=self.points_n.value(),
-                                ratio=self.ratio.value(),
-                                thickness=self.normal_thickness.value()/100.0)
-        progdialog.setValue(20)
-
-        if progdialog.wasCanceled():
-            return
-
-        self.tunnel.TrailingEdgeMesh(name='block_TE',
-                                     te_divisions=self.te_div.value(),
-                                     length=self.length_te.value()/100.0,
-                                     divisions=self.points_te.value(),
-                                     ratio=self.ratio_te.value())
-        progdialog.setValue(30)
-
-        if progdialog.wasCanceled():
-            return
-
-        self.tunnel.TunnelMesh(name='block_tunnel',
-                               tunnel_height=self.tunnel_height.value(),
-                               divisions_height=self.divisions_height.value(),
-                               ratio_height=self.ratio_height.value(),
-                               dist=self.dist.currentText())
-        progdialog.setValue(40)
-
-        if progdialog.wasCanceled():
-            return
-
-        self.tunnel.TunnelMeshWake(name='block_tunnel_wake',
-                                   tunnel_wake=self.tunnel_wake.value(),
-                                   divisions=self.divisions_wake.value(),
-                                   ratio=self.ratio_wake.value(),
-                                   spread=self.spread.value()/100.0)
-        progdialog.setValue(50)
-
-        if progdialog.wasCanceled():
-            return
-
-        # connect mesh blocks
-        connect = Connect.Connect(progdialog)
-        vertices, connectivity = connect.connectAllBlocks(self.tunnel.blocks)
-        self.tunnel.mesh = vertices, connectivity
-
-        logger.info('Mesh around {} created'.format(self.parent.airfoil.name))
-        logger.info('Mesh has {} vertices and {} elements'. \
-            format(len(vertices), len(connectivity)))
-
-        self.drawMesh(self.parent.airfoil)
-
-        progdialog.setValue(100)
-
-        # enable mesh export and set filename
-        self.box_meshexport.setEnabled(True)
-        nameroot, extension = os.path.splitext(str(self.parent.airfoil.name))
-        self.lineedit_mesh.setText(nameroot + '_mesh')
-
-    def drawMesh(self, airfoil):
-
-        # toggle spline points
-        self.parent.centralwidget.cb3.click()
-
-        # delete old mesh if existing
-        if hasattr(airfoil, 'mesh'):
-            logger.debug('MESH item type: {}'.format(type(airfoil.mesh)))
-            self.parent.scene.removeItem(airfoil.mesh)
-
-        mesh = list()
-
-        for block in self.tunnel.blocks:
-            for lines in [block.getULines(),
-                          block.getVLines()]:
-                for line in lines:
-
-                    # instantiate a graphics item
-                    contour = gic.GraphicsCollection()
-                    # make it polygon type and populate its points
-                    points = [QtCore.QPointF(x, y) for x, y in line]
-                    contour.Polyline(QtGui.QPolygonF(points), '')
-                    # set its properties
-                    contour.pen.setColor(QtGui.QColor(0, 0, 0, 255))
-                    contour.pen.setWidthF(0.8)
-                    contour.pen.setCosmetic(True)
-                    contour.brush.setStyle(QtCore.Qt.NoBrush)
-
-                    # add contour as a GraphicsItem to the scene
-                    # these are the objects which are drawn in the GraphicsView
-                    meshline = GraphicsItem.GraphicsItem(contour)
-
-                    mesh.append(meshline)
-        airfoil.mesh = self.parent.scene.createItemGroup(mesh)
-
-        # activate viewing options if mesh is created and displayed
-        self.parent.centralwidget.cb6.setChecked(True)
-        self.parent.centralwidget.cb6.setEnabled(True)
+    def generateMesh(self):
+        self.wind_tunnel = Meshing.Windtunnel()
+        self.wind_tunnel.makeMesh()
 
     def exportMesh(self, from_browse_mesh=False):
 
@@ -809,15 +685,13 @@ class Toolbox(QtWidgets.QToolBox):
         else:
             fullname = OUTPUTDATA + nameroot
 
-        mesh = self.tunnel.mesh
+        mesh = self.wind_tunnel.mesh
 
         if self.check_FIRE.isChecked():
             Meshing.BlockMesh.writeFLMA(mesh, name=fullname)
-
-        if self.check_SU2.isChecked():
+        elif self.check_SU2.isChecked():
             Meshing.BlockMesh.writeSU2(mesh, name=fullname)
-
-        if self.check_GMSH.isChecked():
+        elif self.check_GMSH.isChecked():
             Meshing.BlockMesh.writeGMSH(mesh, name=fullname)
 
     def analyzeAirfoil(self):
@@ -916,6 +790,9 @@ class Toolbox(QtWidgets.QToolBox):
 
         provider = IconProvider.IconProvider()
         dialog.setIconProvider(provider)
+        options = QtWidgets.QFileDialog.Options()
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        dialog.setOptions(options)
         dialog.setNameFilter(DIALOGFILTER_MESH)
         dialog.setNameFilterDetailsVisible(True)
         dialog.setDirectory(OUTPUTDATA)
@@ -994,4 +871,3 @@ class ListWidget(QtWidgets.QListWidget):
                 # adjust the marker size again
                 self.mainwindow.view.adjustMarkerSize()
                 break
-

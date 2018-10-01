@@ -128,19 +128,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # check if path is correct
         if not os.path.exists(MENUDATA):
-            print ('\n PyAero ERROR: Folder %s does not exist.' % (MENUDATA))
-            print (' PyAero ERROR: Maybe you are starting PyAero from the wrong location.\n')
+            print('\n PyAero ERROR: Folder %s does not exist.' % (MENUDATA))
+            print(' PyAero ERROR: Maybe you are starting '
+                  'PyAero from the wrong location.\n')
             sys.exit()
 
         # check if output folder does exist
         if not os.path.exists(OUTPUTDATA):
             os.mkdir(OUTPUTDATA, mode=0o777)
-            print ('Folder %s created.' % (OUTPUTDATA))
+            print('Folder %s created.' % (OUTPUTDATA))
 
         # check if logs folder does exist
         if not os.path.exists(LOGDATA):
             os.mkdir(LOGDATA, mode=0o777)
-            print ('Folder %s created.' % (LOGDATA))
+            print('Folder %s created.' % (LOGDATA))
 
     # ********************************
     # slots which are not in PGuiSlots
@@ -181,8 +182,9 @@ class CentralWidget(QtWidgets.QWidget):
         # create box where viewing options are placed
         self.viewingOptions()
 
-        verticalSpacer = QtWidgets.QSpacerItem(50, 15, QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Fixed)
+        verticalSpacer = QtWidgets.QSpacerItem(50, 15,
+                                               QtWidgets.QSizePolicy.Minimum,
+                                               QtWidgets.QSizePolicy.Fixed)
 
         horizontal_line = QtWidgets.QFrame()
         horizontal_line.setFrameShape(QtWidgets.QFrame.HLine)
@@ -209,7 +211,7 @@ class CentralWidget(QtWidgets.QWidget):
         self.splitter.addWidget(self.left_pane)
         self.splitter.addWidget(self.tabs)
 
-        self.splitter.setSizes([100, 400])  # initial hint for splitter spacing
+        self.splitter.setSizes([100, 1300])  # initial hint for splitter spacing
 
         # put splitter in a layout box
         hbox = QtWidgets.QHBoxLayout(self)
@@ -218,8 +220,10 @@ class CentralWidget(QtWidgets.QWidget):
 
     def viewingOptions(self):
         self.viewing_options = QtWidgets.QGroupBox('Viewing Options')
-        vbox = QtWidgets.QVBoxLayout()
-        self.viewing_options.setLayout(vbox)
+        hbox = QtWidgets.QHBoxLayout()
+        vbox1 = QtWidgets.QVBoxLayout()
+        vbox2 = QtWidgets.QVBoxLayout()
+        self.viewing_options.setLayout(hbox)
         self.cb1 = QtWidgets.QCheckBox('Message Window')
         self.cb1.setChecked(True)
         self.cb2 = QtWidgets.QCheckBox('Airfoil Points')
@@ -240,14 +244,16 @@ class CentralWidget(QtWidgets.QWidget):
         self.cb7 = QtWidgets.QCheckBox('Leading Edge Circle')
         self.cb7.setChecked(False)
         self.cb7.setEnabled(False)
-        vbox.addWidget(self.cb1)
-        vbox.addWidget(self.cb2)
-        vbox.addWidget(self.cb3)
-        vbox.addWidget(self.cb4)
-        vbox.addWidget(self.cb5)
-        vbox.addWidget(self.cb6)
-        vbox.addWidget(self.cb7)
-        vbox.setAlignment(QtCore.Qt.AlignTop)
+        vbox1.addWidget(self.cb2)
+        vbox1.addWidget(self.cb3)
+        vbox1.addWidget(self.cb4)
+        vbox1.addWidget(self.cb5)
+        vbox2.addWidget(self.cb1)
+        vbox2.addWidget(self.cb6)
+        vbox2.addWidget(self.cb7)
+        hbox.addLayout(vbox1)
+        hbox.addLayout(vbox2)
+        hbox.setAlignment(QtCore.Qt.AlignTop)
         # connect signals to slots
         # lambda allows to send extra parameters
         self.cb1.clicked.connect(lambda: self.parent.slots.toggleLogDock('tick'))

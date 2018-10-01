@@ -140,6 +140,7 @@ class MenusTools:
             setFeatures(QtWidgets.QDockWidget.DockWidgetMovable |
                         QtWidgets.QDockWidget.DockWidgetFloatable)
         self.parent.messagedock.setWindowTitle('Messages')
+        self.parent.messagedock.setMinimumSize(100, 50)
         # connect messagedock to slot
         self.parent.messagedock.topLevelChanged.connect(
             self.parent.slots.onLevelChanged)
@@ -158,6 +159,5 @@ class MenusTools:
         self.parent.addDockWidget(
             QtCore.Qt.DockWidgetArea(place), self.parent.messagedock)
 
-    # @QtCore.pyqtSlot()
     def onPass(self):
         pass

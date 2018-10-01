@@ -4,7 +4,12 @@ import copy
 import numpy as np
 import scipy.interpolate as si
 
+from PySide2 import QtGui, QtCore, QtWidgets
+
 import PyAero
+import GraphicsItemsCollection as gic
+import GraphicsItem
+import Connect
 from Utils import Utils as Utils
 from Settings import OUTPUTDATA
 import logging
@@ -16,6 +21,9 @@ class Windtunnel:
     def __init__(self):
 
         self.blocks = []
+
+        # get MainWindow instance (overcomes handling parents)
+        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
 
     def AirfoilMesh(self, name='', contour=None, divisions=15, ratio=3.0,
                     thickness=0.04):
@@ -279,6 +287,131 @@ class Windtunnel:
 
         self.block_tunnel_wake = block_tunnel_wake
         self.blocks.append(block_tunnel_wake)
+
+    def makeMesh(self):
+
+        toolbox = self.mainwindow.centralwidget.toolbox
+
+        if self.mainwindow.airfoil:
+            if not hasattr(self.mainwindow.airfoil, 'spline_data'):
+                message = 'Splining needs to be done first.'
+                self.mainwindow.slots.messageBox(message)
+                return
+
+            contour = self.mainwindow.airfoil.spline_data[0]
+
+        else:
+            self.mainwindow.slots.messageBox('No airfoil loaded.')
+            return
+
+        progdialog = QtWidgets.QProgressDialog(
+            "", "Cancel", 0, 100, self.mainwindow)
+        progdialog.setFixedWidth(300)
+        progdialog.setMinimumDuration(0)
+        progdialog.setWindowTitle('Generating the CFD mesh')
+        progdialog.setWindowModality(QtCore.Qt.WindowModal)
+        progdialog.show()
+
+        progdialog.setValue(10)
+        # progdialog.setLabelText('making blocks')
+
+        self.AirfoilMesh(name='block_airfoil',
+                         contour=contour,
+                         divisions=toolbox.points_n.value(),
+                         ratio=toolbox.ratio.value(),
+                         thickness=toolbox.normal_thickness.value()/100.0)
+        progdialog.setValue(20)
+
+        if progdialog.wasCanceled():
+            return
+
+        self.TrailingEdgeMesh(name='block_TE',
+                              te_divisions=toolbox.te_div.value(),
+                              length=toolbox.length_te.value()/100.0,
+                              divisions=toolbox.points_te.value(),
+                              ratio=toolbox.ratio_te.value())
+        progdialog.setValue(30)
+
+        if progdialog.wasCanceled():
+            return
+
+        self.TunnelMesh(name='block_tunnel',
+                        tunnel_height=toolbox.tunnel_height.value(),
+                        divisions_height=toolbox.divisions_height.value(),
+                        ratio_height=toolbox.ratio_height.value(),
+                        dist=toolbox.dist.currentText())
+        progdialog.setValue(40)
+
+        if progdialog.wasCanceled():
+            return
+
+        self.TunnelMeshWake(name='block_tunnel_wake',
+                            tunnel_wake=toolbox.tunnel_wake.value(),
+                            divisions=toolbox.divisions_wake.value(),
+                            ratio=toolbox.ratio_wake.value(),
+                            spread=toolbox.spread.value()/100.0)
+        progdialog.setValue(50)
+
+        if progdialog.wasCanceled():
+            return
+
+        # connect mesh blocks
+        connect = Connect.Connect(progdialog)
+        vertices, connectivity = connect.connectAllBlocks(self.blocks)
+        self.mesh = vertices, connectivity
+
+        logger.info('Mesh around {} created'.
+                    format(self.mainwindow.airfoil.name))
+        logger.info('Mesh has {} vertices and {} elements'.
+                    format(len(vertices), len(connectivity)))
+
+        self.drawMesh(self.mainwindow.airfoil)
+
+        progdialog.setValue(100)
+
+        # enable mesh export and set filename
+        toolbox.box_meshexport.setEnabled(True)
+        nameroot, extension = os.path.splitext(self.mainwindow.airfoil.name)
+        toolbox.lineedit_mesh.setText(str(nameroot) + '_mesh')
+
+    def drawMesh(self, airfoil):
+
+        # toggle spline points
+        self.mainwindow.centralwidget.cb3.click()
+
+        # delete old mesh if existing
+        if hasattr(airfoil, 'mesh'):
+            logger.debug('MESH item type: {}'.format(type(airfoil.mesh)))
+            self.mainwindow.scene.removeItem(airfoil.mesh)
+
+        mesh = list()
+
+        for block in self.blocks:
+            for lines in [block.getULines(),
+                          block.getVLines()]:
+                for line in lines:
+
+                    # instantiate a graphics item
+                    contour = gic.GraphicsCollection()
+                    # make it polygon type and populate its points
+                    points = [QtCore.QPointF(x, y) for x, y in line]
+                    contour.Polyline(QtGui.QPolygonF(points), '')
+                    # set its properties
+                    contour.pen.setColor(QtGui.QColor(0, 0, 0, 255))
+                    contour.pen.setWidthF(0.8)
+                    contour.pen.setCosmetic(True)
+                    contour.brush.setStyle(QtCore.Qt.NoBrush)
+
+                    # add contour as a GraphicsItem to the scene
+                    # these are the objects which are drawn in the GraphicsView
+                    meshline = GraphicsItem.GraphicsItem(contour)
+
+                    mesh.append(meshline)
+        airfoil.mesh = self.mainwindow.scene.createItemGroup(mesh)
+
+        # activate viewing options if mesh is created and displayed
+        self.mainwindow.centralwidget.cb6.setChecked(True)
+        self.mainwindow.centralwidget.cb6.setEnabled(True)
 
 
 class BlockMesh:
@@ -603,33 +736,6 @@ class BlockMesh:
             ulines.append(uline[::-1])
             uline = list()
         return ulines
-
-    def getRotationAngle(self, node, n, degree=True):
-
-        before = n - 1
-        if before == 0:
-            before = 8
-        after = n + 1
-        if after == 9:
-            after = 1
-
-        b = np.array([graph.node[neighbours[before]]['pos'][0],
-                      graph.node[neighbours[before]]['pos'][1]])
-        a = np.array([graph.node[neighbours[after]]['pos'][0],
-                      graph.node[neighbours[after]]['pos'][1]])
-        c = np.array([graph.node[node]['pos'][0], graph.node[node]['pos'][1]])
-        s = np.array([graph.node[neighbours[n]]['pos'][0],
-                      graph.node[neighbours[n]]['pos'][1]])
-        u = b - s
-        v = a - s
-        w = c - s
-        alpha2 = Utils.angle_between(u, w, degree=degree) * (-1.0) * \
-            np.sign(np.cross(u, w))
-        alpha1 = Utils.angle_between(w, v, degree=degree) * (-1.0) * \
-            np.sign(np.cross(w, v))
-        beta = (alpha2 - alpha1) / 2.0
-
-        return beta
 
     @staticmethod
     def writeFLMA(mesh, name='', depth=0.3):

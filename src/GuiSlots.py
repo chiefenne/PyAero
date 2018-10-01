@@ -101,7 +101,7 @@ class Slots:
                 lines = f.readlines()
         except IOError as error:
             # exc_info=True sends traceback to the logger
-            logger.error('Failed to open file {} with error {}'. \
+            logger.error('Failed to open file {} with error {}'.
                          format(filename, error), exc_info=True)
             return False
 
@@ -294,7 +294,7 @@ class Slots:
     def onLevelChanged(self):
         """Change size of message window when floating """
         if self.parent.messagedock.isFloating():
-            self.parent.messagedock.resize(700, 300)
+            self.parent.messagedock.resize(600, 300)
 
     # @QtCore.pyqtSlot()
     def onTextChanged(self):
