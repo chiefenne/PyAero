@@ -8,8 +8,6 @@
 .. note::
    This is the new version of PyAero. It is based on Python 3 and Qt for Python (PySide2).
 
-.. codeauthor:: Andreas Ennemoser andreas.ennemoser@aon.at
-
 ********************
 PyAero documentation
 ********************
