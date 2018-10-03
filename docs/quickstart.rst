@@ -1,5 +1,5 @@
 Quickstart
-----------
+==========
 
 The general steps for mesh generation in `PyAero <index.html>`_ can be explained as follows:
 

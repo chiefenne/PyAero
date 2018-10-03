@@ -111,7 +111,7 @@ The code ist hosted on GitHub: `PyAero source code <https://github.com/chiefenne
 .. toctree::
    :caption: Table of Contents
    :numbered:
-   :maxdepth: 3
+   :maxdepth: 2
    :hidden:
 
    introduction

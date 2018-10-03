@@ -1,10 +1,10 @@
 Loading Airfoils
-----------------
+================
 
 Loading airfoils can be done in different ways:
 
 Load via menu :menuselection:`File --> Open`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------
 
 The classical :menuselection:`File --> Open` menu is a standard way to load data. The shortcut assigned to this menu is :kbd:`CTRL-o`. Clicking :menuselection:`Open` or applying the respective shortcut provides a dialog that allow users to select files or browse directories.
 
@@ -19,7 +19,7 @@ The classical :menuselection:`File --> Open` menu is a standard way to load data
    *Open* menu to load an airfoil contour via the file browser
 
 Load via the inline file browser
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------
 
 As outlined above there are more ways to load airfoils. A very handy way to browse airfoils is to use the implemented file browser. This browser is restricted in terms of navigation. Only files and folders below a predefined root path are visible. The default root is  the :file:`data` subfolder from the standard installation.
 
@@ -36,7 +36,7 @@ The file browser is located in the *toolbox* area on the left side of the applic
 .. seealso:: For more information on configuring the root path to airfoil data see :ref:`tutorial_settings`.
 
 Load via the *Toolbar*
-^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 Another fast way to open the file dialog is to click on the :menuselection:`Open` icon (see image below) in the toolbar. The toolbar consists of a row of icons just below the menu bar. The toolbar can be customized by editing the file :file:`$PYAEROPATH/data/PToolBar.xml`.
 
@@ -51,7 +51,7 @@ Another fast way to open the file dialog is to click on the :menuselection:`Open
 .. seealso:: For more information on configuring the menubar and the toolbar see :ref:`tutorial_settings`.
 
 Load a predefined airfoil
-^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------
 
 For testing purposes a predefined airfoil can be loaded without the need of a file dialog. The airfoil which is predefined can be configured.
 
@@ -66,7 +66,7 @@ For testing purposes a predefined airfoil can be loaded without the need of a fi
 .. seealso:: See tutorial :ref:`tutorial_settings` on how to change the default airfoil.
 
 Load via drag and drop
-^^^^^^^^^^^^^^^^^^^^^^
+----------------------
 
 another convenient way to load one or more airfoil(s) is via drag and drop. Just drag a couple of files, e.g. from the Explorer in Windows, to the graphics window. All files will be loaded and the view will be zoomed in way that all contours fit into the screen.
 
