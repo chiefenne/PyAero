@@ -116,6 +116,13 @@ The code ist hosted on GitHub: `PyAero source code <https://github.com/chiefenne
 
    introduction
    ui_GUI
-   tutorial
+   quickstart
+   load
+   spline_refine
+   trailing_edge
+   meshing
+   contour_analysis
+   settings
+   GUI_modification
    dependencies
    license
