@@ -358,7 +358,15 @@ class Windtunnel:
         # connect mesh blocks
         connect = Connect.Connect(progdialog)
         vertices, connectivity = connect.connectAllBlocks(self.blocks)
+
+        # add mesh to Windtunnel instance
         self.mesh = vertices, connectivity
+
+        # generate edges from mesh connectivity
+        self.makeEdges()
+
+        # generate boundaries from mesh connectivity
+        self.makeBoundaries()
 
         logger.info('Mesh around {} created'.
                     format(self.mainwindow.airfoil.name))
@@ -373,6 +381,45 @@ class Windtunnel:
         toolbox.box_meshexport.setEnabled(True)
         nameroot, extension = os.path.splitext(self.mainwindow.airfoil.name)
         toolbox.lineedit_mesh.setText(str(nameroot) + '_mesh')
+
+    def makeEdges(self):
+
+        _, connectivity = self.mesh
+
+        # get all edges in the mesh
+        self.edges = list()
+        self.cells = dict()
+        for i, cell in enumerate(connectivity):
+            # example:
+            # cell: [0, 1, 5, 4]
+            # edges: [(0,1), (1,5), (5,4), (4,0)]
+            cell_edges = [(cell[cell.index(v)],
+                           cell[(cell.index(v)+1) % 4]) for v in cell]
+            self.cells[i] = [sorted(cell) for cell in cell_edges]
+            self.edges += cell_edges
+
+    def makeBoundaries(self):
+
+        self.common_edges = dict()
+
+        logger.debug(str(len(self.cells)))
+
+        for i, cell in enumerate(self.cells):
+            self.common_edges[i] = 0
+            logger.debug('Cell {:5d}'.format(i))
+            for j, neighbour_cell in enumerate(self.cells):
+                if j == i:
+                    continue
+                for edge in self.cells[cell]:
+                    if edge in self.cells[neighbour_cell]:
+                        self.common_edges[i] += 1
+                        break
+
+        with open('data/OUTPUT/edges.txt', 'w') as f:
+            for cell in self.common_edges:
+                f.write(' {:6d} {:2d} {} \n'.format(cell,
+                                                    self.common_edges[cell],
+                                                    str(self.cells[cell])))
 
     def drawMesh(self, airfoil):
 
@@ -887,34 +934,15 @@ class BlockMesh:
                 f.write(' {:24.16e} {:24.16e} \n'.format(x, y))
 
             # get all edges in the mesh
-            all_edges = list()
+            edges = list()
             for cell in connectivity:
                 # example:
                 # cell: [0, 1, 5, 4]
                 # edges: [(0,1), (1,5), (5,4), (4,0)]
-                edges = [set((cell[cell.index(v)], cell[(cell.index(v)+1) % 4])
-                             ) for v in cell]
-                all_edges += edges
+                cell_edges = [set((cell[cell.index(v)],
+                                   cell[(cell.index(v)+1) % 4])) for v in cell]
+                edges += cell_edges
 
-            all_edges = [frozenset(i) for i in all_edges]
-            edges = set(all_edges)
-
-            boundary_edges = list()
-            external = 0
-            internal = 0
-
-            # per number as dictionary key, list the tuples from list_1 that contain it
-            d = dict()
-            for cell in connectivity:
-                for vertex in cell:
-                    if vertex not in d:
-                        d[vertex] = set()
-                    d[vertex].add(cell)
-
-            # for each pair, take the intersection of
-            # the corresponding lists in d
-            result = [(edge, len(d[edge[0]].intersection(d[edge[1]])))
-                      for edge in edges]
 
             # number of marks
             f.write('NMARK= 2\n')

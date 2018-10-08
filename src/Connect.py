@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.spatial as ssp
 
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide2 import QtCore
 
 
 class Connect:
@@ -44,8 +44,8 @@ class Connect:
     def connectAllBlocks(self, blocks):
 
         self.progdialog.setValue(60)
-        # self.progdialog.setLabelText('connecting blocks')
 
+        # airfoil contour within blocks[0]
         connected_1 = self.connectBlocks(blocks[0], blocks[1],
                                          radius=0.0001, type_='block')
         self.progdialog.setValue(70)
