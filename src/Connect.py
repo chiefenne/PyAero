@@ -45,7 +45,7 @@ class Connect:
 
         self.progdialog.setValue(60)
 
-        # airfoil contour within blocks[0]
+        # airfoil contour is stored in blocks[0]
         connected_1 = self.connectBlocks(blocks[0], blocks[1],
                                          radius=0.0001, type_='block')
         self.progdialog.setValue(70)
@@ -101,8 +101,8 @@ class Connect:
         # "removed" without removing them
         # so that they later can not be found again in nearest neighbour search
         for vertex_id in J:
-            vertices[vertex_id] = (15.+np.random.random_sample(),
-                                   15.+np.random.random_sample())
+            vertices[vertex_id] = (1000.+np.random.random_sample(),
+                                   1000.+np.random.random_sample())
 
         connectivity_2_new = list()
         for cell in connectivity_2mod:

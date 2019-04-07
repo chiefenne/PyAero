@@ -686,13 +686,14 @@ class Toolbox(QtWidgets.QToolBox):
             fullname = OUTPUTDATA + nameroot
 
         mesh = self.wind_tunnel.mesh
+        blocks = self.wind_tunnel.blocks
 
         if self.check_FIRE.isChecked():
-            Meshing.BlockMesh.writeFLMA(mesh, name=fullname)
+            Meshing.BlockMesh.writeFLMA(mesh, blocks, name=fullname)
         elif self.check_SU2.isChecked():
-            Meshing.BlockMesh.writeSU2(mesh, name=fullname)
+            Meshing.BlockMesh.writeSU2(mesh, blocks, name=fullname)
         elif self.check_GMSH.isChecked():
-            Meshing.BlockMesh.writeGMSH(mesh, name=fullname)
+            Meshing.BlockMesh.writeGMSH(mesh, blocks, name=fullname)
 
     def analyzeAirfoil(self):
         """Airfoil contour analysis with respect to geometric features"""
