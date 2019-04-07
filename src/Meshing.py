@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class Windtunnel:
     """docstring for Windtunnel"""
+
     def __init__(self):
 
         self.blocks = []
@@ -165,7 +166,7 @@ class Windtunnel:
         for j, uline in enumerate(block_tunnel.getULines()):
 
             # skip first and last line
-            if j == 0 or j == len(block_tunnel.getULines())-1:
+            if j == 0 or j == len(block_tunnel.getULines()) - 1:
                 ulines.append(uline)
                 continue
 
@@ -178,7 +179,7 @@ class Windtunnel:
             for i, point in enumerate(uline):
 
                 # skip first and last point
-                if i == 0 or i == len(uline)-1:
+                if i == 0 or i == len(uline) - 1:
                     line.append(point)
                     continue
 
@@ -190,7 +191,7 @@ class Windtunnel:
                 pn = pto + dist * normals[i]
                 v = float(j) / float(len(block_tunnel.getULines()))
                 exp = 0.6
-                pnew = (1.0-v**exp) * pn + v**exp * pt
+                pnew = (1.0 - v**exp) * pn + v**exp * pt
                 line.append((pnew.tolist()[0], pnew.tolist()[1]))
 
             ulines.append(line)
@@ -199,12 +200,12 @@ class Windtunnel:
         for uline in ulines:
             block_tunnel.addLine(uline)
 
-        ij = [0, 30, 0, len(block_tunnel.getULines())-1]
+        ij = [0, 30, 0, len(block_tunnel.getULines()) - 1]
         block_tunnel.transfinite(ij=ij)
-        ij = [len(block_tunnel.getVLines())-31,
-              len(block_tunnel.getVLines())-1,
+        ij = [len(block_tunnel.getVLines()) - 31,
+              len(block_tunnel.getVLines()) - 1,
               0,
-              len(block_tunnel.getULines())-1]
+              len(block_tunnel.getULines()) - 1]
         block_tunnel.transfinite(ij=ij)
 
         sm = 1
@@ -214,14 +215,14 @@ class Windtunnel:
             nodes = smooth.selectNodes(domain='interior')
             block_tunnel = smooth.smooth(nodes, iterations=1,
                                          algorithm='laplace')
-            ij = [1, 30, 1, len(block_tunnel.getULines())-2]
+            ij = [1, 30, 1, len(block_tunnel.getULines()) - 2]
             nodes = smooth.selectNodes(domain='ij', ij=ij)
             block_tunnel = smooth.smooth(nodes, iterations=2,
                                          algorithm='laplace')
-            ij = [len(block_tunnel.getVLines())-31,
-                  len(block_tunnel.getVLines())-2,
+            ij = [len(block_tunnel.getVLines()) - 31,
+                  len(block_tunnel.getVLines()) - 2,
                   1,
-                  len(block_tunnel.getULines())-2]
+                  len(block_tunnel.getULines()) - 2]
             nodes = smooth.selectNodes(domain='ij', ij=ij)
             block_tunnel = smooth.smooth(nodes, iterations=3,
                                          algorithm='laplace')
@@ -247,18 +248,18 @@ class Windtunnel:
 
         #
         p1 = np.array((self.block_te.getULines()[-1][0][0],
-                      self.tunnel_height))
+                       self.tunnel_height))
         p4 = np.array((self.block_te.getULines()[-1][-1][0],
-                      -self.tunnel_height))
-        p7 = np.array((tunnel_wake+chord, self.tunnel_height))
-        p8 = np.array((tunnel_wake+chord, -self.tunnel_height))
+                       - self.tunnel_height))
+        p7 = np.array((tunnel_wake + chord, self.tunnel_height))
+        p8 = np.array((tunnel_wake + chord, -self.tunnel_height))
 
         upper = BlockMesh.makeLine(p7, p1, divisions=divisions,
-                                   ratio=1.0/ratio)
+                                   ratio=1.0 / ratio)
         lower = BlockMesh.makeLine(p8, p4, divisions=divisions,
-                                   ratio=1.0/ratio)
+                                   ratio=1.0 / ratio)
         left = line
-        right = BlockMesh.makeLine(p8, p7, divisions=len(left)-1, ratio=1.0)
+        right = BlockMesh.makeLine(p8, p7, divisions=len(left) - 1, ratio=1.0)
 
         boundary = [upper, lower, right, left]
         block_tunnel_wake.transfinite(boundary=boundary)
@@ -272,17 +273,17 @@ class Windtunnel:
         block_tunnel_wake.distribute(direction='v', number=line_no)
 
         # transfinite left of division line
-        ij = [len(block_tunnel_wake.getVLines())+line_no,
-              len(block_tunnel_wake.getVLines())-1,
+        ij = [len(block_tunnel_wake.getVLines()) + line_no,
+              len(block_tunnel_wake.getVLines()) - 1,
               0,
-              len(block_tunnel_wake.getULines())-1]
+              len(block_tunnel_wake.getULines()) - 1]
         block_tunnel_wake.transfinite(ij=ij)
 
         # transfinite right of division line
         ij = [0,
-              len(block_tunnel_wake.getVLines())+line_no,
+              len(block_tunnel_wake.getVLines()) + line_no,
               0,
-              len(block_tunnel_wake.getULines())-1]
+              len(block_tunnel_wake.getULines()) - 1]
         block_tunnel_wake.transfinite(ij=ij)
 
         self.block_tunnel_wake = block_tunnel_wake
@@ -319,7 +320,7 @@ class Windtunnel:
                          contour=contour,
                          divisions=toolbox.points_n.value(),
                          ratio=toolbox.ratio.value(),
-                         thickness=toolbox.normal_thickness.value()/100.0)
+                         thickness=toolbox.normal_thickness.value() / 100.0)
         progdialog.setValue(20)
 
         if progdialog.wasCanceled():
@@ -327,7 +328,7 @@ class Windtunnel:
 
         self.TrailingEdgeMesh(name='block_TE',
                               te_divisions=toolbox.te_div.value(),
-                              length=toolbox.length_te.value()/100.0,
+                              length=toolbox.length_te.value() / 100.0,
                               divisions=toolbox.points_te.value(),
                               ratio=toolbox.ratio_te.value())
         progdialog.setValue(30)
@@ -349,7 +350,7 @@ class Windtunnel:
                             tunnel_wake=toolbox.tunnel_wake.value(),
                             divisions=toolbox.divisions_wake.value(),
                             ratio=toolbox.ratio_wake.value(),
-                            spread=toolbox.spread.value()/100.0)
+                            spread=toolbox.spread.value() / 100.0)
         progdialog.setValue(50)
 
         if progdialog.wasCanceled():
@@ -383,6 +384,7 @@ class Windtunnel:
         toolbox.lineedit_mesh.setText(str(nameroot) + '_mesh')
 
     def makeEdges(self):
+        """Make edge connectivity for the mesh"""
 
         _, connectivity = self.mesh
 
@@ -393,13 +395,13 @@ class Windtunnel:
             # example:
             # cell: [0, 1, 5, 4]
             # edges: [(0,1), (1,5), (5,4), (4,0)]
-            cell_edges = [(cell[cell.index(v)],
-                           cell[(cell.index(v)+1) % 4]) for v in cell]
-            self.cells[i] = [sorted(cell) for cell in cell_edges]
-            self.edges += cell_edges
+            edges = [(cell[j], cell[(j + 1) % 4]) for j in cell]
+            self.cells[i] = [sorted(edge) for edge in edges]
+            self.edges += edges
 
     def makeBoundaries(self):
-
+        """Summary
+        """
         self.common_edges = dict()
 
         logger.debug(str(len(self.cells)))
@@ -601,9 +603,6 @@ class BlockMesh:
             for i, uline in enumerate(self.getULines()):
                 self.getULines()[i][number] = line[i]
 
-    def connect(self, block_1, block_2):
-        pass
-
     @staticmethod
     def spacing(divisions=10, ratio=1.0, thickness=1.0):
         """Calculate point distribution on a line
@@ -696,10 +695,10 @@ class BlockMesh:
             left = boundary[2]
             right = boundary[3]
         elif ij:
-            lower = self.getULines()[ij[2]][ij[0]:ij[1]+1]
-            upper = self.getULines()[ij[3]][ij[0]:ij[1]+1]
-            left = self.getVLines()[ij[0]][ij[2]:ij[3]+1]
-            right = self.getVLines()[ij[1]][ij[2]:ij[3]+1]
+            lower = self.getULines()[ij[2]][ij[0]:ij[1] + 1]
+            upper = self.getULines()[ij[3]][ij[0]:ij[1] + 1]
+            left = self.getVLines()[ij[0]][ij[2]:ij[3] + 1]
+            right = self.getVLines()[ij[1]][ij[2]:ij[3] + 1]
         else:
             lower = self.getULines()[0]
             upper = self.getULines()[-1]
@@ -764,9 +763,9 @@ class BlockMesh:
         if ij:
             ulines = self.makeUfromV(vlines)
             n = -1
-            for k in range(ij[2], ij[3]+1):
+            for k in range(ij[2], ij[3] + 1):
                 n += 1
-                self.ULines[k][ij[0]:ij[1]+1] = ulines[n]
+                self.ULines[k][ij[0]:ij[1] + 1] = ulines[n]
         else:
             self.ULines = self.makeUfromV(vlines)
 
@@ -785,7 +784,7 @@ class BlockMesh:
         return ulines
 
     @staticmethod
-    def writeFLMA(mesh, name='', depth=0.3):
+    def writeFLMA(mesh, blocks, name='', depth=0.3):
 
         if not name[-5:] == '.flma':
             name += '.flma'
@@ -821,13 +820,13 @@ class BlockMesh:
             # write cell connectivity to FLMA file
             for cell in connectivity:
                 cell_connect = str(cell[0]) + ' ' + \
-                               str(cell[1]) + ' ' + \
-                               str(cell[2]) + ' ' + \
-                               str(cell[3]) + ' ' + \
-                               str(cell[0]+number_of_vertices_2D) + ' ' + \
-                               str(cell[1]+number_of_vertices_2D) + ' ' + \
-                               str(cell[2]+number_of_vertices_2D) + ' ' + \
-                               str(cell[3]+number_of_vertices_2D) + '\n'
+                    str(cell[1]) + ' ' + \
+                    str(cell[2]) + ' ' + \
+                    str(cell[3]) + ' ' + \
+                    str(cell[0] + number_of_vertices_2D) + ' ' + \
+                    str(cell[1] + number_of_vertices_2D) + ' ' + \
+                    str(cell[2] + number_of_vertices_2D) + ' ' + \
+                    str(cell[3] + number_of_vertices_2D) + '\n'
 
                 f.write(numvertex + '\n')
                 f.write(cell_connect)
@@ -846,14 +845,14 @@ class BlockMesh:
             f.write('6\n')
             f.write('right\n')
             f.write(fetQuad)
-            f.write(str(2*len(connectivity))+'\n')
+            f.write(str(2 * len(connectivity)) + '\n')
             for i in range(len(connectivity)):
                 f.write(' %s 0' % (i))
             f.write('\n')
             f.write('\n')
             f.write('left\n')
             f.write(fetQuad)
-            f.write(str(2*len(connectivity))+'\n')
+            f.write(str(2 * len(connectivity)) + '\n')
             for i in range(len(connectivity)):
                 f.write(' %s 1' % (i))
             f.write('\n')
@@ -878,11 +877,11 @@ class BlockMesh:
             f.write('2\n')
             f.write('0 5\n')
 
-            logger.info('FIRE mesh {} saved to folder {}'. \
+            logger.info('FIRE mesh {} saved to folder {}'.
                         format(basename, OUTPUTDATA))
 
     @staticmethod
-    def writeSU2(mesh, name=''):
+    def writeSU2(mesh, blocks, name=''):
 
         if not name[-4:] == '.su2':
             name += '.su2'
@@ -891,9 +890,13 @@ class BlockMesh:
         nameroot, extension = os.path.splitext(str(basename))
 
         vertices, connectivity = mesh
+        airfoil_subdivisions, v = blocks[0].getDivUV()
+        shift_nodes = (airfoil_subdivisions + 1) * (v + 1)
+        trailing_edge_subdivisions, _ = blocks[1].getDivUV()
 
-        # element type is SU2 quadrilateral
-        el_type = '9'
+        # SU2 element types
+        element_type_line = '3'
+        element_type_quadrilateral = '9'
 
         with open(name, 'w') as f:
             f.write('%\n')
@@ -917,7 +920,7 @@ class BlockMesh:
 
             for cell_id, cell in enumerate(connectivity):
 
-                cell_connect = el_type + ' ' + \
+                cell_connect = element_type_quadrilateral + ' ' + \
                     str(cell[0]) + ' ' + \
                     str(cell[1]) + ' ' + \
                     str(cell[2]) + ' ' + \
@@ -940,26 +943,39 @@ class BlockMesh:
                 # cell: [0, 1, 5, 4]
                 # edges: [(0,1), (1,5), (5,4), (4,0)]
                 cell_edges = [set((cell[cell.index(v)],
-                                   cell[(cell.index(v)+1) % 4])) for v in cell]
+                                   cell[(cell.index(v) + 1) % 4]))
+                              for v in cell]
                 edges += cell_edges
-
 
             # number of marks
             f.write('NMARK= 2\n')
             f.write('MARKER_TAG= airfoil\n')
-            f.write('MARKER_ELEMS= 2\n')
-            f.write('3 0 1\n')
-            f.write('3 1 2\n')
+
+            airfoil_markers = airfoil_subdivisions + trailing_edge_subdivisions
+            am = str(airfoil_markers)
+            f.write('MARKER_ELEMS= ' + am + '\n')
+            # add line segments along airfoil
+            for id in range(airfoil_subdivisions):
+                f.write(element_type_line + ' ' + str(id) + ' ' +
+                        str(id + 1) + '\n')
+            # add line segments along trailing edge
+            for id in range(trailing_edge_subdivisions - 1):
+                f.write(element_type_line + ' ' + str(id + shift_nodes) + ' ' +
+                        str(id + shift_nodes + 1) + '\n')
+            # write last segment
+            f.write(element_type_line + ' ' + str(id + shift_nodes + 1) + ' ' +
+                    '0')
+
             f.write('MARKER_TAG= farfield\n')
             f.write('MARKER_ELEMS= 2\n')
             f.write('3 2 5\n')
             f.write('3 5 8\n')
 
-            logger.info('SU2 mesh {} saved to folder {}'. \
+            logger.info('SU2 mesh {} saved to folder {}'.
                         format(basename, OUTPUTDATA))
 
     @staticmethod
-    def writeGMSH(mesh, name=''):
+    def writeGMSH(mesh, blocks, name=''):
 
         if not name[-4:] == '.msh':
             name += '.msh'
@@ -970,7 +986,7 @@ class BlockMesh:
         vertices, connectivity = mesh
 
         # element type is GMSH quadrilateral
-        el_type = '3'
+        element_type = '3'
 
         with open(name, 'w') as f:
 
@@ -996,16 +1012,17 @@ class BlockMesh:
 
             for cell_id, cell in enumerate(connectivity, start=1):
 
-                cell_connect = ' ' + str(cell_id) + ' ' + el_type + ' 3 0 1 0 ' + \
-                    str(cell[0]+1) + ' ' + \
-                    str(cell[1]+1) + ' ' + \
-                    str(cell[2]+1) + ' ' + \
-                    str(cell[3]+1) + ' ' + '\n'
+                cell_connect = ' ' + str(cell_id) + ' ' + \
+                    element_type + ' 3 0 1 0 ' + \
+                    str(cell[0] + 1) + ' ' + \
+                    str(cell[1] + 1) + ' ' + \
+                    str(cell[2] + 1) + ' ' + \
+                    str(cell[3] + 1) + ' ' + '\n'
 
                 f.write(cell_connect)
             f.write('$EndElements\n')
 
-            logger.info('GMSH mesh {} saved to folder {}'. \
+            logger.info('GMSH mesh {} saved to folder {}'.
                         format(basename, OUTPUTDATA))
 
 
