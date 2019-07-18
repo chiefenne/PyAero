@@ -53,8 +53,8 @@
 <br><br>
 
 ![](docs/movies/RG14_3D_laminar_Iso-Q_pressure.gif)
-** Unsteady laminar 3D calculation of the RG14 airfoil using the CFD code AVL-FIRE.**
-** 20 million cells.**
+**Unsteady laminar 3D calculation of the RG14 airfoil using the CFD code AVL-FIRE.**
+**RE=330000, AOA=2°, 20 million cells.**
 <br><br>
 
 ## Documentation
