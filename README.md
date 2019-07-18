@@ -52,6 +52,11 @@
 **Turbulence kinetic energy field (RE=50000) around MAKAROV KPS airfoil using the CFD code AVL-FIRE.**
 <br><br>
 
+![](docs/movies/RG14_3D_laminar_Iso-Q_pressure.gif)
+** Unsteady laminar 3D calculation of the RG14 airfoil using the CFD code AVL-FIRE.**
+** 20 million cells.**
+<br><br>
+
 ## Documentation
 
 The [PyAero documentation](http://pyaero.readthedocs.io) is hosted at [https://readthedocs.org](https://readthedocs.org/).
