@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'PyAero'
-copyright = u'2014-2018, Andreas Ennemoser'
+copyright = u'2014-2019, Andreas Ennemoser'
 author = u'Andreas Ennemoser'
 
 # The version info for the project you're documenting, acts as replacement for
