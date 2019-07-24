@@ -323,9 +323,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # depending on the zoom, this leads to always different
         # scene coordinates
         # map a square with side length of MARKERSIZE to the scene coords
-        mappedMarker = self.mapToScene(QtCore.QRect(0, 0,
-                                                        MARKERSIZE,
-                                                        MARKERSIZE))
+        mappedMarker = self.mapToScene(
+            QtCore.QRect(0, 0, MARKERSIZE, MARKERSIZE))
         mappedMarkerWidth = mappedMarker.boundingRect().width()
 
         if self.parent.airfoil.contourPolygon:
@@ -338,7 +337,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
                                              2.*mappedMarkerWidth,
                                              2.*mappedMarkerWidth)]
 
-        if self.parent.airfoil.contourSpline:
+        # if self.parent.airfoil.contourSpline:
+        if hasattr(self.parent.airfoil, 'contourSpline'):
             markers = self.parent.airfoil.splineMarkers
             x, y = self.parent.airfoil.spline_data[0]
             for i, marker in enumerate(markers):

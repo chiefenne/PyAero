@@ -630,7 +630,8 @@ class Toolbox(QtWidgets.QToolBox):
             u_inf = self.freestream.value()
             alpha = self.spin.value()
             panels = self.panels.value()
-            SvpMethod.runSVP(self.parent.airfoil.name, x, y, u_inf, alpha, panels)
+            SvpMethod.runSVP(self.parent.airfoil.name,
+                             x, y, u_inf, alpha, panels)
         else:
             self.parent.slots.messageBox('No airfoil loaded.')
             return

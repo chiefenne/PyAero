@@ -363,8 +363,11 @@ class Windtunnel:
         # add mesh to Windtunnel instance
         self.mesh = vertices, connectivity
 
-        # generate edges from mesh connectivity
-        self.makeEdges()
+        # generate cell to vertex connectivity from mesh
+        self.makeLCV()
+
+        # generate cell to edge connectivity from mesh
+        self.makeLCE()
 
         # generate boundaries from mesh connectivity
         self.makeBoundaries()
@@ -383,45 +386,71 @@ class Windtunnel:
         nameroot, extension = os.path.splitext(self.mainwindow.airfoil.name)
         toolbox.lineedit_mesh.setText(str(nameroot) + '_mesh')
 
-    def makeEdges(self):
-        """Make edge connectivity for the mesh"""
+    def makeLCV(self):
+        """Make cell to vertex connectivity for the mesh
+           LCV is identical to connectivity
+        """
+        _, connectivity = self.mesh
+        self.LCV = connectivity
+
+    def makeLCE(self):
+        """Make cell to edge connectivity for the mesh"""
 
         _, connectivity = self.mesh
+        LCE = dict()
+        edges = list()
 
-        # get all edges in the mesh
-        self.edges = list()
-        self.cells = dict()
         for i, cell in enumerate(connectivity):
-            # example:
+            # example for Qudrilateral:
             # cell: [0, 1, 5, 4]
+            # Cell ('417', '69', '311') aus SU2
             # edges: [(0,1), (1,5), (5,4), (4,0)]
-            edges = [(cell[j], cell[(j + 1) % 4]) for j in cell]
-            self.cells[i] = [sorted(edge) for edge in edges]
-            self.edges += edges
+
+            local_edges = [(cell[j], cell[(j + 1) % len(cell)]) for j in range(len(cell))]
+            LCE[i] = [(int(edge[0]), int(edge[1])) for edge in local_edges]
+
+            local_edges = [(int(edge[0]), int(edge[1])) for edge in local_edges]
+            edges += [tuple(sorted(edge)) for edge in local_edges]
+
+        return edges, LCE
+
+    def makeLCC(self):
+        """Make cell to cell connectivity for the mesh"""
+        pass
 
     def makeBoundaries(self):
-        """Summary
-        """
-        self.common_edges = dict()
+        """A boundary edge is an edge that belongs only to one cell"""
 
-        logger.debug(str(len(self.cells)))
+        edges, _ = self.makeLCE()
 
-        for i, cell in enumerate(self.cells):
-            self.common_edges[i] = 0
-            logger.debug('Cell {:5d}'.format(i))
-            for j, neighbour_cell in enumerate(self.cells):
-                if j == i:
-                    continue
-                for edge in self.cells[cell]:
-                    if edge in self.cells[neighbour_cell]:
-                        self.common_edges[i] += 1
-                        break
+        seen = set()
+        unique = list()
+        doubles = set()
+        for edge in edges:
+            if edge not in seen:
+                seen.add(edge)
+                unique.append(edge)
+            else:
+                doubles.add(edge)
 
-        with open('data/OUTPUT/edges.txt', 'w') as f:
-            for cell in self.common_edges:
-                f.write(' {:6d} {:2d} {} \n'.format(cell,
-                                                    self.common_edges[cell],
-                                                    str(self.cells[cell])))
+        boundary_edges = [edge for edge in unique if edge not in doubles]
+
+        return unique, seen, doubles, boundary_edges
+
+    def findLoops(edges):
+        """Find loops in a list of edges which are stored in tuples"""
+
+        # make disjoint set object
+        djs = DisjointSet()
+
+        # add all edges to the disjoint set
+        for edge in edges:
+            djs.add(edge[0], edge[1])
+
+        # return the "connected components", in the disjoint set
+        # in the case of boundary edges these are loops
+        # or "cycles" in graph theory language
+        return djs.group
 
     def drawMesh(self, airfoil):
 
@@ -461,6 +490,78 @@ class Windtunnel:
         # activate viewing options if mesh is created and displayed
         self.mainwindow.centralwidget.cb6.setChecked(True)
         self.mainwindow.centralwidget.cb6.setEnabled(True)
+
+
+class DisjointSet:
+
+    """Summary
+
+    Attributes:
+        group (dict): Description
+        leader (dict): Description
+        oldgroup (dict): Description
+        oldleader (dict): Description
+
+    from: https://stackoverflow.com/a/3067672/2264936
+    """
+
+    def __init__(self, size=None):
+        if size is None:
+            # maps a member to the group's leader
+            self.leader = {}
+            # maps a group leader to the group (which is a set)
+            self.group = {}
+            self.oldgroup = {}
+            self.oldleader = {}
+        else:
+            self.group = {i: set([i]) for i in range(0, size)}
+            self.leader = {i: i for i in range(0, size)}
+            self.oldgroup = {i: set([i]) for i in range(0, size)}
+            self.oldleader = {i: i for i in range(0, size)}
+
+    def add(self, a, b):
+        self.oldgroup = self.group.copy()
+        self.oldleader = self.leader.copy()
+        leadera = self.leader.get(a)
+        leaderb = self.leader.get(b)
+        if leadera is not None:
+            if leaderb is not None:
+                if leadera == leaderb:
+                    return  # nothing to do
+                groupa = self.group[leadera]
+                groupb = self.group[leaderb]
+                if len(groupa) < len(groupb):
+                    a, leadera, groupa, b, leaderb, groupb = \
+                        b, leaderb, groupb, a, leadera, groupa
+                groupa |= groupb
+                del self.group[leaderb]
+                for k in groupb:
+                    self.leader[k] = leadera
+            else:
+                self.group[leadera].add(b)
+                self.leader[b] = leadera
+        else:
+            if leaderb is not None:
+                self.group[leaderb].add(a)
+                self.leader[a] = leaderb
+            else:
+                self.leader[a] = self.leader[b] = a
+                self.group[a] = set([a, b])
+
+    def connected(self, a, b):
+        leadera = self.leader.get(a)
+        leaderb = self.leader.get(b)
+        if leadera is not None:
+            if leaderb is not None:
+                return leadera == leaderb
+            else:
+                return False
+        else:
+            return False
+
+    def undo(self):
+        self.group = self.oldgroup.copy()
+        self.leader = self.oldleader.copy()
 
 
 class BlockMesh:

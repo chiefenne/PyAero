@@ -44,7 +44,7 @@ class SplineRefine:
         coo, u, t, der1, der2, tck = self.spline_data
         x, y = coo
         self.spline_data = self.spline(x, y, points=points, degree=3,
-            evaluate=True)
+                                       evaluate=True)
 
         # refine the trailing edge of the spline
         self.refine_te(ref_te, ref_te_n, ref_te_ratio)
@@ -59,8 +59,8 @@ class SplineRefine:
         # get LE radius, etc.
         spline_data = self.mainwindow.airfoil.spline_data
         curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
-        rc, xc, yc, xle, yle, le_id = ca.ContourAnalysis.getLeRadius(spline_data,
-                                                               curvature_data)
+        rc, xc, yc, xle, yle, le_id = \
+            ca.ContourAnalysis.getLeRadius(spline_data, curvature_data)
         self.makeLeCircle(rc, xc, yc, xle, yle)
 
         logger.info('Leading edge radius: {:11.8f}'.format(rc))
@@ -104,7 +104,8 @@ class SplineRefine:
         circle = GraphicsItem.GraphicsItem(circle)
         circles.append(circle)
 
-        self.mainwindow.airfoil.le_circle = self.mainwindow.scene.createItemGroup(circles)
+        self.mainwindow.airfoil.le_circle = \
+            self.mainwindow.scene.createItemGroup(circles)
         self.mainwindow.airfoil.le_circle.setZValue(110)
 
         self.mainwindow.centralwidget.cb7.setChecked(True)
@@ -190,9 +191,10 @@ class SplineRefine:
 
             if angle < tolerance:
 
-                logger.debug('Refining between segments {} {},'.format(i, i + 1))
-                logger.debug('Tol={0:5.1f}, Angle={1:05.1f}\n'. \
-                             format(tolerance, angle))
+                logger.debug('Refining between segments {} {},'
+                             .format(i, i + 1))
+                logger.debug('Tol={0:5.1f}, Angle={1:05.1f}\n'
+                             .format(tolerance, angle))
 
                 refined[i] = True
                 refinements += 1
@@ -238,8 +240,8 @@ class SplineRefine:
             spline_data[4] = si.splev(tn, tck, der=2)
 
             logger.debug('No more refinements.')
-            logger.debug('\nTotal number of recursions: {}'. \
-                         format(recursions - 1))
+            logger.debug('\nTotal number of recursions: {}'
+                         .format(recursions - 1))
 
             # due to recursive call to refine, here no object can be returned
             # instead use self to transfer data to the outer world :)
@@ -271,12 +273,12 @@ class SplineRefine:
         tck = self.spline_data[5]
 
         # remove points which will be refined
-        index = range(ref_te+1)
+        index = range(ref_te + 1)
         x = np.delete(x, index)
         y = np.delete(y, index)
         t = np.delete(t, index)
 
-        index = range(len(x))[-(ref_te+1):]
+        index = range(len(x))[-(ref_te + 1):]
         x = np.delete(x, index)
         y = np.delete(y, index)
         t = np.delete(t, index)
@@ -289,10 +291,10 @@ class SplineRefine:
             y = np.insert(y, 0, p[1])
             t = np.insert(t, 0, s)
             # lower side
-            p = si.splev(1.-s, tck, der=0)
+            p = si.splev(1. - s, tck, der=0)
             x = np.append(x, p[0])
             y = np.append(y, p[1])
-            t = np.append(t, 1.-s)
+            t = np.append(t, 1. - s)
 
         # update coordinate array, including inserted points
         self.spline_data[0] = (x, y)

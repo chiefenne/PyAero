@@ -34,7 +34,7 @@ class Airfoil:
         self.name = name
         self.chord = None
         self.contourPolygon = None
-        self.contourSpline = None
+        # self.contourSpline = None
         self.spline_data = None
         self.raw_coordinates = None
         self.pencolor = QtGui.QColor(80, 150, 220, 255)

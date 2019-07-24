@@ -219,8 +219,8 @@ class Slots:
 
         # update the checkbox if toggling is done via keyboard shortcut
         if _sender == 'shortcut':
-           checkbox = self.parent.centralwidget.cb1
-           checkbox.setChecked(not checkbox.isChecked())
+            checkbox = self.parent.centralwidget.cb1
+            checkbox.setChecked(not checkbox.isChecked())
 
     # @QtCore.pyqtSlot()
     def onBlockMesh(self):
@@ -249,12 +249,14 @@ class Slots:
         if airfoil.name == self.parent.airfoil.name:
             self.parent.scene.removeItem(self.parent.airfoil.contourPolygon)
             self.parent.scene.removeItem(self.parent.airfoil.chord)
-            self.parent.scene.removeItem(self.parent.airfoil.polygonMarkersGroup)
+            self.parent.scene.removeItem(
+                self.parent.airfoil.polygonMarkersGroup)
 
         # remove also listwidget entry
         centralwidget = self.parent.centralwidget
         listwidget = centralwidget.toolbox.listwidget
-        itms = listwidget.findItems(self.parent.airfoil.name, QtCore.Qt.MatchExactly)
+        itms = listwidget.findItems(
+            self.parent.airfoil.name, QtCore.Qt.MatchExactly)
         for itm in itms:
             row = listwidget.row(itm)
             listwidget.takeItem(row)
