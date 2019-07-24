@@ -64,13 +64,11 @@
 
 ## Documentation
 
-The documentation can be found at the following link:
+The PyAero documentation can be found at the following link:
 
-**[PyAero documentation](http://pyaero.readthedocs.io)**
+**[http://pyaero.readthedocs.io](http://pyaero.readthedocs.io)**
 
-An introductory [PyAero tutorial video](https://www.youtube.com/watch?v=RBrBEyHAAss) can be found on YouTube.
-
-The documentation is automatically generated using the files in the [docs](https://github.com/chiefenne/PyAero/tree/master/docs) folder via [Sphinx](http://www.sphinx-doc.org/en/stable/index.html).
+The documentation is automatically generated using the markdown files in the [docs](https://github.com/chiefenne/PyAero/tree/master/docs) folder via [Sphinx](http://www.sphinx-doc.org/en/stable/index.html).
 
 ## Dependencies
 
