@@ -13,7 +13,7 @@ The mesh blocks are (listed below with the same name as in the GUI):
   - Airfoil contour mesh
   - Airfoil trailing edge mesh
   - Windtunnel mesh (around airfoil)
-  _ Windtunnel mesh (wake)
+  - Windtunnel mesh (wake)
 
 The main mesh block is the one directly attached to the airfoil contour. It is constructed by grid lines perpendicular to the airfoil, starting at the points from the splined contour, thus taking exactly that point distribution (see :ref:`spline_refine`).
 
