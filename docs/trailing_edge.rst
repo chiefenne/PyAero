@@ -1,5 +1,8 @@
-Trailing Edge Thickness
-=======================
+.. make a label for this file
+.. _trailing_edge:
+
+Trailing Edge
+=============
 
 As outlined in the section before, the meshing process relies on the point distribution on the airfoil contour. Real airfoils, i.e. airfoils which are built as a hardware, have a trailing edge (TE) with a definite thickness, a `blunt trailing edge`. This is due to manufacturing and/or structural reasons. To be able to model this, `PyAero <index.html>`_ has a dedicated function. The following figure shows the change between a sharp trailing edge and a blunt trailing edge.
 

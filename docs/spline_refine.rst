@@ -1,3 +1,6 @@
+.. make a label for this file
+.. _spline_refine:
+
 Splining and Refining Airfoil Contours
 ======================================
 
