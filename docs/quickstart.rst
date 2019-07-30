@@ -5,7 +5,7 @@ The general steps for mesh generation in `PyAero <index.html>`_ can be explained
 
 1. Load an airfoil contour file
 
-   - Loading can be done in several ways (see also :ref:`loading_airfoils `).
+   - Loading can be done in several ways (see also :ref:`loading_airfoils`).
    - For the quick start, just use the predefined airfoil by clicking the airfoil symbol in the toolbar (between printer and delete symbols)
 
 2. Spline and refine the airfoil contour
