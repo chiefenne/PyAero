@@ -15,7 +15,7 @@ The mesh blocks are (listed below with the same name as in the GUI):
   - Windtunnel mesh (around airfoil)
   - Windtunnel mesh (wake)
 
-The main mesh block is the one directly attached to the airfoil contour. It is constructed by grid lines perpendicular to the airfoil, starting at the points from the splined contour, thus taking exactly that point distribution (see :ref:`spline_refine`).
+The main mesh block is the one directly attached to the airfoil contour. It is constructed by grid lines emerging perpendicular from the airfoil, starting at the points from the splined contour (see :ref:`spline_refine`). Another set of lines parallel to the airfoil contour complete the main mesh block. The default settings there implement a streching away from the airfoil, so that the thinnest mesh layer is attached at the airfoil and further mesh layers are gradually thickened outwards.
 
-The default settings there implement a streching away from the airfoil, so that the thinnest mesh layer is attached at the airfoil and mesh layers are gradually thickened outwards.
+
 

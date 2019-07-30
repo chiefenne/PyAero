@@ -1,3 +1,6 @@
+.. make a label for this file
+.. _user_interface:
+
 User Interface
 ==============
 
