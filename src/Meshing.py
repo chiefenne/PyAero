@@ -378,6 +378,7 @@ class Windtunnel:
                     format(len(vertices), len(connectivity)))
 
         self.drawMesh(self.mainwindow.airfoil)
+        self.drawBlocks(self.mainwindow.airfoil)
 
         progdialog.setValue(100)
 
@@ -453,6 +454,11 @@ class Windtunnel:
         return djs.group
 
     def drawMesh(self, airfoil):
+        """Add the mesh as ItemGroup to the scene
+
+        Args:
+            airfoil (TYPE): object containing all airfoil properties and data
+        """
 
         # toggle spline points
         self.mainwindow.centralwidget.cb3.click()
@@ -483,13 +489,75 @@ class Windtunnel:
                     # add contour as a GraphicsItem to the scene
                     # these are the objects which are drawn in the GraphicsView
                     meshline = GraphicsItem.GraphicsItem(contour)
-
                     mesh.append(meshline)
+
         airfoil.mesh = self.mainwindow.scene.createItemGroup(mesh)
 
         # activate viewing options if mesh is created and displayed
         self.mainwindow.centralwidget.cb6.setChecked(True)
         self.mainwindow.centralwidget.cb6.setEnabled(True)
+
+    def drawBlocks(self, airfoil):
+        """Add the mesh block outlines to the scene
+
+        Args:
+            airfoil (TYPE): object containing all airfoil properties and data
+        """
+
+        # FIXME
+        # FIXME Refactroing of code duplication here and in drawMesh
+        # FIXME
+
+        mesh = list()
+
+        for block in self.blocks:
+            for lines in [block.getULines()]:
+                for line in [lines[0], lines[-1]]:
+
+                    # instantiate a graphics item
+                    contour = gic.GraphicsCollection()
+                    # make it polygon type and populate its points
+                    points = [QtCore.QPointF(x, y) for x, y in line]
+                    contour.Polyline(QtGui.QPolygonF(points), '')
+                    # set its properties
+                    contour.pen.setColor(QtGui.QColor(202, 31, 123, 255))
+                    contour.pen.setWidthF(3.0)
+                    contour.pen.setCosmetic(True)
+                    contour.brush.setStyle(QtCore.Qt.NoBrush)
+
+                    # add contour as a GraphicsItem to the scene
+                    # these are the objects which are drawn in the GraphicsView
+                    meshline = GraphicsItem.GraphicsItem(contour)
+                    mesh.append(meshline)
+
+            for lines in [block.getVLines()]:
+                for line in [lines[0], lines[-1]]:
+
+                    # instantiate a graphics item
+                    contour = gic.GraphicsCollection()
+                    # make it polygon type and populate its points
+                    points = [QtCore.QPointF(x, y) for x, y in line]
+                    contour.Polyline(QtGui.QPolygonF(points), '')
+                    # set its properties
+                    contour.pen.setColor(QtGui.QColor(202, 31, 123, 255))
+                    contour.pen.setWidthF(3.0)
+                    contour.pen.setCosmetic(True)
+                    contour.brush.setStyle(QtCore.Qt.NoBrush)
+
+                    # add contour as a GraphicsItem to the scene
+                    # these are the objects which are drawn in the GraphicsView
+                    meshline = GraphicsItem.GraphicsItem(contour)
+                    mesh.append(meshline)
+
+        airfoil.mesh_blocks = self.mainwindow.scene.createItemGroup(mesh)
+
+        # activate viewing options if mesh is created and displayed
+        self.mainwindow.centralwidget.cb8.setChecked(True)
+        self.mainwindow.centralwidget.cb8.setEnabled(True)
+        # after instantiating everything above switch it off
+        # as blocks should not be shown as a default
+        # now visibility of blocks fits to checkbox setting
+        self.mainwindow.centralwidget.cb8.click()
 
 
 class DisjointSet:

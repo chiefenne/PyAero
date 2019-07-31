@@ -622,6 +622,12 @@ class Toolbox(QtWidgets.QToolBox):
             visible = self.parent.airfoil.le_circle.isVisible()
             self.parent.airfoil.le_circle.setVisible(not visible)
 
+    def toggleMeshBlocks(self):
+        """Toggle visibility of the mesh blocking structure"""
+        if hasattr(self.parent.airfoil, 'mesh_blocks'):
+            visible = self.parent.airfoil.mesh_blocks.isVisible()
+            self.parent.airfoil.mesh_blocks.setVisible(not visible)
+
     def runPanelMethod(self):
         """Gui callback to run AeroPython panel method in module PSvpMethod"""
 

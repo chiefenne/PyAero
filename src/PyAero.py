@@ -244,12 +244,16 @@ class CentralWidget(QtWidgets.QWidget):
         self.cb7 = QtWidgets.QCheckBox('Leading Edge Circle')
         self.cb7.setChecked(False)
         self.cb7.setEnabled(False)
+        self.cb8 = QtWidgets.QCheckBox('Mesh Blocks')
+        self.cb8.setChecked(False)
+        self.cb8.setEnabled(False)
         vbox1.addWidget(self.cb2)
         vbox1.addWidget(self.cb3)
         vbox1.addWidget(self.cb4)
         vbox1.addWidget(self.cb5)
         vbox2.addWidget(self.cb1)
         vbox2.addWidget(self.cb6)
+        vbox2.addWidget(self.cb8)
         vbox2.addWidget(self.cb7)
         hbox.addLayout(vbox1)
         hbox.addLayout(vbox2)
@@ -263,6 +267,7 @@ class CentralWidget(QtWidgets.QWidget):
         self.cb5.clicked.connect(self.toolbox.toggleChord)
         self.cb6.clicked.connect(self.toolbox.toggleMesh)
         self.cb7.clicked.connect(self.toolbox.toggleLeCircle)
+        self.cb8.clicked.connect(self.toolbox.toggleMeshBlocks)
 
 
 def main():
