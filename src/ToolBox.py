@@ -209,12 +209,12 @@ class Toolbox(QtWidgets.QToolBox):
         label.setToolTip('The thickness is specified wrt to the unit chord')
         self.normal_thickness = QtWidgets.QDoubleSpinBox()
         self.normal_thickness.setSingleStep(0.1)
-        self.normal_thickness.setRange(1., 20.)
+        self.normal_thickness.setRange(1., 100.)
         self.normal_thickness.setValue(4.0)
         self.normal_thickness.setDecimals(1)
         self.form_mesh_airfoil.addRow(label, self.normal_thickness)
 
-        label = QtWidgets.QLabel('Cell Thickness ratio (-)')
+        label = QtWidgets.QLabel('Cell thickness ratio (-)')
         label.setToolTip('Thickness of the last cell vs. the first cell in ' +
                          'the airfoil mesh block' +
                          '\nThe first cell is the one attached to the airfoil')
