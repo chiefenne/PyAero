@@ -52,3 +52,20 @@ The value for the number of :guilabel:`Gridpoints along airfoil` contour is gray
    :name: SettingsTrailingEdge
 
    Settings for the airfoil trailing edge mesh (block 2)
+
+.. _mesh_settings_WT_airfoil:
+.. figure::  images/mesh_settings_WT_airfoil.png
+   :align:   center
+   :target:  _images/mesh_settings_WT_airfoil.png
+   :name: SettingsWtAirfoil
+
+   Settings for the windtunnel around the airfoil (block 3)
+
+.. _mesh_settings_WT_wake:
+.. figure::  images/mesh_settings_WT_wake.png
+   :align:   center
+   :target:  _images/mesh_settings_WT_wake.png
+   :name: SettingsWtWake
+
+   Settings for the windtunnel in the wake (block 4)
+
