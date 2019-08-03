@@ -30,7 +30,6 @@ Two functions improve the contour before meshing. After clicking *Spline and Ref
 
 The splining is done using B-splines via the Scyipy function :code:`scipy.interpolate.splprep`. This produces a spline representation through the initial (raw) airfoil contour. The number of points on the spline obviously can be set by `Number of points on spline (-)`. Using an equal arc length the respective number of points is distributed homogeneously along the spline. This is the intended behaviour, as it guarantees constant size mesh cells around the airfoil (since the mesh is based on these points). 
 
-
 .. _figure_splining_raw:
 .. figure::  images/splining_raw.png
    :align:   center

@@ -33,7 +33,7 @@ The main mesh block is the one directly attached to the airfoil contour. It is c
 
    Mesh around airfoil (block 1)
 
-The process of constructing the grid lines perpendicular and parallel to the contour guarantees a fully orthogonal mesh in the vicinity of the airfoil which is important for keeping numerical errors as low as possible in the region of interest.
+The process of constructing the grid lines perpendicular and parallel to the contour guarantees a fully orthogonal mesh in the vicinity of the airfoil which is important for keeping numerical errors as low as possible in the region of interest. The mesh distribution settings for this block are depicted in the following figure (:ref:`mesh_settings_airfoil_contour`).
 
 .. _mesh_settings_airfoil_contour:
 .. figure::  images/mesh_settings_airfoil_contour.png
@@ -42,3 +42,5 @@ The process of constructing the grid lines perpendicular and parallel to the con
    :name: MeshBlock1
 
    Settings for the mesh around the airfoil (block 1)
+
+The value for the number of :guilabel:`Gridpoints along airfoil` contour is grayed out. This value is taken from the number of points on the spline (see :raw:`figure_toolbox_spline_refine_1`) and is displayed here just for reference. If a different number of grid points along the contour is required the spline has to be updated first. Next the :guilabel:`Divisions normal to airfoil` allow to vary the number mesh layers normal to the contour within mesh block 1. The setting :guilabel:`Thickness normal to airfoil (%)` specifies the dimension of block 1 normal to the contour as a percentage of the airfoil chord. It is limited to 100% chord length, but typical values would be in the range 5% to 20%.
