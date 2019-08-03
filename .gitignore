@@ -4,7 +4,8 @@ data/OUTPUT/
 data/LOGS/
 docs/Reused_annotations.pptx
 *.txt
-Deploy/
+make_install.sh
+Deploy_PyInstaller/
 lib_AE/
 src/__pycache__/
 .spyproject/

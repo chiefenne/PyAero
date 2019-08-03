@@ -5,7 +5,7 @@
 ##########################################################
 
 # folder for the installation
-dirname="Deploy"
+dirname="Deploy_PyInstaller"
 
 # check for arguments
 for i;do
