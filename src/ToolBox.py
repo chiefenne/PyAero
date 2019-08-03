@@ -205,11 +205,11 @@ class Toolbox(QtWidgets.QToolBox):
         self.points_n.setValue(15)
         self.form_mesh_airfoil.addRow(label, self.points_n)
 
-        label = QtWidgets.QLabel('Thickness normal to Airfoil (%)')
+        label = QtWidgets.QLabel('Thickness normal to airfoil (%)')
         label.setToolTip('The thickness is specified wrt to the unit chord')
         self.normal_thickness = QtWidgets.QDoubleSpinBox()
         self.normal_thickness.setSingleStep(0.1)
-        self.normal_thickness.setRange(1., 10.)
+        self.normal_thickness.setRange(1., 20.)
         self.normal_thickness.setValue(4.0)
         self.normal_thickness.setDecimals(1)
         self.form_mesh_airfoil.addRow(label, self.normal_thickness)
