@@ -34,3 +34,11 @@ The main mesh block is the one directly attached to the airfoil contour. It is c
    Mesh around airfoil (block 1)
 
 The process of constructing the grid lines perpendicular and parallel to the contour guarantees a fully orthogonal mesh in the vicinity of the airfoil which is important for keeping numerical errors as low as possible in the region of interest.
+
+.. _mesh_settings_airfoil_contour:
+.. figure::  images/mesh_settings_airfoil_contour.png
+   :align:   center
+   :target:  _images/mesh_settings_airfoil_contour.png
+   :name: MeshBlock1
+
+   Settings for the mesh around the airfoil (block 1)
