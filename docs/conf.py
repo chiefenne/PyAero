@@ -102,6 +102,12 @@ html_static_path = ['_static']
 #
 # html_sidebars = {}
 
+# user defined HTML context
+# see: https://docs.readthedocs.io/en/stable/development/design/theme-context.html
+html_context = {
+    'commit': False,
+}
+
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
