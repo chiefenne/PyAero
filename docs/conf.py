@@ -103,7 +103,6 @@ html_static_path = ['_static']
 # html_sidebars = {}
 
 # user defined HTML context
-# see: https://github.com/readthedocs/sphinx_rtd_theme/issues/395
 html_context = {
     'commit': Furz,
 }
