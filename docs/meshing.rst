@@ -4,7 +4,7 @@
 Making Meshes
 =============
 
-After :ref:`spline_refine` and optionally making a blunt :ref:`trailing_edge`, the airfoil contour can be meshed which is the primary purpose of `PyAero <index.html>`_.
+After :ref:`spline_refine` and optionally making a blunt :ref:`trailing_edge`, the airfoil contour can be meshed which is the primary purpose of `PyAero <index.html>`_. As for splining and refining the meshing options are located in the toolbox area which is the left pane of the user interface (see :ref:`toolbox_functions`).
 
 The default settings for the mesh generation process should be good enough to generate a mesh that can be used to do CFD RANS simulations.
 
@@ -43,7 +43,7 @@ The process of constructing the grid lines perpendicular and parallel to the con
 
    Settings for the mesh around the airfoil (block 1)
 
-The value for the number of :guilabel:`Gridpoints along airfoil` contour is grayed out. This value is taken from the number of points on the spline (see :ref:`figure_toolbox_spline_refine_1`) and is displayed here just for reference. If a different number of grid points along the contour is required the spline has to be updated first. Next the :guilabel:`Divisions normal to airfoil` allows to vary the number mesh layers normal to the contour within mesh block 1. The setting :guilabel:`Thickness normal to airfoil (%)` specifies the dimension/length of block 1 normal to the contour in percentage of the airfoil chord. It is limited to 100% chord length, but typical values would be in the range 5% to 20%. The final parameter for block 1 is the :guilabel:`Cell thickness ratio (-)`. It specifies the ratio of the cell thickness of the outermost cell in the block (wrt to airfoil normal direction) over the cell thickness of the layer which is attached to the contour. So if for example the ratio is 3, the outer cell layer is 3 times a thick as the cell layer at the airfoil.
+The value for the number of :guilabel:`Gridpoints along airfoil` contour is grayed out. This value is taken from the number of points on the spline (see :ref:`figure_toolbox_spline_refine_1`) and is displayed here just for reference. If a different number of grid points along the contour is required the spline has to be updated first. Next the :guilabel:`Divisions normal to airfoil` allows to vary the number mesh layers normal to the contour within mesh block 1. The setting :guilabel:`Thickness normal to airfoil (%)` specifies the dimension/length of block 1 normal to the contour in percentage of the airfoil chord. It is limited to 100% chord length, but typical values would be in the range 5% to 20%. The final parameter for block 1 is the :guilabel:`Cell thickness ratio (-)`. It specifies the ratio of the cell thickness of the outermost cell in the block (wrt to airfoil normal direction) over the cell thickness of the layer which is attached to the contour. So if for example the ratio is 3, the outer cell layer of block one is 3 times a thick as the cell layer at the airfoil.
 
 .. _mesh_settings_TE:
 .. figure::  images/mesh_settings_TE.png
