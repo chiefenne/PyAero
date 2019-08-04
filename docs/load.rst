@@ -1,6 +1,8 @@
 .. make a label for this file
 .. _loading_airfoils:
 
+.. |right_Arrow| unicode:: U+025BA .. BLACK RIGHT-POINTING POINTER
+
 Loading Airfoils
 ================
 
@@ -9,7 +11,7 @@ Loading airfoils can be done in different ways:
 Load via menu :menuselection:`File --> Open`
 --------------------------------------------
 
-The classical :menuselection:`File --> Open` menu is a standard way to load data. The shortcut assigned to this menu is :kbd:`CTRL-o`. Clicking :menuselection:`Open` or applying the respective shortcut provides a dialog that allow users to select files or browse directories.
+The :guilabel:`File` |right_Arrow| :guilabel:`Open` menu is the standard way to load airfoil contour data. The shortcut assigned to this menu is :kbd:`CTRL-o`. Clicking :guilabel:`Open` or applying the respective shortcut provides a dialog that allow users to select files or browse directories.
 
 .. note:: The keyboard shortcuts are rendered as uppercase letters in the GUI (see following figure). Nevertheless, always lowercase letters need to be pressed.
 
