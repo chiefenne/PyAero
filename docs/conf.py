@@ -102,12 +102,6 @@ html_static_path = ['_static']
 #
 # html_sidebars = {}
 
-# user defined HTML context
-html_context = {
-    'commit': Furz,
-}
-
-
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
