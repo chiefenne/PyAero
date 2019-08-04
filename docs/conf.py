@@ -105,7 +105,7 @@ html_static_path = ['_static']
 # user defined HTML context
 # see: https://github.com/readthedocs/sphinx_rtd_theme/issues/395
 html_context = {
-    'commit': None,
+    'commit': Furz,
 }
 
 
