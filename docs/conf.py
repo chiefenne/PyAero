@@ -103,9 +103,9 @@ html_static_path = ['_static']
 # html_sidebars = {}
 
 # user defined HTML context
-# see: https://docs.readthedocs.io/en/stable/development/design/theme-context.html
+# see: https://github.com/readthedocs/sphinx_rtd_theme/issues/395
 html_context = {
-    'commit': False,
+    'commit': '',
 }
 
 
