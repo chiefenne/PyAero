@@ -4,7 +4,7 @@
 User Interface
 ==============
 
-`PyAero <index.html>`_ comes with a graphical user interface (GUI) written in PYTHON and `Qt for Python (Pyside2) <https://www.qt.io/qt-for-python>`_.
+`PyAero <index.html>`_ comes with a graphical user interface (GUI) written in `Python <http://www.python.org/>`_ and `Qt for Python (Pyside2) <https://www.qt.io/qt-for-python>`_.
 
 Main Screen
 -----------
