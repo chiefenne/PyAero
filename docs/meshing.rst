@@ -53,6 +53,8 @@ The value for the number of :guilabel:`Gridpoints along airfoil` contour is gray
 
    Mesh stretching ratio
 
+The trailing edge mesh is the region directly behind the airfoil (block 2, see :ref:`figure_mesh_blocks`). This block has its own parameters in order to be able to fine control the grid resolution where upper and lower contour shear layers meet and interact.
+
 .. _mesh_settings_TE:
 .. figure::  images/mesh_settings_TE.png
    :align:   center
