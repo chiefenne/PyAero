@@ -56,10 +56,10 @@ The value for the number of :guilabel:`Gridpoints along airfoil` contour is gray
 The trailing edge mesh is the region directly behind the airfoil (block 2, see :ref:`figure_mesh_blocks`). This block has its own parameters in order to be able to fine control the grid resolution where upper and lower contour shear layers meet and interact(see :ref:`figure_mesh_block_TE`).
 
 .. _figure_mesh_block_TE:
-.. figure::  images/mesh_block_TE.gif
+.. figure::  images/mesh_TE_annotated.gif
    :align:   center
-   :target:  _images/mesh_block_TE.gif
-   :name: mesh_block_TE
+   :target:  _images/mesh_TE_annotated.gif
+   :name: mesh_TE_annotated
 
    Mesh at the trailing edge (block 2)
 
