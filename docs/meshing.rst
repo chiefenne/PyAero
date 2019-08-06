@@ -86,7 +86,7 @@ The next set of parameters specifies the grid distribution within block 3. The p
 
    Settings for the windtunnel around the airfoil (block 3)
 
-The final mesh block (see block 4 in :ref:`figure_mesh_blocks`) is the remainder of the windtunnel downstream. It copies the mesh distribution of blocks 1,2 and 3 onits upstream side. Again the settings left over here should be self explanatory, except :guilabel:`Equalize vertical wake line at (%)`. At the outlet of the windtunnel downstrream all cells have equal width in the vertical direction. The setting just mentioned allows to specify at which percentage of the block 4 in downstream direction the cells will be of homogeneous size in the vertical direction (see :ref:`figure_mesh_WT_wake_annotated`).
+The final mesh block (see block 4 in :ref:`figure_mesh_blocks`) is the remainder of the windtunnel downstream. It copies the mesh distribution of blocks 1,2 and 3 onits upstream side. Again the settings left over here should be self explanatory, except :guilabel:`Equalize vertical wake line at (%)`. At the outlet of the windtunnel downstrream all cells have equal width in the vertical direction. The setting just mentioned allows to specify at which percentage of the block 4 in downstream direction the cells will be of homogeneous size in the vertical direction (see :ref:`figure_mesh_WT_wake_annotated`). The dashed vertical line indicates the location from where the vertical grid line distribution is homogeneous.
 
 .. _mesh_settings_WT_wake:
 .. figure::  images/mesh_settings_WT_wake.png
