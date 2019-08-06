@@ -72,6 +72,7 @@ The trailing edge mesh is the region directly behind the airfoil (block 2, see :
    Settings for the airfoil trailing edge mesh (block 2)
 
 The parameter :guilabel:`Divisions at trailing edge` controls the number of subdivisions at the trailing edge (see blue circle in :ref:`figure_mesh_TE_annotated`). If the airfoil trailing edge has a finite thickness (blunt trailing edge), these cells resolve the small vertical part of the trailing edge. In case of a sharp trailing edge, the cells collapse to one point at the airfoil and spread out downstream.
+The :guilabel:`Cell thickness ratio (-)` has the same effect on the grid line distribution as already depicted for the mesh around the airfoil (block 1).
 
 .. _mesh_settings_WT_airfoil:
 .. figure::  images/mesh_settings_WT_airfoil.png
