@@ -103,3 +103,16 @@ The final mesh block (see block 4 in :ref:`figure_mesh_blocks`) is the remainder
    :name: mesh_WT_wake_annotated
 
    Mesh block 4 - equalizing trailing edge grid line distribution
+
+
+ The following figure shows the final mesh of an example airfoil (**hn1033a**).
+
+.. _figure_complete_mesh:
+.. figure::  images/complete_mesh.gif
+   :align:   center
+   :target:  _images/complete_mesh.gif
+   :name: complete_mesh
+
+   Final mesh around airfoil **hn1033a**
+
+   
