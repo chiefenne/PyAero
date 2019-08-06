@@ -12,3 +12,29 @@ Airfoil contours (at least legacy airfoils) often are described through a limite
 Therefore, in addition to the mesh generation module, some additional features have been implemented. These features are intended to be able to analyze and improve the airfoil contour. The improvement process is supported by point insertion and spline interpolation techniques. First and second derivatives of the contour allow for control of the contour as well as curvature smoothness.
 
 To reflect *real* shapes, an option for creating a trailing edge and blendig it to the contour is implemented.
+
+The following figures show an example mesh around the airfoil **RAE2822** in differently zoomed variants to be able to see detail at leading and trailing edge better.
+
+.. _figure_mesh_RAE2822:
+.. figure::  images/mesh_RAE2822_753x288.gif
+   :align:   center
+   :target:  _images/mesh_RAE2822_753x288.gif
+   :name: mesh_RAE2822_753x288
+
+   Mesh around **RAE2822** airfoil
+
+.. _figure_LE_mesh_RAE2822:
+.. figure::  images/LE_mesh_RAE2822.gif
+   :align:   center
+   :target:  _images/LE_mesh_RAE2822.gif
+   :name: LE_mesh_RAE2822
+
+   Leading edge mesh view of **RAE2822** airfoil
+
+.. _figure_TE_mesh_RAE2822:
+.. figure::  images/TE_mesh_RAE2822.gif
+   :align:   center
+   :target:  _images/TE_mesh_RAE2822.gif
+   :name: TE_mesh_RAE2822
+
+   Trailing edge mesh view of **RAE2822** airfoil
