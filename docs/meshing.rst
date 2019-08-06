@@ -102,4 +102,4 @@ The final mesh block (see block 4 in :ref:`figure_mesh_blocks`) is the remainder
    :target:  _images/mesh_WT_wake_annotated.gif
    :name: mesh_WT_wake_annotated
 
-   Mesh block 4 - equalizing trailing edge grid line distribution 30% downstream
+   Mesh block 4 - equalizing trailing edge grid line distribution
