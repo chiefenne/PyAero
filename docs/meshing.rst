@@ -55,7 +55,7 @@ The value for the number of :guilabel:`Gridpoints along airfoil` contour is gray
 
 The trailing edge mesh is the region directly behind the airfoil (block 2, see :ref:`figure_mesh_blocks`). This block has its own parameters in order to be able to fine control the grid resolution where upper and lower contour shear layers meet and interact(see :ref:`figure_mesh_block_TE`).
 
-.. _figure_mesh_block_TE:
+.. _figure_mesh_TE_annotated:
 .. figure::  images/mesh_TE_annotated.gif
    :align:   center
    :target:  _images/mesh_TE_annotated.gif
@@ -71,7 +71,7 @@ The trailing edge mesh is the region directly behind the airfoil (block 2, see :
 
    Settings for the airfoil trailing edge mesh (block 2)
 
-The parameter :guilabel:`Divisions at trailing edge` controls the number of subdivisions at the trailing edge. If the airfoil trailing edge has a finite thickness (blunt trailing edge), these cells resolve the small vertical part of the trailing edge. In case of a sharp trailing edge, the cells collapse to one point.
+The parameter :guilabel:`Divisions at trailing edge` controls the number of subdivisions at the trailing edge (see blue circle in :ref:`figure_mesh_TE_annotated`). If the airfoil trailing edge has a finite thickness (blunt trailing edge), these cells resolve the small vertical part of the trailing edge. In case of a sharp trailing edge, the cells collapse to one point at the airfoil and spread out downstream.
 
 .. _mesh_settings_WT_airfoil:
 .. figure::  images/mesh_settings_WT_airfoil.png
