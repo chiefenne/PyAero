@@ -56,12 +56,12 @@ Above analysis result was obtained using the CFD code AVL-FIRE. It is an unstead
    :widths: auto
    :align: center
 
-   ========     ==========  =================
-    Model         Drag        Lift
-   ========     =========   =================
-    Laminar       0.0079         0.371
-    LES (Kobayashi) 0.0078         0.362 
-   ========     =========   =================
+   ======== ==========  ==========
+    Model     Drag         Lift
+   ======== ==========  ==========
+    Laminar   0.0079       0.371
+    LES       0.0078       0.362 
+   ======== ==========  ==========
 
 Features
 ========
