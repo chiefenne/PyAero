@@ -43,9 +43,9 @@ PyAero is open-source and distributed under the MIT license, see `LICENSE <licen
 
    Example mesh around HN1033 airfoil - Trailing Edge (with finite thickness)
 
-.. figure::  images/RG14_3D_laminar_Iso-Q_pressure.gif
+.. figure::  movies/RG14_3D_laminar_Iso-Q_pressure.gif
    :align:   center
-   :target:  _images/RG14_3D_laminar_Iso-Q_pressure.gif
+   :target:  _movies/RG14_3D_laminar_Iso-Q_pressure.gif
    :name: RG14_3D_laminar_Iso-Q_pressure
 
    Example calculation result
