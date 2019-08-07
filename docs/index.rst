@@ -43,12 +43,25 @@ PyAero is open-source and distributed under the MIT license, see `LICENSE <licen
 
    Example mesh around HN1033 airfoil - Trailing Edge (with finite thickness)
 
-.. figure::  images/RG15_mesh_part.png
+.. figure::  images/RG14_3D_laminar_Iso-Q_pressure.gif
    :align:   center
-   :target:  _images/RG15_mesh_part.png
-   :name: Mesh_RG15
+   :target:  _images/RG14_3D_laminar_Iso-Q_pressure.gif
+   :name: RG14_3D_laminar_Iso-Q_pressure
 
-   Example mesh around RG15 airfoil as imported in AVL-FIRE (3rd mesh dimension 1 layer)
+   Example calculation result
+
+Above analysis result was obtained using the CFD code AVL-FIRE. It is an unsteady laminar 3D calculation of the RG14 airfoil. The mesh was thickened with several layers in spanwise direction in order to allow for turbulent fluctuations in all three dimensions. The calculation resulst shown is based on pure laminar settings (i.e. no turbulence model switched on). Later (result not shown) a LES calculation using the Kobayashi SGS model was done. Bothe approaches lead with the used mesh resolution to quite similar results.
+
+.. table:: Aerodynamic coefficients for the RG14 airfoil
+   :widths: auto
+   :align: center
+
+   ========     ==========  =================
+    Model         Drag        Lift
+   ========     =========   =================
+    Laminar       0.0079         0.371
+    LES (Kobayashi) 0.0078         0.362 
+   ========     =========   =================
 
 Features
 ========
