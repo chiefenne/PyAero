@@ -107,8 +107,6 @@ Quickstart
 
 Follow the :ref:`quickstart` tutorial to get a first impression of the key functionality.
 
-Or check this `PyAero tutorial on YouTube <https://www.youtube.com/watch?v=RBrBEyHAAss>`_ to get the minimum necessary introduction to `PyAero <index.html>`_.
-
 Code repository
 ===============
 
