@@ -10,9 +10,9 @@ Main Screen
 -----------
 
 .. _figure_main_screen_new:
-.. figure::  images/main_screen_new.png
+.. figure::  images/main_screen_new1.png
    :align:   center
-   :target:  _images/main_screen_new.png
+   :target:  _images/main_screen_new1.png
    :name: main_screen_new
 
    Graphical user interface of PyAero
