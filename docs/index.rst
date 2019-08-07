@@ -63,6 +63,13 @@ Above analysis result was obtained using the CFD code AVL-FIRE. It is an unstead
     LES       0.0078       0.362 
    ======== ==========  ==========
 
+.. csv-table:: Aerodynamic coefficients
+   :header: "Model", "Drag", "Lift"
+   :widths: 15, 10, 30
+
+   "Laminar", 0.0079, 0.371
+   "LES", 0.0078, 0.362 
+
 Features
 ========
 
