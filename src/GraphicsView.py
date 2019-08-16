@@ -41,7 +41,6 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # use custom rubberband
         self.rubberband = RubberBand(QtWidgets.QRubberBand.Rectangle, self)
 
-
         # needed for correct mouse wheel zoom
         # otherwise mouse anchor is wrong; it would use (0, 0)
         self.setInteractive(True)
@@ -55,10 +54,12 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # view behaviour when zooming
         if ZOOMANCHOR == 'mouse':
             # point under mouse pointer stays fixed during zoom
-            self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+            self.setTransformationAnchor(
+                QtWidgets.QGraphicsView.AnchorUnderMouse)
         else:
             # view center stays fixed during zoom
-            self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
+            self.setTransformationAnchor(
+                QtWidgets.QGraphicsView.AnchorViewCenter)
 
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
