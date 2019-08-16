@@ -2,8 +2,9 @@
 backup2Diskstation.csh
 data/OUTPUT/
 data/LOGS/
-docs/Reused_annotations.pptx
+docs/*.pptx
 *.txt
+howto_configure_readthedocs.txt
 make_install.sh
 Deploy_PyInstaller/
 lib_AE/
