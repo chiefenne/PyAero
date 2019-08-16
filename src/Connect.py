@@ -99,7 +99,7 @@ class Connect:
         # this is dirty, but seems to work
         # vertices which are not used need somehow to be
         # "removed" without removing them
-        # so that they later can not be found again in nearest neighbour search
+        # so that they later cannot be found again in nearest neighbour search
         for vertex_id in J:
             vertices[vertex_id] = (1000.+np.random.random_sample(),
                                    1000.+np.random.random_sample())
