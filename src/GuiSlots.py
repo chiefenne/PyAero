@@ -105,6 +105,9 @@ class Slots:
                          format(filename, error), exc_info=True)
             return False
 
+        # FIXME
+        # FIXME
+        # FIXME
         data = [line for line in lines if comment not in line]
 
     def fitAirfoilInView(self):
