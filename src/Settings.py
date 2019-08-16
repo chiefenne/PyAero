@@ -33,7 +33,7 @@ STYLE = 'Windows'
 # if installed, accepts None, 'Aqua' or 'Dark'
 STYLESPECIAL = None
 
-# application can be exited by preesinf the escape key
+# application can be exited by pressing the escape key
 EXITONESCAPE = True
 
 # airfoil chord length
