@@ -1,6 +1,7 @@
 
 import os
 import copy
+from datetime import date
 import numpy as np
 import scipy.interpolate as si
 
@@ -370,7 +371,10 @@ class Windtunnel:
         self.makeLCE()
 
         # generate boundaries from mesh connectivity
-        self.makeBoundaries()
+        unique, seen, doubles, boundary_edges = self.makeBoundaries()
+
+        # find loops inside boundary_edges
+        self.boundary_loops = self.findLoops(boundary_edges)
 
         logger.info('Mesh around {} created'.
                     format(self.mainwindow.airfoil.name))
@@ -451,6 +455,7 @@ class Windtunnel:
         # return the "connected components", in the disjoint set
         # in the case of boundary edges these are loops
         # or "cycles" in graph theory language
+        # djs.group is of type "set"
         return djs.group
 
     def drawMesh(self, airfoil):
@@ -885,6 +890,8 @@ class BlockMesh:
         left = np.array(left)
         right = np.array(right)
 
+        # convert the block boundary curves into parametric form
+        # as curves need to be between 0 and 1
         # interpolate B-spline through data points
         # here, a linear interpolant is derived "k=1"
         # splprep returns:
@@ -1067,6 +1074,8 @@ class BlockMesh:
         element_type_line = '3'
         element_type_quadrilateral = '9'
 
+        _date = date.today().strftime("%A %d. %B %Y")
+
         with open(name, 'w') as f:
             f.write('%\n')
             f.write('% Airfoil contour: ' + nameroot + ' \n')
@@ -1074,6 +1083,7 @@ class BlockMesh:
             f.write('% File created with ' + PyAero.__appname__ + '\n')
             f.write('% Version: ' + PyAero.__version__ + '\n')
             f.write('% Author: ' + PyAero.__author__ + '\n')
+            f.write('% Date: ' + _date + '\n')
             f.write('%\n')
             # dimension of the problem
             f.write('% Problem dimension\n')
@@ -1157,6 +1167,8 @@ class BlockMesh:
         # element type is GMSH quadrilateral
         element_type = '3'
 
+        _date = date.today().strftime("%A %d. %B %Y")
+
         with open(name, 'w') as f:
 
             f.write('$MeshFormat\n')
@@ -1167,7 +1179,22 @@ class BlockMesh:
             f.write(' File created with ' + PyAero.__appname__ + '.\n')
             f.write(' Version: ' + PyAero.__version__ + '\n')
             f.write(' Author: ' + PyAero.__author__ + '\n')
+            f.write(' Date: ' + _date + '\n')
             f.write('$EndComments\n')
+            '''
+            $PhysicalNames
+            number-of-names
+            physical-dimension physical-tag "physical-name"
+            $EndPhysicalNames
+            '''
+            f.write('$PhysicalNames\n')
+            f.write('5\n')
+            f.write('1 1 "Inlet"\n')
+            f.write('1 2 "Outlet"\n')
+            f.write('1 3 "Airfoil"\n')
+            f.write('1 4 "Symmetry"\n')
+            f.write('2 5 "Domain"\n')
+            f.write('$EndPhysicalNames')
             f.write('$Nodes\n')
             f.write('%s\n' % (len(vertices)))
 
@@ -1176,6 +1203,12 @@ class BlockMesh:
                 x, y = vertex[0], vertex[1]
                 f.write(' {:} {:16.8} {:16.8} 0.0\n'.format(node, x, y))
             f.write('$EndNodes\n')
+            '''
+            $Elements
+            number-of-elements
+            elm-number elm-type number-of-tags < tag > … node-number-list
+            $EndElements
+            '''
             f.write('$Elements\n')
             f.write('%s\n' % (len(connectivity)))
 
@@ -1189,7 +1222,7 @@ class BlockMesh:
                     str(cell[3] + 1) + ' ' + '\n'
 
                 f.write(cell_connect)
-            f.write('$EndElements\n')
+            f.write('$EndElements')
 
             logger.info('GMSH mesh {} saved to folder {}'.
                         format(basename, OUTPUTDATA))
