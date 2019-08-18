@@ -169,6 +169,9 @@ After a small creative break I decided to upgrade to PyQt5 and continue developm
 
 Short online research revealed to me that meanwhile Qt themselves are developing now **Qt for Python (alias PySide2)** which is based on the legacy Pyside API. This made me think that it is possibly best to go with Qt for Python as it is tightly coupled to Qt.
 
+## I drink a lot of coffee
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=9MAQ5NNBPJ6HU&currency_code=EUR&source=url)
 
 Andreas Ennemoser – andreas.ennemoser@aon.at
 
