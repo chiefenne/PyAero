@@ -54,7 +54,7 @@ def log(mainwindow):
     gui_handler = GuiHandler(parent=mainwindow)
     gui_handler.setLevel(logging.INFO)
 
-    # create specific  logging formats
+    # create specific logging formats
     file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     console_formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
     gui_formatter = logging.Formatter('%(levelname)s - %(message)s')
@@ -70,7 +70,7 @@ def log(mainwindow):
     logging.getLogger('').addHandler(gui_handler)
 
     # remove the standard handler from the root logger
-    # it would log evrything to the console automatically
+    # it would log everything to the console automatically
     # see https://stackoverflow.com/a/6459613/2264936
     logging.getLogger('').removeHandler(stdout_handler)
 
