@@ -1250,7 +1250,7 @@ class BlockMesh:
                         g.write('{} {}\n'.format(i, node))
 
             # write elements and physical tag for airfoil and inlet, outlet
-            physical = {0: '1', 1: '3'}
+            physical = {0: '1', 1: '2'}
             elementary_entities = {0: '8', 1: '7'}
             for j, loop in enumerate(boundary_loops):
                 for i, node in enumerate(boundary_loops[loop]):
