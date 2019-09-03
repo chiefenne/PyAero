@@ -665,11 +665,11 @@ class Toolbox(QtWidgets.QToolBox):
                 return
 
             trailing = TrailingEdge.TrailingEdge()
-            trailing.trailingEdge(blend=self.blend_u.value()/100.0,
+            trailing.trailingEdge(blend=self.blend_u.value() / 100.0,
                                   ex=self.exponent_u.value(),
                                   thickness=self.thickness.value(),
                                   side='upper')
-            trailing.trailingEdge(blend=self.blend_l.value()/100.0,
+            trailing.trailingEdge(blend=self.blend_l.value() / 100.0,
                                   ex=self.exponent_l.value(),
                                   thickness=self.thickness.value(),
                                   side='lower')
@@ -692,15 +692,15 @@ class Toolbox(QtWidgets.QToolBox):
         else:
             fullname = OUTPUTDATA + nameroot
 
-        mesh = self.wind_tunnel.mesh
-        blocks = self.wind_tunnel.blocks
-
         if self.check_FIRE.isChecked():
-            Meshing.BlockMesh.writeFLMA(mesh, blocks, name=fullname)
+            Meshing.BlockMesh.writeFLMA(self.wind_tunnel,
+                                        name=fullname)
         elif self.check_SU2.isChecked():
-            Meshing.BlockMesh.writeSU2(mesh, blocks, name=fullname)
+            Meshing.BlockMesh.writeSU2(self.wind_tunnel,
+                                       name=fullname)
         elif self.check_GMSH.isChecked():
-            Meshing.BlockMesh.writeGMSH(mesh, blocks, name=fullname)
+            Meshing.BlockMesh.writeGMSH(self.wind_tunnel,
+                                        name=fullname)
 
     def analyzeAirfoil(self):
         """Airfoil contour analysis with respect to geometric features"""

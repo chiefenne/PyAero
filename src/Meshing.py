@@ -2,6 +2,7 @@
 import os
 import copy
 from datetime import date
+import itertools
 import numpy as np
 import scipy.interpolate as si
 
@@ -22,6 +23,7 @@ class Windtunnel:
 
     def __init__(self):
 
+        # contains list of BlockMesh objects
         self.blocks = []
 
         # get MainWindow instance (overcomes handling parents)
@@ -33,7 +35,7 @@ class Windtunnel:
         # get airfoil contour coordinates
         x, y = contour
 
-        # make a list point tuples
+        # make a list of point tuples
         # [(x1, y1), (x2, y2), (x3, y3), ... , (xn, yn)]
         line = list(zip(x, y))
 
@@ -342,7 +344,7 @@ class Windtunnel:
                         divisions_height=toolbox.divisions_height.value(),
                         ratio_height=toolbox.ratio_height.value(),
                         dist=toolbox.dist.currentText())
-        progdialog.setValue(40)
+        progdialog.setValue(50)
 
         if progdialog.wasCanceled():
             return
@@ -352,14 +354,15 @@ class Windtunnel:
                             divisions=toolbox.divisions_wake.value(),
                             ratio=toolbox.ratio_wake.value(),
                             spread=toolbox.spread.value() / 100.0)
-        progdialog.setValue(50)
+        progdialog.setValue(70)
 
         if progdialog.wasCanceled():
             return
 
         # connect mesh blocks
         connect = Connect.Connect(progdialog)
-        vertices, connectivity = connect.connectAllBlocks(self.blocks)
+        vertices, connectivity, progdialog = \
+            connect.connectAllBlocks(self.blocks)
 
         # add mesh to Windtunnel instance
         self.mesh = vertices, connectivity
@@ -373,6 +376,10 @@ class Windtunnel:
         # generate boundaries from mesh connectivity
         unique, seen, doubles, boundary_edges = self.makeBoundaries()
 
+        with open('boundary_edges.txt', 'w') as h:
+            for edge in boundary_edges:
+                h.write('{}\n'.format(edge))
+
         # find loops inside boundary_edges
         self.boundary_loops = self.findLoops(boundary_edges)
 
@@ -382,7 +389,7 @@ class Windtunnel:
                     format(len(vertices), len(connectivity)))
 
         self.drawMesh(self.mainwindow.airfoil)
-        self.drawBlocks(self.mainwindow.airfoil)
+        self.drawBlockOutline(self.mainwindow.airfoil)
 
         progdialog.setValue(100)
 
@@ -400,24 +407,32 @@ class Windtunnel:
 
     def makeLCE(self):
         """Make cell to edge connectivity for the mesh"""
-
         _, connectivity = self.mesh
-        LCE = dict()
-        edges = list()
+        self.LCE = dict()
+        self.edges = list()
+
+        g = open('LCE.txt', 'w')
 
         for i, cell in enumerate(connectivity):
             # example for Qudrilateral:
             # cell: [0, 1, 5, 4]
-            # Cell ('417', '69', '311') aus SU2
-            # edges: [(0,1), (1,5), (5,4), (4,0)]
+            # local_edges: [(0,1), (1,5), (5,4), (4,0)]
+            local_edges = [(cell[j], cell[(j + 1) % len(cell)])
+                           for j in range(len(cell))]
 
-            local_edges = [(cell[j], cell[(j + 1) % len(cell)]) for j in range(len(cell))]
-            LCE[i] = [(int(edge[0]), int(edge[1])) for edge in local_edges]
+            g.write('{} {}\n'.format(i, local_edges))
 
-            local_edges = [(int(edge[0]), int(edge[1])) for edge in local_edges]
-            edges += [tuple(sorted(edge)) for edge in local_edges]
+            # all edges for cell i
+            self.LCE[i] = local_edges
 
-        return edges, LCE
+            # all edges in one list
+            self.edges += [tuple(sorted(edge)) for edge in local_edges]
+
+        g.close()
+
+        with open('all_edges.txt', 'w') as f:
+            for edge in self.edges:
+                f.write('{}\n'.format(edge))
 
     def makeLCC(self):
         """Make cell to cell connectivity for the mesh"""
@@ -425,13 +440,10 @@ class Windtunnel:
 
     def makeBoundaries(self):
         """A boundary edge is an edge that belongs only to one cell"""
-
-        edges, _ = self.makeLCE()
-
         seen = set()
         unique = list()
         doubles = set()
-        for edge in edges:
+        for edge in self.edges:
             if edge not in seen:
                 seen.add(edge)
                 unique.append(edge)
@@ -442,8 +454,18 @@ class Windtunnel:
 
         return unique, seen, doubles, boundary_edges
 
-    def findLoops(edges):
-        """Find loops in a list of edges which are stored in tuples"""
+    def findLoops(self, edges):
+        """Find loops in a list of edges which are stored in tuples
+        and return the "connected components", in the disjoint set.
+        In the case of boundary edges these are loops or
+        "cycles" in graph theory language
+
+        Args:
+            edges (list of tuples):
+
+        Returns:
+            TYPE: Description
+        """
 
         # make disjoint set object
         djs = DisjointSet()
@@ -452,11 +474,55 @@ class Windtunnel:
         for edge in edges:
             djs.add(edge[0], edge[1])
 
-        # return the "connected components", in the disjoint set
-        # in the case of boundary edges these are loops
-        # or "cycles" in graph theory language
-        # djs.group is of type "set"
-        return djs.group
+        # get the boundary loops (airfoil, outer boundary)
+        # djs.group returns a dictionary containing all loops
+        # the key is an arbitrary node of the loop
+        # the values per key are a list of unordered nodes
+        # belonging to the loop
+        boundary_loops = djs.group
+
+        # in order to order the returned nodes again, their corresponding edges
+        # have to be found first
+        new_loops = dict()
+        for i, loop in enumerate(boundary_loops):
+
+            l_edges = list()
+            for node in boundary_loops[loop]:
+                l_edges += [sorted(edge) for edge in edges if node in edge]
+
+            # remove duplicate list elements from l_edges
+            loop_edges = [k for k, _ in itertools.groupby(sorted(l_edges))]
+            new_loops[i] = loop_edges
+
+            with open('loop_edges_{}.txt'.format(loop), 'w') as k:
+                for edge in loop_edges:
+                    k.write('{}\n'.format(edge))
+
+            # now connect edges in the right order and return
+            # list of neighbouring points
+            not_treated = copy.deepcopy(new_loops[i])
+            not_treated.remove(new_loops[i][0])
+            loop = list()
+            loop.append(new_loops[i][0])
+            loop_is_open = True
+            while loop_is_open:
+
+                edges_to_treat = copy.deepcopy(not_treated)
+
+                for edge in edges_to_treat:
+                    if loop[-1][1] in edge:
+                        not_treated.remove(edge)
+                        if edge.index(loop[-1][1]) == 0:
+                            loop.append(edge)
+                        else:
+                            loop.append(list(reversed(edge)))
+
+                    if loop[0][0] == loop[-1][1]:
+                        loop_is_open = False
+                        new_loops[i] = [edge[1] for edge in loop]
+                        break
+
+        return new_loops
 
     def drawMesh(self, airfoil):
         """Add the mesh as ItemGroup to the scene
@@ -502,7 +568,7 @@ class Windtunnel:
         self.mainwindow.centralwidget.cb6.setChecked(True)
         self.mainwindow.centralwidget.cb6.setEnabled(True)
 
-    def drawBlocks(self, airfoil):
+    def drawBlockOutline(self, airfoil):
         """Add the mesh block outlines to the scene
 
         Args:
@@ -563,78 +629,6 @@ class Windtunnel:
         # as blocks should not be shown as a default
         # now visibility of blocks fits to checkbox setting
         self.mainwindow.centralwidget.cb8.click()
-
-
-class DisjointSet:
-
-    """Summary
-
-    Attributes:
-        group (dict): Description
-        leader (dict): Description
-        oldgroup (dict): Description
-        oldleader (dict): Description
-
-    from: https://stackoverflow.com/a/3067672/2264936
-    """
-
-    def __init__(self, size=None):
-        if size is None:
-            # maps a member to the group's leader
-            self.leader = {}
-            # maps a group leader to the group (which is a set)
-            self.group = {}
-            self.oldgroup = {}
-            self.oldleader = {}
-        else:
-            self.group = {i: set([i]) for i in range(0, size)}
-            self.leader = {i: i for i in range(0, size)}
-            self.oldgroup = {i: set([i]) for i in range(0, size)}
-            self.oldleader = {i: i for i in range(0, size)}
-
-    def add(self, a, b):
-        self.oldgroup = self.group.copy()
-        self.oldleader = self.leader.copy()
-        leadera = self.leader.get(a)
-        leaderb = self.leader.get(b)
-        if leadera is not None:
-            if leaderb is not None:
-                if leadera == leaderb:
-                    return  # nothing to do
-                groupa = self.group[leadera]
-                groupb = self.group[leaderb]
-                if len(groupa) < len(groupb):
-                    a, leadera, groupa, b, leaderb, groupb = \
-                        b, leaderb, groupb, a, leadera, groupa
-                groupa |= groupb
-                del self.group[leaderb]
-                for k in groupb:
-                    self.leader[k] = leadera
-            else:
-                self.group[leadera].add(b)
-                self.leader[b] = leadera
-        else:
-            if leaderb is not None:
-                self.group[leaderb].add(a)
-                self.leader[a] = leaderb
-            else:
-                self.leader[a] = self.leader[b] = a
-                self.group[a] = set([a, b])
-
-    def connected(self, a, b):
-        leadera = self.leader.get(a)
-        leaderb = self.leader.get(b)
-        if leadera is not None:
-            if leaderb is not None:
-                return leadera == leaderb
-            else:
-                return False
-        else:
-            return False
-
-    def undo(self):
-        self.group = self.oldgroup.copy()
-        self.leader = self.oldleader.copy()
 
 
 class BlockMesh:
@@ -960,13 +954,15 @@ class BlockMesh:
         return ulines
 
     @staticmethod
-    def writeFLMA(mesh, blocks, name='', depth=0.3):
+    def writeFLMA(wind_tunnel, name='', depth=0.3):
 
         if not name[-5:] == '.flma':
             name += '.flma'
 
         basename = os.path.basename(str(name))
         nameroot, extension = os.path.splitext(str(basename))
+
+        mesh = wind_tunnel.mesh
 
         vertices, connectivity = mesh
 
@@ -1057,13 +1053,17 @@ class BlockMesh:
                         format(basename, OUTPUTDATA))
 
     @staticmethod
-    def writeSU2(mesh, blocks, name=''):
+    def writeSU2(wind_tunnel, name=''):
 
         if not name[-4:] == '.su2':
             name += '.su2'
 
         basename = os.path.basename(str(name))
         nameroot, extension = os.path.splitext(str(basename))
+
+        mesh = wind_tunnel.mesh
+        blocks = wind_tunnel.blocks
+        boundary_loops = wind_tunnel.boundary_loops
 
         vertices, connectivity = mesh
         airfoil_subdivisions, v = blocks[0].getDivUV()
@@ -1154,18 +1154,32 @@ class BlockMesh:
                         format(basename, OUTPUTDATA))
 
     @staticmethod
-    def writeGMSH(mesh, blocks, name=''):
+    def writeGMSH(wind_tunnel, name=''):
+        """export mesh in GMSH format 2
+        http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format-version-2-_0028Legacy_0029
 
+        Args:
+            mesh (TYPE): Description
+            blocks (TYPE): Description
+            name (str, optional): Description
+        """
         if not name[-4:] == '.msh':
             name += '.msh'
 
         basename = os.path.basename(str(name))
         nameroot, extension = os.path.splitext(str(basename))
 
+        mesh = wind_tunnel.mesh
+        boundary_loops = wind_tunnel.boundary_loops
+
         vertices, connectivity = mesh
 
-        # element type is GMSH quadrilateral
-        element_type = '3'
+        # element type "1" is GMSH 2-node line
+        # element type "2" is GMSH 3-node triangle
+        # element type "3" is GMSH 4-node quadrangle
+        element_type_line = '1'
+        # element_type_triangle = '2'
+        element_type_quadrangle = '3'
 
         _date = date.today().strftime("%A %d. %B %Y")
 
@@ -1173,10 +1187,10 @@ class BlockMesh:
 
             f.write('$MeshFormat\n')
             f.write('2.2 0 8\n')
-            f.write('$EndMeshFormat\n\n')
+            f.write('$EndMeshFormat\n')
             f.write('$Comments\n')
             f.write(' Airfoil contour: ' + nameroot + ' \n')
-            f.write(' File created with ' + PyAero.__appname__ + '.\n')
+            f.write(' File created with ' + PyAero.__appname__ + '\n')
             f.write(' Version: ' + PyAero.__version__ + '\n')
             f.write(' Author: ' + PyAero.__author__ + '\n')
             f.write(' Date: ' + _date + '\n')
@@ -1188,13 +1202,12 @@ class BlockMesh:
             $EndPhysicalNames
             '''
             f.write('$PhysicalNames\n')
-            f.write('5\n')
-            f.write('1 1 "Inlet"\n')
-            f.write('1 2 "Outlet"\n')
-            f.write('1 3 "Airfoil"\n')
-            f.write('1 4 "Symmetry"\n')
-            f.write('2 5 "Domain"\n')
-            f.write('$EndPhysicalNames')
+            f.write('4\n')
+            f.write('1 1 "Airfoil"\n')
+            f.write('1 2 "Inlet"\n')
+            f.write('1 3 "Outlet"\n')
+            f.write('2 4 "Symmetry"\n')
+            f.write('$EndPhysicalNames\n')
             f.write('$Nodes\n')
             f.write('%s\n' % (len(vertices)))
 
@@ -1210,18 +1223,66 @@ class BlockMesh:
             $EndElements
             '''
             f.write('$Elements\n')
-            f.write('%s\n' % (len(connectivity)))
 
-            for cell_id, cell in enumerate(connectivity, start=1):
+            # boundary_loops is a disjoint set groups element
+            # key for each loop is one arbitrary vertex of the loop
+            # one loop is made by the airfoil
+            # the other loop is made by the windtunnel outer boundary
+            keys = list(boundary_loops.keys())
+            print('Number of boundary loops', len(keys))
+            elements_loop1 = len(list(boundary_loops[keys[0]]))
+            elements_loop2 = len(list(boundary_loops[keys[1]]))
+            number_of_cells = len(connectivity)
 
-                cell_connect = ' ' + str(cell_id) + ' ' + \
-                    element_type + ' 3 0 1 0 ' + \
+            # number of elements
+            # compiled of airfoil, outer boundary and mesh itself
+            f.write('{}\n'.format(elements_loop1 + elements_loop2 +
+                                  number_of_cells))
+
+            element_id = 0
+
+            print('Airfoil: elements_loop1', elements_loop1)
+            print('Outer boundary: elements_loop2', elements_loop2)
+
+            for j, loop in enumerate(boundary_loops):
+                with open('boundary_loop_{}.txt'.format(j), 'w') as g:
+                    for i, node in enumerate(boundary_loops[loop]):
+                        g.write('{} {}\n'.format(i, node))
+
+            # write elements and physical tag for airfoil and inlet, outlet
+            physical = {0: '1', 1: '3'}
+            elementary_entities = {0: '8', 1: '7'}
+            for j, loop in enumerate(boundary_loops):
+                for i, node in enumerate(boundary_loops[loop]):
+                    element_id += 1
+                    # modulo în order to connect last node to first node
+                    elements_loop = len(list(boundary_loops[loop]))
+                    neighbour_node = \
+                        list(boundary_loops[loop])[(i + 1) % elements_loop]
+                    # an element consists of:
+                    #   element_id
+                    #   element_type
+                    #
+                    element = ' ' + str(element_id) + ' ' + \
+                        element_type_line + ' 3 ' + physical[j] + ' ' + \
+                        elementary_entities[j] + ' 0 ' + str(node + 1) + \
+                        ' ' + str(neighbour_node + 1) + '\n'
+                    f.write(element)
+
+            # write mesh elements
+            # includes physical tag for symmetry
+            for cell in connectivity:
+
+                element_id += 1
+                element = ' ' + str(element_id) + ' ' + \
+                    element_type_quadrangle + ' 3 4 6 0 ' + \
                     str(cell[0] + 1) + ' ' + \
                     str(cell[1] + 1) + ' ' + \
                     str(cell[2] + 1) + ' ' + \
-                    str(cell[3] + 1) + ' ' + '\n'
+                    str(cell[3] + 1) + '\n'
 
-                f.write(cell_connect)
+                f.write(element)
+
             f.write('$EndElements')
 
             logger.info('GMSH mesh {} saved to folder {}'.
@@ -1325,3 +1386,74 @@ class Smooth:
                 nodes.append((i, j))
 
         return nodes
+
+
+class DisjointSet:
+    """Summary
+
+    Attributes:
+        group (dict): Description
+        leader (dict): Description
+        oldgroup (dict): Description
+        oldleader (dict): Description
+
+    from: https://stackoverflow.com/a/3067672/2264936
+    """
+
+    def __init__(self, size=None):
+        if size is None:
+            # maps a member to the group's leader
+            self.leader = {}
+            # maps a group leader to the group (which is a set)
+            self.group = {}
+            self.oldgroup = {}
+            self.oldleader = {}
+        else:
+            self.group = {i: set([i]) for i in range(0, size)}
+            self.leader = {i: i for i in range(0, size)}
+            self.oldgroup = {i: set([i]) for i in range(0, size)}
+            self.oldleader = {i: i for i in range(0, size)}
+
+    def add(self, a, b):
+        self.oldgroup = self.group.copy()
+        self.oldleader = self.leader.copy()
+        leadera = self.leader.get(a)
+        leaderb = self.leader.get(b)
+        if leadera is not None:
+            if leaderb is not None:
+                if leadera == leaderb:
+                    return  # nothing to do
+                groupa = self.group[leadera]
+                groupb = self.group[leaderb]
+                if len(groupa) < len(groupb):
+                    a, leadera, groupa, b, leaderb, groupb = \
+                        b, leaderb, groupb, a, leadera, groupa
+                groupa |= groupb
+                del self.group[leaderb]
+                for k in groupb:
+                    self.leader[k] = leadera
+            else:
+                self.group[leadera].add(b)
+                self.leader[b] = leadera
+        else:
+            if leaderb is not None:
+                self.group[leaderb].add(a)
+                self.leader[a] = leaderb
+            else:
+                self.leader[a] = self.leader[b] = a
+                self.group[a] = set([a, b])
+
+    def connected(self, a, b):
+        leadera = self.leader.get(a)
+        leaderb = self.leader.get(b)
+        if leadera is not None:
+            if leaderb is not None:
+                return leadera == leaderb
+            else:
+                return False
+        else:
+            return False
+
+    def undo(self):
+        self.group = self.oldgroup.copy()
+        self.leader = self.oldleader.copy()

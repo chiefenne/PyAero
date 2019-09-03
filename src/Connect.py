@@ -1,11 +1,14 @@
+from collections import Counter
+
 import numpy as np
-import scipy.spatial as ssp
+from scipy import spatial
 
 from PySide2 import QtCore
 
 
 class Connect:
     """docstring"""
+
     def __init__(self, progdialog):
 
         # get MainWindow instance (overcomes handling parents)
@@ -14,6 +17,15 @@ class Connect:
         self.progdialog = progdialog
 
     def getVertices(self, block):
+        """Make a list of point tuples from a BlockMesh object
+
+        Args:
+            block (BlockMesh): BlockMesh object
+
+        Returns:
+            list: list of point tuples
+                  # [(x1, y1), (x2, y2), (x3, y3), ... , (xn, yn)]
+        """
         vertices = list()
         for uline in block.getULines():
             vertices += uline
@@ -35,85 +47,114 @@ class Connect:
 
         return connectivity
 
-    def getNearestNeighbours(self, vertices, radius=0.0001):
-        V = np.array(vertices)
-        tree = ssp.cKDTree(V)
+    def getNearestNeighboursPairs(self, vertices, radius=1.e-6):
+        tree = spatial.cKDTree(vertices)
         pairs = tree.query_pairs(radius, p=2., eps=0)
         return pairs
 
+    def getNearestNeighboursBiDirectional(d1, d2, radius=1.e-6):
+        """Get all indices ofts in d1 which are within distance r to d2"""
+        tree_1 = spatial.cKDTree(d1)
+        tree_2 = spatial.cKDTree(d2)
+        idx1 = tree_2.query_ball_tree(tree_1, radius, p=2., eps=0)
+        idx2 = tree_1.query_ball_tree(tree_2, radius, p=2., eps=0)
+        matching = [e[0] for e in idx1 if e]
+        opposite = [e[0] for e in idx2 if e]
+        return matching, opposite
+
+    def getNearestNeighbours(self, vertices, neighbours, radius=1.e-6):
+        """Get the nearest neighbours to each vertex in a list of vertices
+
+        Args:
+            vertices (list of tuples): Vertices for which nearest neighbours
+                                       should be searched
+            neighbours (list of tuples): These are the neighbours which
+                                         are being searched
+            radius (float, optional): Search neighbours within this radius
+
+        Returns:
+            vertex_and_neighbours(dictionary): Contains vertices searched
+                                               as key and a list of nearest
+                                               neighbours as values
+        """
+
+        # setup k-dimensional tree
+        tree = spatial.cKDTree(neighbours)
+
+        vertex_and_neighbours = dict()
+        for vertex_id, vertex in enumerate(vertices):
+            vertex_and_neighbours[vertex_id] = \
+                tree.query_ball_point(vertex, radius)
+
+        return vertex_and_neighbours
+
+    def shiftConnectivity(self, connectivity, shift):
+
+        if shift == 0:
+            return connectivity
+
+        connectivity_shifted = list()
+        for cell in connectivity:
+            new_cell = [vertex + shift for vertex in cell]
+            connectivity_shifted.append(new_cell)
+
+        return connectivity_shifted
+
     def connectAllBlocks(self, blocks):
 
-        self.progdialog.setValue(60)
+        # compile global vertex list and cell connectivity from all blocks
+        vertices = list()
+        connectivity = list()
 
-        # airfoil contour is stored in blocks[0]
-        connected_1 = self.connectBlocks(blocks[0], blocks[1],
-                                         radius=0.0001, type_='block')
-        self.progdialog.setValue(70)
-
-        if self.progdialog.wasCanceled():
-            return
-
-        connected_2 = self.connectBlocks(blocks[2], blocks[3],
-                                         radius=0.0001, type_='block')
+        for block in blocks:
+            # needs to be set here (vertices up to block - 1)
+            shift = len(vertices)
+            vertices += [vertex for vertex in self.getVertices(block)]
+            # shift the block connectivity by accumulated number of vertices
+            # from all blocks before this one
+            connectivity_block = \
+                self.shiftConnectivity(self.getConnectivity(block), shift)
+            connectivity += [tuple(cell) for cell in connectivity_block]
 
         self.progdialog.setValue(80)
 
-        if self.progdialog.wasCanceled():
-            return
+        vertices = [(vertex[0], vertex[1]) for vertex in vertices]
 
-        connected = self.connectBlocks(connected_1, connected_2,
-                                       radius=0.0001, type_='connected')
+        # search all vertices against themselves
+        # finds itself AND multiple connections
+        vertex_and_neighbours = self.getNearestNeighbours(vertices,
+                                                          vertices,
+                                                          radius=1.e-6)
+
+        # substitute vertex ids in connectivity at block connections
+        modified = list()
+        connectivity_connected = list()
+        for cell in connectivity:
+            cell_new = list()
+            for node in cell:
+                node_new = min(vertex_and_neighbours[node])
+                cell_new.append(node_new)
+            connectivity_connected.append(cell_new)
+            if tuple(cell) != tuple(cell_new):
+                modified.append((tuple(cell), tuple(cell_new)))
+
+        with open('vertex_and_neighbours.txt', 'w') as f:
+            for vn in vertex_and_neighbours:
+                f.write(str(vn) + ' ' + str(vertex_and_neighbours[vn]) + '\n')
+        with open('vertex_and_neighbours_2.txt', 'w') as f:
+            for vn in vertex_and_neighbours:
+                if len(vertex_and_neighbours[vn]) == 2:
+                    f.write(str(vn) + ' ' + str(vertex_and_neighbours[vn]) +
+                            '\n')
+        with open('vertex_and_neighbours_3.txt', 'w') as f:
+            for vn in vertex_and_neighbours:
+                if len(vertex_and_neighbours[vn]) > 2:
+                    f.write(str(vn) + ' ' + str(vertex_and_neighbours[vn]) +
+                            '\n')
+        with open('block_connections.txt', 'w') as f:
+            for m in modified:
+                f.write(str(m) + '\n')
 
         self.progdialog.setValue(90)
 
-        return connected
-
-    def connectBlocks(self, block_1, block_2, radius=0.0001, type_='block'):
-
-        if type_ == 'block':
-            vertices_1 = self.getVertices(block_1)
-            vertices_2 = self.getVertices(block_2)
-            connectivity_1 = self.getConnectivity(block_1)
-            connectivity_2 = self.getConnectivity(block_2)
-        if type_ == 'connected':
-            vertices_1, connectivity_1 = block_1
-            vertices_2, connectivity_2 = block_2
-
-        vertices = vertices_1 + vertices_2
-        shift_nodes = len(vertices_1)
-
-        # shift node numbering for second block
-        connectivity_2mod = list()
-        for cell in connectivity_2:
-            new_cell = [node + shift_nodes for node in cell]
-            connectivity_2mod.append(new_cell)
-
-        # identify interface between blocks via coordinate identities
-        pairs = self.getNearestNeighbours(vertices, radius=radius)
-        pairs = list(pairs)
-        I, J = zip(*pairs)
-
-        # FIXME
-        # FIXME
-        # FIXME
-        # this is dirty, but seems to work
-        # vertices which are not used need somehow to be
-        # "removed" without removing them
-        # so that they later cannot be found again in nearest neighbour search
-        for vertex_id in J:
-            vertices[vertex_id] = (1000.+np.random.random_sample(),
-                                   1000.+np.random.random_sample())
-
-        connectivity_2_new = list()
-        for cell in connectivity_2mod:
-            new_cell = list()
-            for vertex in cell:
-                new_vertex = vertex
-                if vertex in J:
-                    new_vertex = I[J.index(vertex)]
-                new_cell.append(new_vertex)
-            connectivity_2_new.append(new_cell)
-
-        connectivity = connectivity_1 + connectivity_2_new
-
-        return (vertices, connectivity)
+        return (vertices, connectivity_connected, self.progdialog)
