@@ -138,6 +138,7 @@ class Connect:
             if tuple(cell) != tuple(cell_new):
                 modified.append((tuple(cell), tuple(cell_new)))
 
+        '''
         with open('vertex_and_neighbours.txt', 'w') as f:
             for vn in vertex_and_neighbours:
                 f.write(str(vn) + ' ' + str(vertex_and_neighbours[vn]) + '\n')
@@ -154,6 +155,7 @@ class Connect:
         with open('block_connections.txt', 'w') as f:
             for m in modified:
                 f.write(str(m) + '\n')
+        '''
 
         self.progdialog.setValue(90)
 

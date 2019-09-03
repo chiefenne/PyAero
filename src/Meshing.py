@@ -376,10 +376,6 @@ class Windtunnel:
         # generate boundaries from mesh connectivity
         unique, seen, doubles, boundary_edges = self.makeBoundaries()
 
-        with open('boundary_edges.txt', 'w') as h:
-            for edge in boundary_edges:
-                h.write('{}\n'.format(edge))
-
         # find loops inside boundary_edges
         self.boundary_loops = self.findLoops(boundary_edges)
 
@@ -411,8 +407,6 @@ class Windtunnel:
         self.LCE = dict()
         self.edges = list()
 
-        g = open('LCE.txt', 'w')
-
         for i, cell in enumerate(connectivity):
             # example for Qudrilateral:
             # cell: [0, 1, 5, 4]
@@ -420,19 +414,11 @@ class Windtunnel:
             local_edges = [(cell[j], cell[(j + 1) % len(cell)])
                            for j in range(len(cell))]
 
-            g.write('{} {}\n'.format(i, local_edges))
-
             # all edges for cell i
             self.LCE[i] = local_edges
 
             # all edges in one list
             self.edges += [tuple(sorted(edge)) for edge in local_edges]
-
-        g.close()
-
-        with open('all_edges.txt', 'w') as f:
-            for edge in self.edges:
-                f.write('{}\n'.format(edge))
 
     def makeLCC(self):
         """Make cell to cell connectivity for the mesh"""
@@ -494,9 +480,11 @@ class Windtunnel:
             loop_edges = [k for k, _ in itertools.groupby(sorted(l_edges))]
             new_loops[i] = loop_edges
 
+            '''
             with open('loop_edges_{}.txt'.format(loop), 'w') as k:
                 for edge in loop_edges:
                     k.write('{}\n'.format(edge))
+            '''
 
             # now connect edges in the right order and return
             # list of neighbouring points
@@ -1229,7 +1217,7 @@ class BlockMesh:
             # one loop is made by the airfoil
             # the other loop is made by the windtunnel outer boundary
             keys = list(boundary_loops.keys())
-            print('Number of boundary loops', len(keys))
+            # print('Number of boundary loops', len(keys))
             elements_loop1 = len(list(boundary_loops[keys[0]]))
             elements_loop2 = len(list(boundary_loops[keys[1]]))
             number_of_cells = len(connectivity)
@@ -1241,13 +1229,15 @@ class BlockMesh:
 
             element_id = 0
 
-            print('Airfoil: elements_loop1', elements_loop1)
-            print('Outer boundary: elements_loop2', elements_loop2)
+            # print('Airfoil: elements_loop1', elements_loop1)
+            # print('Outer boundary: elements_loop2', elements_loop2)
 
+            '''
             for j, loop in enumerate(boundary_loops):
                 with open('boundary_loop_{}.txt'.format(j), 'w') as g:
                     for i, node in enumerate(boundary_loops[loop]):
                         g.write('{} {}\n'.format(i, node))
+            '''
 
             # write elements and physical tag for airfoil and inlet, outlet
             physical = {0: '1', 1: '2'}
