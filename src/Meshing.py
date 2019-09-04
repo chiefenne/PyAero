@@ -1073,40 +1073,32 @@ class BlockMesh:
                 x, y = vertex[0], vertex[1]
                 f.write(' {:24.16e} {:24.16e} \n'.format(x, y))
 
-            # get all edges in the mesh
-            edges = list()
-            for cell in connectivity:
-                # example:
-                # cell: [0, 1, 5, 4]
-                # edges: [(0,1), (1,5), (5,4), (4,0)]
-                cell_edges = [set((cell[cell.index(v)],
-                                   cell[(cell.index(v) + 1) % 4]))
-                              for v in cell]
-                edges += cell_edges
+            # number of marks (Airfoil, Farfield, Symmetry)
+            f.write('NMARK= 3\n')
 
-            # number of marks
-            f.write('NMARK= 2\n')
-            f.write('MARKER_TAG= airfoil\n')
+            # boundary definition (tag) for the airfoil
+            f.write('MARKER_TAG= Airfoil\n')
+            f.write('MARKER_ELEMS= {}\n'.format(len(boundary_loops[0])))
+            for edge in boundary_loops[0]:
+                f.write('3 {} {}\n'.format(edge[0], edge[1]))
 
-            airfoil_markers = airfoil_subdivisions + trailing_edge_subdivisions
-            am = str(airfoil_markers)
-            f.write('MARKER_ELEMS= ' + am + '\n')
-            # add line segments along airfoil
-            for id in range(airfoil_subdivisions):
-                f.write(element_type_line + ' ' + str(id) + ' ' +
-                        str(id + 1) + '\n')
-            # add line segments along trailing edge
-            for id in range(trailing_edge_subdivisions - 1):
-                f.write(element_type_line + ' ' + str(id + shift_nodes) + ' ' +
-                        str(id + shift_nodes + 1) + '\n')
-            # write last segment
-            f.write(element_type_line + ' ' + str(id + shift_nodes + 1) + ' ' +
-                    '0')
+            # boundary definition (tag) for the farfield
+            f.write('MARKER_TAG= Farfield\n')
+            f.write('MARKER_ELEMS= {}\n'.format(len(boundary_loops[1])))
+            for edge in boundary_loops[1]:
+                f.write('3 {} {}\n'.format(edge[0], edge[1]))
 
-            f.write('MARKER_TAG= farfield\n')
-            f.write('MARKER_ELEMS= 2\n')
-            f.write('3 2 5\n')
-            f.write('3 5 8\n')
+            # boundary definition (tag) for the symmetry
+            f.write('MARKER_TAG= Symmetry\n')
+            f.write('MARKER_ELEMS= {}\n'.format(len(connectivity)))
+            for cell_id, cell in enumerate(connectivity):
+
+                cell_connect = element_type_quadrilateral + ' ' + \
+                    str(cell[0]) + ' ' + \
+                    str(cell[1]) + ' ' + \
+                    str(cell[2]) + ' ' + \
+                    str(cell[3])
+                f.write('{}\n'.format(cell_connect))
 
             logger.info('SU2 mesh {} saved to folder {}'.
                         format(basename, OUTPUTDATA))
