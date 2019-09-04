@@ -480,36 +480,6 @@ class Windtunnel:
             loop_edges = [k for k, _ in itertools.groupby(sorted(l_edges))]
             new_loops[i] = loop_edges
 
-            '''
-            with open('loop_edges_{}.txt'.format(loop), 'w') as k:
-                for edge in loop_edges:
-                    k.write('{}\n'.format(edge))
-            '''
-
-            # now connect edges in the right order and return
-            # list of neighbouring points
-            not_treated = copy.deepcopy(new_loops[i])
-            not_treated.remove(new_loops[i][0])
-            loop = list()
-            loop.append(new_loops[i][0])
-            loop_is_open = True
-            while loop_is_open:
-
-                edges_to_treat = copy.deepcopy(not_treated)
-
-                for edge in edges_to_treat:
-                    if loop[-1][1] in edge:
-                        not_treated.remove(edge)
-                        if edge.index(loop[-1][1]) == 0:
-                            loop.append(edge)
-                        else:
-                            loop.append(list(reversed(edge)))
-
-                    if loop[0][0] == loop[-1][1]:
-                        loop_is_open = False
-                        new_loops[i] = [edge[1] for edge in loop]
-                        break
-
         return new_loops
 
     def drawMesh(self, airfoil):
@@ -1229,34 +1199,19 @@ class BlockMesh:
 
             element_id = 0
 
-            # print('Airfoil: elements_loop1', elements_loop1)
-            # print('Outer boundary: elements_loop2', elements_loop2)
-
-            '''
-            for j, loop in enumerate(boundary_loops):
-                with open('boundary_loop_{}.txt'.format(j), 'w') as g:
-                    for i, node in enumerate(boundary_loops[loop]):
-                        g.write('{} {}\n'.format(i, node))
-            '''
-
-            # write elements and physical tag for airfoil and inlet, outlet
             physical = {0: '1', 1: '2'}
             elementary_entities = {0: '8', 1: '7'}
             for j, loop in enumerate(boundary_loops):
                 for i, node in enumerate(boundary_loops[loop]):
                     element_id += 1
-                    # modulo în order to connect last node to first node
-                    elements_loop = len(list(boundary_loops[loop]))
-                    neighbour_node = \
-                        list(boundary_loops[loop])[(i + 1) % elements_loop]
                     # an element consists of:
                     #   element_id
                     #   element_type
                     #
                     element = ' ' + str(element_id) + ' ' + \
                         element_type_line + ' 3 ' + physical[j] + ' ' + \
-                        elementary_entities[j] + ' 0 ' + str(node + 1) + \
-                        ' ' + str(neighbour_node + 1) + '\n'
+                        elementary_entities[j] + ' 0 ' + str(node[0] + 1) + \
+                        ' ' + str(node[1] + 1) + '\n'
                     f.write(element)
 
             # write mesh elements

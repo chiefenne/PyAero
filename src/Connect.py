@@ -1,6 +1,3 @@
-from collections import Counter
-
-import numpy as np
 from scipy import spatial
 
 from PySide2 import QtCore
