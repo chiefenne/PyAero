@@ -353,4 +353,3 @@ class SplineRefine:
             for i in range(len(xc)):
                 data = '{:10.8f} {:10.8f} \n'.format(xc[i], yc[i])
                 f.write(data)
-
