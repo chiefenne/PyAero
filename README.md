@@ -83,6 +83,8 @@ At the moment a binary is available for Windows. On other platforms the source c
 
 ### Option 1: Download Windows executable:
 
+NOTE: Currently the Windows executable is not up to date
+
 Go to the [Windows](https://github.com/chiefenne/PyAero/tree/master/Windows) folder and download *PyAero.zip*. Extract that file in an arbitrary location on the PC. There will be a file and a folder extracted, *PyAero.exe* and *data* respectively.
 Run PyAero by double-clicking the executable.
 
