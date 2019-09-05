@@ -59,7 +59,7 @@ class Windtunnel:
         vec = np.array(first[0]) - np.array(last[0])
         line = copy.deepcopy(last_reversed)
 
-        # in case of TE add the pionts from the TE
+        # in case of TE add the points from the TE
         if self.mainwindow.airfoil.has_TE:
             for i in range(1, te_divisions):
                 p = last_reversed[-1] + float(i) / te_divisions * vec
