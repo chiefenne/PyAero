@@ -33,6 +33,7 @@ class Airfoil:
 
         self.name = name
         self.chord = None
+        self.has_TE = False
         self.contourPolygon = None
         # self.contourSpline = None
         self.spline_data = None

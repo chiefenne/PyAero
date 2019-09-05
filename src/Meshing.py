@@ -58,12 +58,17 @@ class Windtunnel:
 
         vec = np.array(first[0]) - np.array(last[0])
         line = copy.deepcopy(last_reversed)
-        for i in range(1, te_divisions):
-            p = last_reversed[-1] + float(i) / te_divisions * vec
-            # p is type numpy.float, so convert it to float
-            line.append((float(p[0]), float(p[1])))
-            # self.block_airfoil.boundary += [(float(p[0]), float(p[1]))]
-        line += first
+
+        # in case of TE add the pionts from the TE
+        if self.mainwindow.airfoil.has_TE:
+            for i in range(1, te_divisions):
+                p = last_reversed[-1] + float(i) / te_divisions * vec
+                # p is type numpy.float, so convert it to float
+                line.append((float(p[0]), float(p[1])))
+            line += first
+        # handle case with sharp trailing edge
+        else:
+            line += first[1:]
 
         # trailing edge block mesh
         block_te = BlockMesh(name=name)

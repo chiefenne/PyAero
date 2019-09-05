@@ -659,6 +659,9 @@ class Toolbox(QtWidgets.QToolBox):
     def makeTrailingEdge(self):
 
         if self.parent.airfoil:
+
+            self.parent.airfoil.has_TE = True
+
             if not hasattr(self.parent.airfoil, 'spline_data'):
                 message = 'Splining needs to be done first.'
                 self.parent.slots.messageBox(message)
