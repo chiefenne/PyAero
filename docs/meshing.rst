@@ -71,7 +71,17 @@ The trailing edge mesh is the region directly behind the airfoil (block 2, see :
 
    Settings for the airfoil trailing edge mesh (block 2)
 
-The parameter :guilabel:`Divisions at trailing edge` controls the number of subdivisions at the trailing edge (see blue circle in :ref:`figure_mesh_TE_annotated`). If the airfoil trailing edge has a finite thickness (blunt trailing edge), these cells resolve the small vertical part of the trailing edge. In case of a sharp trailing edge, the cells the airfoil upper and lower grid lines meet at the trailing edge and continue as one gidline downstream. :guilabel:`Divisions downstream trailing edge` is the number of subdivisions in the direction of the airfoil wake inside block 2.  The :guilabel:`Length behind trailing edge (%)` is the length of block 2 in the same direction measured as fraction of the unit chord. The :guilabel:`Cell thickness ratio (-)` has the same effect on the grid line distribution as already depicted for the mesh around the airfoil (block 1).
+The parameter :guilabel:`Divisions at trailing edge` controls the number of subdivisions at the trailing edge (see blue circle in :ref:`figure_mesh_TE_annotated`). If the airfoil trailing edge has a finite thickness (blunt trailing edge), these cells resolve the small vertical part of the trailing edge. :guilabel:`Divisions downstream trailing edge` is the number of subdivisions in the direction of the airfoil wake inside block 2.  The :guilabel:`Length behind trailing edge (%)` is the length of block 2 in the same direction measured as fraction of the unit chord. The :guilabel:`Cell thickness ratio (-)` has the same effect on the grid line distribution as already depicted for the mesh around the airfoil (block 1).
+
+In case of a sharp trailing edge, above parameters are not used. The cells of the airfoil upper and lower grid lines meet at the trailing edge and continue as one gridline downstream.
+
+.. _figure_mesh_TE_sharp:
+.. figure::  images/mesh_TE_sharp.gif
+   :align:   center
+   :target:  _images/mesh_TE_sharp.gif
+   :name: mesh_TE_sharp
+
+   Example mesh for a sharp trailing edge
 
 The next set of parameters specifies the grid distribution within block 3. The parameters are handled in the same way as for block 1 and block 2. The distribution biasing is just and intermediate helper function and should be kept with its default value (see note below).
 
