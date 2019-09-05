@@ -11,15 +11,15 @@
 
  - Airfoil splining and refining
  - Airfoil contour analysis (gradient, curvature and curvature cricle)
- - Trailing edge generation, i.e. blunt trailing edge instead of sharp trailing edge
  - Automatic generation of block-strcuctured meshes
+ - Sharp or blunt trailing edges
  - Mesh control
  - Mesh smoothing (to be improved)
- - NOT YET IMPLEMENTED: Automatic definition of boundary faces for various CFD solvers
  - Mesh export
    - [AVL FIRE](https://www.avl.com/fire) (.flma)
    - [SU2](https://su2code.github.io/) (.su2)
    - [GMSH](http://gmsh.info) (.msh)
+ - Automatic definition of boundary faces for various mesh exports
  - Simple aerodynamic analysis using [AeroPython](http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb)
  - NOT YET IMPLEMENTED: Advanced aerodynamic analysis
    - Linking to open source CFD software (e.g. SU2)
