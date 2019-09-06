@@ -103,4 +103,13 @@ In order to pan (drag) the contour or any other item press and hold :kbd:`CTRL` 
 Zooming
 ^^^^^^^
 
-Press and
+Zooming is activated by pressing and holding the left mouse button. While dragging the mouse a rubberband rectangle is drawn. This rectangle indicates the area which will be zoomed into when releasing the left mouse button. In order to avoid accidential zooming, a minimum size rectangle has to show up. A valid zoom rectangle is indicated by changing its background to a transparent blueish color.
+
+To escape infinite zoom (in and out) limits (MINZOOM, MAXZOOM) are set in the file ``Settings.py``.
+
+.. figure::  images/zoom_view.gif
+   :align:   center
+   :target:  _images/zoom_view.gif
+   :name: zoom_view
+
+   Zoom the items in the view. Set by a rectangle with the left mouse button.
