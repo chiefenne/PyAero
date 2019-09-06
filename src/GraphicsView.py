@@ -130,9 +130,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
             else:
                 # initiate rubberband origin and size (zero at first)
                 self.rubberband.setGeometry(QtCore.QRect(self.origin,
-                                            QtCore.QSize()))
+                    QtCore.QSize()))
                 # show, even at zero size
-                #allows to check later using isVisible()
+                # allows to check later using isVisible()
                 self.rubberband.show()
 
         # call corresponding base class method
@@ -185,8 +185,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
             # zoom the selected rectangle (works on scene coordinates)
             # zoom rect must be at least 5% of view width to allow zoom
-            if rect.width() > RUBBERBANDSIZE * self.width():
-                self.fitInView(rectf, aspectRadioMode=QtCore.Qt.KeepAspectRatio)
+            if self.rubberband.allow_zoom:
+                self.fitInView(rectf,
+                               aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
             # rescale markers during zoom
             # i.e. keep them constant size
@@ -336,10 +337,10 @@ class GraphicsView(QtWidgets.QGraphicsView):
             x, y = self.parent.airfoil.raw_coordinates
             for i, marker in enumerate(markers):
                 # in case of circle, args is a QRectF
-                marker.args = [QtCore.QRectF(x[i]-mappedMarkerWidth,
-                                             y[i]-mappedMarkerWidth,
-                                             2.*mappedMarkerWidth,
-                                             2.*mappedMarkerWidth)]
+                marker.args = [QtCore.QRectF(x[i] - mappedMarkerWidth,
+                                             y[i] - mappedMarkerWidth,
+                                             2. * mappedMarkerWidth,
+                                             2. * mappedMarkerWidth)]
 
         # if self.parent.airfoil.contourSpline:
         if hasattr(self.parent.airfoil, 'contourSpline'):
@@ -347,10 +348,10 @@ class GraphicsView(QtWidgets.QGraphicsView):
             x, y = self.parent.airfoil.spline_data[0]
             for i, marker in enumerate(markers):
                 # in case of circle, args is a QRectF
-                marker.args = [QtCore.QRectF(x[i]-mappedMarkerWidth,
-                                             y[i]-mappedMarkerWidth,
-                                             2.*mappedMarkerWidth,
-                                             2.*mappedMarkerWidth)]
+                marker.args = [QtCore.QRectF(x[i] - mappedMarkerWidth,
+                                             y[i] - mappedMarkerWidth,
+                                             2. * mappedMarkerWidth,
+                                             2. * mappedMarkerWidth)]
 
     def getSceneFromView(self):
         """Cache view to be able to keep it during resize"""
@@ -421,12 +422,14 @@ class RubberBand(QtWidgets.QRubberBand):
         # self.brush.setStyle(QtCore.Qt.NoBrush)
         self.brush.setStyle(QtCore.Qt.SolidPattern)
 
-
         # set style selectively for the rubberband like that
         # see: http://stackoverflow.com/questions/25642618
         # required as opacity might not work
         # NOTE: opacity removed here
         self.setStyle(QtWidgets.QStyleFactory.create('windowsvista'))
+
+        # set boolean for allowing zoom
+        self.allow_zoom = False
 
     def paintEvent(self, QPaintEvent):
 
@@ -437,15 +440,22 @@ class RubberBand(QtWidgets.QRubberBand):
         self.pen.setStyle(QtCore.Qt.DotLine)
 
         # zoom rect must be at least RUBBERBANDSIZE % of view to allow zoom
-        if (QPaintEvent.rect().width() < RUBBERBANDSIZE * self.view.width()) or \
-           (QPaintEvent.rect().height() < RUBBERBANDSIZE * self.view.width()):
+        if (QPaintEvent.rect().width() < RUBBERBANDSIZE * self.view.width()) \
+            or \
+           (QPaintEvent.rect().height() < RUBBERBANDSIZE * self.view.height()):
 
             self.brush.setStyle(QtCore.Qt.NoBrush)
+
+            # set boolean for allowing zoom
+            self.allow_zoom = False
         else:
             # if rubberband rect is big enough indicate this by fill color
             color = QtGui.QColor(10, 30, 140, 45)
             self.brush.setColor(color)
             self.brush.setStyle(QtCore.Qt.SolidPattern)
+
+            # set boolean for allowing zoom
+            self.allow_zoom = True
 
         painter.setBrush(self.brush)
         painter.setPen(self.pen)
