@@ -125,11 +125,14 @@ class GraphicsView(QtWidgets.QGraphicsView):
             self._leftMousePressed = True
             self._dragPos = event.pos()
 
-            if not ctrl:
+            if ctrl:
+                self.setCursor(QtCore.Qt.ClosedHandCursor)
+            else:
                 # initiate rubberband origin and size (zero at first)
                 self.rubberband.setGeometry(QtCore.QRect(self.origin,
                                             QtCore.QSize()))
-                # show, even at zero size, allows to check later using isVisible()
+                # show, even at zero size
+                #allows to check later using isVisible()
                 self.rubberband.show()
 
         # call corresponding base class method
