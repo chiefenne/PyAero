@@ -112,7 +112,7 @@ Zoom limits (``MINZOOM``, ``MAXZOOM``) are set in the file ``Settings.py``.
    :target:  _images/zoom_view.gif
    :name: zoom_view
 
-   Zoom the items in the view. Set by a rectangle with the left mouse button.
+   Zoom the items in the view. Select a rectangle using the left mouse button.
 
 Zooming can further be done using the :kbd:`Page-Up` and :kbd:`Page-Up` down keys.
 
