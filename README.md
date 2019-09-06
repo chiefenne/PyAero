@@ -24,6 +24,8 @@
  - NOT YET IMPLEMENTED: Advanced aerodynamic analysis
    - Linking to open source CFD software (e.g. SU2)
 
+## Sample screenshots
+
 ![](docs/images/gui_airfoil1_new.png)
 **PyAero GUI at a glance**
 <br><br>
