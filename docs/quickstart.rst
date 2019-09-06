@@ -35,6 +35,14 @@ The general steps for mesh generation in `PyAero <index.html>`_ can be explained
 
 5. Export the mesh in the required format
 
-   - Click on :guilabel:`Export Mesh` to export (i.e. save) the mesh in a specific format. Use the appropriate check box, e.g. SU2 for an *.su2 formatted file.
+   - Click on :guilabel:`Export Mesh` to export (i.e. save) the mesh in a specific format. Use the appropriate check box, e.g. SU2 for an *.su2 formatted file or GMSH for a *.msh formatted file.
 
-This is it.
+This is it. See following figure on how this looks in the graphical user interface.
+
+.. _figure_quickstart_steps:
+.. figure::  images/quickstart_steps.gif
+   :align:   center
+   :target:  _images/quickstart_steps.gif
+   :name: quickstart_steps
+
+   Step by step mesh generation with predefined airfoil contour
