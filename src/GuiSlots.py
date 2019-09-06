@@ -246,14 +246,13 @@ class Slots:
         else:
             airfoil = self.parent.airfoil
 
+        # remove airfoil from the list in the list widget
         self.parent.airfoils.remove(airfoil)
 
         # remove from scene only if active airfoil was chosen
         if airfoil.name == self.parent.airfoil.name:
-            self.parent.scene.removeItem(self.parent.airfoil.contourPolygon)
-            self.parent.scene.removeItem(self.parent.airfoil.chord)
-            self.parent.scene.removeItem(
-                self.parent.airfoil.polygonMarkersGroup)
+            # removes all items from the scene (polygon, chord, mesh, etc.)
+            self.parent.scene.clear()
 
         # remove also listwidget entry
         centralwidget = self.parent.centralwidget
