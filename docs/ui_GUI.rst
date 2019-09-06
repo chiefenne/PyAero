@@ -116,5 +116,5 @@ Zoom limits (``MINZOOM``, ``MAXZOOM``) are set in the file ``Settings.py``.
 
 Zooming can further be done using the :kbd:`Page-Up` and :kbd:`Page-Up` down keys.
 
-A reset to the initial (home) position can either be achieved by pressing the :kbd:`HOME` key or by right clicking in the graphics view and selecting :menuselection:`Fit airfoil in view` from the pulldown menu.
+A reset to the initial (home) position can either be achieved by pressing the :kbd:`HOME` key or by right clicking in the graphics view and selecting :guilabel:`Fit airfoil in view` from the pulldown menu.
 
