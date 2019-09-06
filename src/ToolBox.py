@@ -646,6 +646,9 @@ class Toolbox(QtWidgets.QToolBox):
         """Spline and refine airfoil"""
 
         if self.parent.airfoil:
+
+            self.parent.airfoil.has_TE = False
+
             refine = SplineRefine.SplineRefine()
             refine.doSplineRefine(tolerance=self.tolerance.value(),
                                   points=self.points.value(),
