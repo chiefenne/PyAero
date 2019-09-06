@@ -40,6 +40,10 @@
 **Example mesh around RAE2822 airfoil - Trailing Edge (with finite thickness)**
 <br><br>
 
+![](docs/images/TE_mesh_sharp.gif)
+**Example mesh with a sharp Trailing Edge**
+<br><br>
+
 ![](docs/images/MAKAROV_KPS_mesh.gif)
 **Example mesh around MAKAROV KPS airfoil as used in the CFD code AVL-FIRE.**
 <br><br>
