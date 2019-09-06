@@ -18,7 +18,7 @@ Main Screen
    Graphical user interface of PyAero
 
 Menus
-------
+-----
 
 Menus in `PyAero <index.html>`_ try to behave much the same as in typical desktop software. For standard menus as :guilabel:`File` or :guilabel:`Print` the documentation will be kept short. See above figure (:ref:`figure_main_screen_new`) for the location of the menubar in the GUI and below :ref:`figure_menu_structure` for an overview of the menu structure.
 
@@ -81,3 +81,26 @@ The graphics view in `PyAero <index.html>`_ and a set of other views (see figure
 
 .. note::
    Currently there is only the *Airfoil* tab active, i.e. populated with content when working with PyAero.
+
+
+Zooming, Panning
+----------------
+
+When an airfoil is loaded it is displayed with a size fitted into the graphics view leaving a small margin left and right. The contour can then be panned and zoomed in the following way:
+
+Panning
+^^^^^^^
+
+In order to pan (drag) the contour or any other item press and hold :kbd:`CTRL` and then press and hold the left mouse button and move the mouse in order to drag the contour.
+
+.. figure::  images/drag_view.gif
+   :align:   center
+   :target:  _images/drag_view.gif
+   :name: drag_view
+
+   Drag the items in the view by pressing :kbd:`CTRL` and moving the mouse (left button pressed)
+
+Zooming
+^^^^^^^
+
+Press and
