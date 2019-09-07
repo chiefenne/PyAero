@@ -39,7 +39,7 @@ The general steps for mesh generation in `PyAero <index.html>`_ can be explained
 
 This is it.
 
-See :ref:`figure_quickstart_steps` on how this looks in the graphical user interface.
+See below the :ref:`figure_quickstart_steps` on how this looks in the graphical user interface.
 
 .. _figure_quickstart_steps:
 .. figure::  images/quickstart_steps.gif
