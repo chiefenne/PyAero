@@ -397,7 +397,7 @@ class Windtunnel:
         # enable mesh export and set filename
         toolbox.box_meshexport.setEnabled(True)
         nameroot, extension = os.path.splitext(self.mainwindow.airfoil.name)
-        toolbox.lineedit_mesh.setText(str(nameroot) + '_mesh')
+        toolbox.lineedit_mesh.setText(str(nameroot))
 
     def makeLCV(self):
         """Make cell to vertex connectivity for the mesh

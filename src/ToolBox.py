@@ -362,7 +362,7 @@ class Toolbox(QtWidgets.QToolBox):
         hbl_cm.addStretch(stretch=1)
 
         # export menu
-        name = ''
+        name = ' '
         hbox = QtWidgets.QHBoxLayout()
         lbl = QtWidgets.QLabel('Filename')
         self.lineedit_mesh = QtWidgets.QLineEdit(name)
@@ -378,12 +378,9 @@ class Toolbox(QtWidgets.QToolBox):
         hbl.addStretch(stretch=1)
 
         rdl = QtWidgets.QHBoxLayout()
-        # btn_group = QtWidgets.QButtonGroup()
         self.check_FIRE = QtWidgets.QCheckBox('AVL FIRE')
         self.check_SU2 = QtWidgets.QCheckBox('SU2')
         self.check_GMSH = QtWidgets.QCheckBox('GMSH')
-        # btn_group.addButton(self.check_FIRE)
-        # btn_group.addButton(self.check_SU2)
         self.check_FIRE.setChecked(True)
         self.check_SU2.setChecked(False)
         self.check_GMSH.setChecked(False)
