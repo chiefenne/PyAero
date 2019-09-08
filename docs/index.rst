@@ -5,9 +5,6 @@
 .. important::
    The documentation is not yet finished but almost up to date.
 
-.. note::
-   This is the new version of PyAero. It is based on Python 3 and Qt for Python (PySide2).
-
 ********************
 PyAero documentation
 ********************
