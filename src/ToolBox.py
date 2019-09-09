@@ -326,8 +326,8 @@ class Toolbox(QtWidgets.QToolBox):
         self.form_mesh_wake.addRow(label, self.ratio_wake)
 
         label = QtWidgets.QLabel('Equalize vertical wake line at (%)')
-        label.setToolTip('Equalize vertical the wake line. ' +
-                         'Homogeneous vertical distribution x% downstream')
+        label.setToolTip('Equalize  the wake line vertically. ' +
+                         'Homogeneous vertical distribution at x% downstream')
         self.spread = QtWidgets.QDoubleSpinBox()
         self.spread.setSingleStep(5.0)
         self.spread.setRange(10.0, 90.0)
@@ -361,7 +361,47 @@ class Toolbox(QtWidgets.QToolBox):
         hbl_cm.addWidget(createMeshButton, stretch=4)
         hbl_cm.addStretch(stretch=1)
 
-        # export menu
+        # export menu and boundary definitions
+        self.form_bnd = QtWidgets.QFormLayout()
+
+        label = QtWidgets.QLabel('Boundary name for airfoil')
+        label.setToolTip('Name of the boundary definition for the airfoil')
+        self.lineedit_airfoil = QtWidgets.QLineEdit('Airfoil')
+        self.form_bnd.addRow(label, self.lineedit_airfoil)
+
+        label = QtWidgets.QLabel('Boundary name for inlet')
+        label.setToolTip('Name of the boundary definition for the inlet flow')
+        self.lineedit_inlet = QtWidgets.QLineEdit('Inlet')
+        self.form_bnd.addRow(label, self.lineedit_inlet)
+
+        label = QtWidgets.QLabel('Boundary name for outlet')
+        label.setToolTip('Name of the boundary definition for the outlet flow')
+        self.lineedit_outlet = QtWidgets.QLineEdit('Outlet')
+        self.form_bnd.addRow(label, self.lineedit_outlet)
+
+        label = QtWidgets.QLabel('Boundary name for symmetry')
+        label.setToolTip('Name of the boundary definition for the symmetry')
+        self.lineedit_symmetry = QtWidgets.QLineEdit('Symmetry')
+        self.form_bnd.addRow(label, self.lineedit_symmetry)
+
+        rdl = QtWidgets.QHBoxLayout()
+        self.check_FIRE = QtWidgets.QCheckBox('AVL FIRE')
+        self.check_SU2 = QtWidgets.QCheckBox('SU2')
+        self.check_GMSH = QtWidgets.QCheckBox('GMSH')
+        self.check_FIRE.setChecked(True)
+        self.check_SU2.setChecked(False)
+        self.check_GMSH.setChecked(False)
+        label = QtWidgets.QLabel('Export format:')
+        label.setToolTip('Check format to be exported (multiple allowed)')
+        rdl.addWidget(label)
+        rdl.addStretch(5)
+        rdl.addWidget(self.check_FIRE)
+        rdl.addStretch(1)
+        rdl.addWidget(self.check_SU2)
+        rdl.addStretch(1)
+        rdl.addWidget(self.check_GMSH)
+        rdl.addStretch(5)
+
         name = ' '
         hbox = QtWidgets.QHBoxLayout()
         lbl = QtWidgets.QLabel('Filename')
@@ -377,22 +417,8 @@ class Toolbox(QtWidgets.QToolBox):
         hbl.addWidget(exportMeshButton, stretch=4)
         hbl.addStretch(stretch=1)
 
-        rdl = QtWidgets.QHBoxLayout()
-        self.check_FIRE = QtWidgets.QCheckBox('AVL FIRE')
-        self.check_SU2 = QtWidgets.QCheckBox('SU2')
-        self.check_GMSH = QtWidgets.QCheckBox('GMSH')
-        self.check_FIRE.setChecked(True)
-        self.check_SU2.setChecked(False)
-        self.check_GMSH.setChecked(False)
-        rdl.addStretch(5)
-        rdl.addWidget(self.check_FIRE)
-        rdl.addStretch(1)
-        rdl.addWidget(self.check_SU2)
-        rdl.addStretch(1)
-        rdl.addWidget(self.check_GMSH)
-        rdl.addStretch(5)
-
         vbl1 = QtWidgets.QVBoxLayout()
+        vbl1.addLayout(self.form_bnd)
         vbl1.addLayout(rdl)
         vbl1.addLayout(hbox)
         vbl1.addLayout(hbl)
@@ -687,6 +713,12 @@ class Toolbox(QtWidgets.QToolBox):
     def exportMesh(self, from_browse_mesh=False):
 
         name = self.lineedit_mesh.text()
+
+        # add boundary definition attributes to mesh object
+        self.wind_tunnel.lineedit_airfoil = self.lineedit_airfoil.text()
+        self.wind_tunnel.lineedit_inlet = self.lineedit_inlet.text()
+        self.wind_tunnel.lineedit_outlet = self.lineedit_outlet.text()
+        self.wind_tunnel.lineedit_symmetry = self.lineedit_symmetry.text()
 
         nameroot, extension = os.path.splitext(str(name))
 

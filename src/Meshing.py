@@ -12,7 +12,7 @@ import PyAero
 import GraphicsItemsCollection as gic
 import GraphicsItem
 import Connect
-from Utils import Utils as Utils
+from Utils import Utils
 from Settings import OUTPUTDATA
 import logging
 logger = logging.getLogger(__name__)
@@ -394,7 +394,7 @@ class Windtunnel:
 
         progdialog.setValue(100)
 
-        # enable mesh export and set filename
+        # enable mesh export and set filename and boundary definitions
         toolbox.box_meshexport.setEnabled(True)
         nameroot, extension = os.path.splitext(self.mainwindow.airfoil.name)
         toolbox.lineedit_mesh.setText(str(nameroot))
@@ -458,6 +458,8 @@ class Windtunnel:
             TYPE: Description
         """
 
+        vertices, connectivity = self.mesh
+
         # make disjoint set object
         djs = DisjointSet()
 
@@ -484,6 +486,32 @@ class Windtunnel:
             # remove duplicate list elements from l_edges
             loop_edges = [k for k, _ in itertools.groupby(sorted(l_edges))]
             new_loops[i] = loop_edges
+
+        # new_loops[0] is airfoil
+        # new_loops[1] is complete outer boundary
+        # split outer boundary into inlet and outlet
+        self.is_outlet = list()
+
+        # edge is e.g.: (27, 53)
+        for i, edge in enumerate(new_loops[1]):
+            self.is_outlet.append(0)
+
+            # vertices[edge[0]] is e.g.: (1.0453006577029285, 3.5)
+            vector = Utils.vector(vertices[edge[0]], vertices[edge[1]])
+            # check angle against y-axis
+            angle = Utils.angle_between(vector, (0., 1.), degree=True)
+
+            # FIXME
+            # FIXME find better criterions or at leat refactor
+            # FIXME
+            # angle tolerance
+            tol = 0.5
+            # check only for edges downstream the airfoil
+            tol_wake = 1.1
+            if ((angle > - tol) and (angle < tol)) or \
+                    ((angle > 180. - tol) and (angle < 180. + tol)) and \
+                    vertices[edge[0]][0] > tol_wake:
+                self.is_outlet[i] = 1
 
         return new_loops
 
@@ -1030,7 +1058,6 @@ class BlockMesh:
 
         vertices, connectivity = mesh
         airfoil_subdivisions, v = blocks[0].getDivUV()
-        shift_nodes = (airfoil_subdivisions + 1) * (v + 1)
         trailing_edge_subdivisions, _ = blocks[1].getDivUV()
 
         # SU2 element types
@@ -1126,6 +1153,11 @@ class BlockMesh:
 
         mesh = wind_tunnel.mesh
         boundary_loops = wind_tunnel.boundary_loops
+        bnd_airfoil = wind_tunnel.lineedit_airfoil
+        bnd_inlet = wind_tunnel.lineedit_inlet
+        bnd_outlet = wind_tunnel.lineedit_outlet
+        bnd_symmetry = wind_tunnel.lineedit_symmetry
+        is_outlet = wind_tunnel.is_outlet
 
         vertices, connectivity = mesh
 
@@ -1158,10 +1190,10 @@ class BlockMesh:
             '''
             f.write('$PhysicalNames\n')
             f.write('4\n')
-            f.write('1 1 "Airfoil"\n')
-            f.write('1 2 "Inlet"\n')
-            f.write('1 3 "Outlet"\n')
-            f.write('2 4 "Symmetry"\n')
+            f.write('1 1 "{}"\n'.format(bnd_airfoil))
+            f.write('1 2 "{}"\n'.format(bnd_inlet))
+            f.write('1 3 "{}"\n'.format(bnd_outlet))
+            f.write('2 4 "{}"\n'.format(bnd_symmetry))
             f.write('$EndPhysicalNames\n')
             f.write('$Nodes\n')
             f.write('%s\n' % (len(vertices)))
@@ -1196,6 +1228,10 @@ class BlockMesh:
 
             element_id = 0
 
+            # FIXME
+            # FIXME refactor dicts and their usage
+            # FIXME
+            # write boundary elements (as per physical names)
             physical = {0: '1', 1: '2'}
             elementary_entities = {0: '8', 1: '7'}
             for j, loop in enumerate(boundary_loops):
@@ -1205,14 +1241,20 @@ class BlockMesh:
                     #   element_id
                     #   element_type
                     #
+                    if is_outlet[i]:
+                        physical_l = '3'
+                        elementary_entities_l = '9'
+                    else:
+                        physical_l = physical[j]
+                        elementary_entities_l = elementary_entities[j]
                     element = ' ' + str(element_id) + ' ' + \
-                        element_type_line + ' 3 ' + physical[j] + ' ' + \
-                        elementary_entities[j] + ' 0 ' + str(node[0] + 1) + \
+                        element_type_line + ' 3 ' + physical_l + ' ' + \
+                        elementary_entities_l + ' 0 ' + str(node[0] + 1) + \
                         ' ' + str(node[1] + 1) + '\n'
                     f.write(element)
 
             # write mesh elements
-            # includes physical tag for symmetry
+            # includes physical tag for symmetry "4"
             for cell in connectivity:
 
                 element_id += 1

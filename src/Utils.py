@@ -149,6 +149,23 @@ class Utils:
         pass
 
     @staticmethod
+    def vector(p1, p2):
+        """Returns a vector made of two points
+
+        Args:
+            p1 (tuple, list or np.array): Point, e.g. (1, 2) or [7., 4.3]
+            p2 (tuple, list or np.array): Point, e.g. (1, 2) or [7., 4.3]
+
+        Returns:
+            np.array: vector in numpy format
+        """
+
+        p1 = np.array(p1)
+        p2 = np.array(p2)
+
+        return p2 - p1
+
+    @staticmethod
     def unit_vector(vector):
         """ Returns the unit vector of the vector.  """
         return vector / np.linalg.norm(vector)
@@ -158,6 +175,9 @@ class Utils:
         """Returns the angle between
         vectors 'a' and 'b'
         """
+        a = np.array(a)
+        b = np.array(b)
+
         a_u = Utils.unit_vector(a)
         b_u = Utils.unit_vector(b)
         angle = np.arccos(np.clip(np.dot(a_u, b_u), -1.0, 1.0))
