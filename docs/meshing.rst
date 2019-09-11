@@ -83,7 +83,7 @@ In case of a sharp trailing edge, above parameters are not used. The cells of th
 
    Example mesh for a sharp trailing edge
 
-The next set of parameters specifies the grid distribution within block 3. The parameters are handled in the same way as for block 1 and block 2. The distribution biasing is just and intermediate helper function and should be kept with its default value (see note below).
+The next set of parameters specifies the grid distribution within block 3. The parameters are handled in the same way as for block 1 and block 2. The distribution biasing is just and intermediate helper function and should be kept with its default value (see note below) for symmetric or slightly cambered airfoils. For airfoils with pronounced camber setting biasing to :guilabel:`lower` improves the mesh quality.
 
 .. important::
    The meshing algorithm in block 3 is not finished, rather it is a tweaked version of a transfinite interpolation. This will be updated with elliptic grid generation or similar.
