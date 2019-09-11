@@ -29,7 +29,7 @@
    - Automatic definition of boundary elements (edges, faces)
      - Airfoil, inlet, outlet, symmetry
  - Simple aerodynamic analysis using [AeroPython](http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb)
- - Airfoil contour analysis (gradient, curvature and curvature cricle)
+ - Airfoil contour analysis (gradient, curvature and curvature circle)
  - NOT YET IMPLEMENTED: Advanced aerodynamic analysis
    - Linking to open source CFD software (e.g. SU2)
 
