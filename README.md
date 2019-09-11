@@ -19,7 +19,7 @@
  - Automatic generation of block-strcuctured mesh
    - Currently single element C-type mesh
    - Strictly orthogonal mesh in the vicinity of the airfoil
-   - Mesh resolution control for airfoil, leading edge, trail edge and windtunnel
+   - Mesh resolution control for airfoil, leading edge, trailing edge and windtunnel
  - Sharp or blunt trailing edges
  - Mesh smoothing (to be improved)
  - Mesh export
@@ -27,6 +27,7 @@
    - [SU2](https://su2code.github.io/) (.su2)
    - [GMSH](http://gmsh.info) (.msh)
    - Automatic definition of boundary elements (edges, faces)
+     - Airfoil, inlet, outlet, symmetry
  - Simple aerodynamic analysis using [AeroPython](http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb)
  - Airfoil contour analysis (gradient, curvature and curvature cricle)
  - NOT YET IMPLEMENTED: Advanced aerodynamic analysis
