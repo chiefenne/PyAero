@@ -1,7 +1,7 @@
 import copy
 
 import numpy as np
-import scipy.interpolate as si
+from scipy import interpolate
 
 from PySide2 import QtGui, QtCore
 
@@ -128,7 +128,7 @@ class SplineRefine:
         # u ... array of the parameters for each knot
         # NOTE: s=0.0 is important as no smoothing should be done on the spline
         # after interpolating it
-        tck, u = si.splprep([x, y], s=0.0, k=degree)
+        tck, u = interpolate.splprep([x, y], s=0.0, k=degree)
 
         # number of points on interpolated B-spline (parameter t)
         t = np.linspace(0.0, 1.0, points)
@@ -139,13 +139,13 @@ class SplineRefine:
 
         # evaluate B-spline at given parameters
         # der=0: returns point coordinates
-        coo = si.splev(t, tck, der=0)
+        coo = interpolate.splev(t, tck, der=0)
 
         # evaluate 1st derivative at given parameters
-        der1 = si.splev(t, tck, der=1)
+        der1 = interpolate.splev(t, tck, der=1)
 
         # evaluate 2nd derivative at given parameters
-        der2 = si.splev(t, tck, der=2)
+        der2 = interpolate.splev(t, tck, der=2)
 
         spline_data = [coo, u, t, der1, der2, tck]
 
@@ -204,8 +204,8 @@ class SplineRefine:
                 t2 = (t[i + 1] + t[i + 2]) / 2.
 
                 # coordinates of new points
-                p1 = si.splev(t1, tck, der=0)
-                p2 = si.splev(t2, tck, der=0)
+                p1 = interpolate.splev(t1, tck, der=0)
+                p2 = interpolate.splev(t2, tck, der=0)
 
                 # insert points and their parameters into arrays
                 if i > 0 and not refined[i - 1]:
@@ -236,8 +236,8 @@ class SplineRefine:
         # stopping from recursion if no refinements done in this recursion
         else:
             # update derivatives, including inserted points
-            spline_data[3] = si.splev(tn, tck, der=1)
-            spline_data[4] = si.splev(tn, tck, der=2)
+            spline_data[3] = interpolate.splev(tn, tck, der=1)
+            spline_data[4] = interpolate.splev(tn, tck, der=2)
 
             logger.debug('No more refinements.')
             logger.debug('\nTotal number of recursions: {}'
@@ -286,12 +286,12 @@ class SplineRefine:
         # add refined points
         for s in spacing[::-1]:
             # upper side
-            p = si.splev(s, tck, der=0)
+            p = interpolate.splev(s, tck, der=0)
             x = np.insert(x, 0, p[0])
             y = np.insert(y, 0, p[1])
             t = np.insert(t, 0, s)
             # lower side
-            p = si.splev(1. - s, tck, der=0)
+            p = interpolate.splev(1. - s, tck, der=0)
             x = np.append(x, p[0])
             y = np.append(y, p[1])
             t = np.append(t, 1. - s)
@@ -301,8 +301,8 @@ class SplineRefine:
         # update parameter array, including parameters of inserted points
         self.spline_data[2] = t
         # update derivatives, including inserted points
-        self.spline_data[3] = si.splev(t, tck, der=1)
-        self.spline_data[4] = si.splev(t, tck, der=2)
+        self.spline_data[3] = interpolate.splev(t, tck, der=1)
+        self.spline_data[4] = interpolate.splev(t, tck, der=2)
 
     def spacing(self, divisions=10, ratio=1.0, thickness=1.0):
         """Calculate point distribution on a line

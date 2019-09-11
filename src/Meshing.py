@@ -4,7 +4,7 @@ import copy
 from datetime import date
 import itertools
 import numpy as np
-import scipy.interpolate as si
+from scipy import interpolate
 
 from PySide2 import QtGui, QtCore, QtWidgets
 
@@ -130,7 +130,7 @@ class Windtunnel:
             line.append(p.tolist())
 
         line = np.array(line)
-        tck, u = si.splprep(line.T, s=0, k=1)
+        tck, u = interpolate.splprep(line.T, s=0, k=1)
 
         # point distribution on upper, front and lower part
         if dist == 'symmetric':
@@ -145,7 +145,7 @@ class Windtunnel:
         xx = np.linspace(ld, ud, len(block_tunnel.getULines()[0]))
         t = (np.tanh(xx) + 1.0) / 2.0
 
-        line = si.splev(t, tck, der=0)
+        line = interpolate.splev(t, tck, der=0)
         line = list(zip(line[0].tolist(), line[1].tolist()))
 
         block_tunnel.addLine(line)
@@ -738,22 +738,22 @@ class BlockMesh:
         # tck ... tuple (t,c,k) containing the vector of knots,
         #         the B-spline coefficients, and the degree of the spline.
         #   u ... array of the parameters for each given point (knot)
-        tck, u = si.splprep(line.T, s=0, k=1)
+        tck, u = interpolate.splprep(line.T, s=0, k=1)
 
         if type == 'constant':
             t = np.linspace(0.0, 1.0, num=len(line))
         if type == 'transition':
             first = np.array(self.getULines()[0])
             last = np.array(self.getULines()[-1])
-            tck_first, u_first = si.splprep(first.T, s=0, k=1)
-            tck_last, u_last = si.splprep(last.T, s=0, k=1)
+            tck_first, u_first = interpolate.splprep(first.T, s=0, k=1)
+            tck_last, u_last = interpolate.splprep(last.T, s=0, k=1)
             if number < 0.0:
                 number = len(self.getVLines())
             v = float(number) / float(len(self.getVLines()))
             t = (1.0 - v) * u_first + v * u_last
 
         # evaluate function at any parameter "0<=t<=1"
-        line = si.splev(t, tck, der=0)
+        line = interpolate.splev(t, tck, der=0)
         line = list(zip(line[0].tolist(), line[1].tolist()))
 
         if direction == 'u':
@@ -883,10 +883,10 @@ class BlockMesh:
         # tck ... tuple (t,c,k) containing the vector of knots,
         #         the B-spline coefficients, and the degree of the spline.
         #   u ... array of the parameters for each given point (knot)
-        tck_lower, u_lower = si.splprep(lower.T, s=0, k=1)
-        tck_upper, u_upper = si.splprep(upper.T, s=0, k=1)
-        tck_left, u_left = si.splprep(left.T, s=0, k=1)
-        tck_right, u_right = si.splprep(right.T, s=0, k=1)
+        tck_lower, u_lower = interpolate.splprep(lower.T, s=0, k=1)
+        tck_upper, u_upper = interpolate.splprep(upper.T, s=0, k=1)
+        tck_left, u_left = interpolate.splprep(left.T, s=0, k=1)
+        tck_right, u_right = interpolate.splprep(right.T, s=0, k=1)
 
         nodes = np.zeros((len(left) * len(lower), 2))
 
