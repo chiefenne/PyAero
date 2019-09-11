@@ -9,18 +9,26 @@
 
 ## Features
 
+ - Load and display airfoil contour files
  - Airfoil splining and refining
- - Airfoil contour analysis (gradient, curvature and curvature cricle)
- - Automatic generation of block-strcuctured meshes
+   - Get a smooth contour and sufficient contour points
+   - Refine leading and trailing edge resolution
+   - Prepare contour for meshing
+   - Automatic calculation of leading edge radius
+   - Point distribution on spline used as mesh distribution
+ - Automatic generation of block-strcuctured mesh
+   - Currently single element C-type mesh
+   - Strictly orthogonal mesh in the vicinity of the airfoil
+   - Mesh resolution control for airfoil, leading edge, trail edge and windtunnel
  - Sharp or blunt trailing edges
- - Mesh control
  - Mesh smoothing (to be improved)
  - Mesh export
    - [AVL FIRE](https://www.avl.com/fire) (.flma)
    - [SU2](https://su2code.github.io/) (.su2)
    - [GMSH](http://gmsh.info) (.msh)
- - Automatic definition of boundary faces for various mesh exports
+   - Automatic definition of boundary elements (edges, faces)
  - Simple aerodynamic analysis using [AeroPython](http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb)
+ - Airfoil contour analysis (gradient, curvature and curvature cricle)
  - NOT YET IMPLEMENTED: Advanced aerodynamic analysis
    - Linking to open source CFD software (e.g. SU2)
 
