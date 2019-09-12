@@ -19,13 +19,6 @@ PyAero is open-source and distributed under the MIT license, see `LICENSE <licen
 
    PyAero user interface at a glance
 
-.. figure::  images/mesh2.png
-   :align:   center
-   :target:  _images/mesh2.png
-   :name: Mesh_HN1033
-
-   Example mesh around HN1033 airfoil
-
 .. figure::  images/LE_mesh.png
    :align:   center
    :target:  _images/LE_mesh.png
@@ -39,6 +32,13 @@ PyAero is open-source and distributed under the MIT license, see `LICENSE <licen
    :name: Mesh_HN1033_TE
 
    Example mesh around HN1033 airfoil - Trailing Edge (with finite thickness)
+
+.. figure::  images/mesh2.png
+   :align:   center
+   :target:  _images/mesh2.png
+   :name: Mesh_HN1033
+
+   Example mesh around HN1033 airfoil
 
 .. figure::  movies/RG14_3D_laminar_Iso-Q_pressure.gif
    :align:   center
