@@ -822,8 +822,8 @@ class Toolbox(QtWidgets.QToolBox):
             f.write('# Derived from: %s\n' % (str(airfoil_name).strip()))
             f.write('# Number of points: %s\n' % (len(x)))
             f.write('#\n')
-            for i, xx in enumerate(x):
-                f.write(2*'{:10.6f}'.format(x[i], y[i]) + '\n')
+            for i, _ in enumerate(x):
+                f.write('{:10.6f} {:10.6f}\n'.format(x[i], y[i]))
 
     def onBrowseMesh(self):
 
