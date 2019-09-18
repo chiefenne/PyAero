@@ -99,7 +99,7 @@ class MenusTools:
     def getToolbarData(self):
         """get all menus and submenus from the external XML file"""
 
-        xml_file = os.path.join(MENUDATA, 'PToolbar.xml')
+        xml_file = os.path.join(MENUDATA, 'PToolBar.xml')
         xml = etree.parse(xml_file)
         tool_structure = xml.getroot()
 
