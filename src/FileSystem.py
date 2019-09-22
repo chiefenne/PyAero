@@ -34,7 +34,7 @@ class FileSystemModel(QtWidgets.QFileSystemModel):
         This function partly overrides the standard QFileSystemModel data
         function to return custom file and folder icons
         """
-        
+
         fileInfo = self.getFileInfo(index)[4]
 
         if role == QtCore.Qt.DecorationRole:
@@ -44,13 +44,10 @@ class FileSystemModel(QtWidgets.QFileSystemModel):
                 return QtGui.QPixmap(ICONS_L + 'airfoil.png')
 
         # return QtWidgets.QFileSystemModel.data(self, index, role)
-        # more pythonic ???
         return super().data(index, role)
 
     # @QtCore.Slot(QtCore.QModelIndex)
     def onFileSelected(self, index):
-
-        return
 
         fileInfo = self.getFileInfo(index)[4]
         if fileInfo.isDir():
@@ -60,11 +57,12 @@ class FileSystemModel(QtWidgets.QFileSystemModel):
 
     # @QtCore.Slot(QtCore.QModelIndex)
     def onFileLoad(self, index):
-        fullname = self.getFileInfo(index)[2]
         fileInfo = self.getFileInfo(index)[4]
         if fileInfo.isDir():
             return
-        self.mainwindow.slots.loadAirfoil(fullname, '#')
+
+        fullname = self.getFileInfo(index)[2]
+        self.mainwindow.slots.loadAirfoil(fullname, comment='#')
 
     def getFileInfo(self, index):
         fileInfo = self.fileInfo(index)
@@ -72,7 +70,7 @@ class FileSystemModel(QtWidgets.QFileSystemModel):
         name = fileInfo.fileName()
         ext = fileInfo.suffix()
         fullname = fileInfo.absoluteFilePath()
-        
+
         logger.debug('FileInfo', [name, path, fullname, ext, fileInfo])
 
         return [name, path, fullname, ext, fileInfo]
