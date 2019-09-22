@@ -61,7 +61,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.app.mainwindow = self
 
         self.style = style
-        ### styles do not work anymore; need to come back
+        # styles do not work anymore; need to come back
         # style_keys = [x.lower() for x in QtWidgets.QStyleFactory.keys()]
         # FIXME
         # FIXME currently leads to segmentation faults
@@ -260,7 +260,8 @@ class CentralWidget(QtWidgets.QWidget):
         hbox.setAlignment(QtCore.Qt.AlignTop)
         # connect signals to slots
         # lambda allows to send extra parameters
-        self.cb1.clicked.connect(lambda: self.parent.slots.toggleLogDock('tick'))
+        self.cb1.clicked.connect(
+            lambda: self.parent.slots.toggleLogDock('tick'))
         self.cb2.clicked.connect(self.toolbox.toggleRawPoints)
         self.cb3.clicked.connect(self.toolbox.toggleSplinePoints)
         self.cb4.clicked.connect(self.toolbox.toggleSpline)
