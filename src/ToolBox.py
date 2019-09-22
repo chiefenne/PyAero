@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
 import os
+import numpy as np
 
 from PySide2 import QtGui, QtCore, QtWidgets
 
 import PyAero
 import Airfoil
+import FileDialog
 import FileSystem
-import IconProvider
 import SvpMethod
 import SplineRefine
 import TrailingEdge
 import Meshing
-from Settings import ICONS_L, DIALOGFILTER, DIALOGFILTER_MESH, OUTPUTDATA
+from Settings import ICONS_L
 
 import logging
 logger = logging.getLogger(__name__)
@@ -32,13 +33,26 @@ class Toolbox(QtWidgets.QToolBox):
 
         self.parent = parent
 
-        # set the style
-        style = (""" QToolBox::tab:selected {font: bold; } """)
+        # set the style (css)
+        style = """
+            QToolBox::tab {
+                border: 3px;
+                background-color: #DDDDDD;
+                color: black;
+            }
+            QToolBox::tab:pressed {
+                background-color: #CCCCCD;
+            }
+            QToolBox::tab:selected {
+                font: bold;
+            }
+        """
         self.setStyleSheet(style)
 
         # create toolbox items
         self.itemFileSystem()
         self.itemAeropython()
+        self.itemBoundaryCondtions()
         self.itemContourAnalysis()
         self.itemSplineRefine()
         self.itemMeshing()
@@ -51,7 +65,8 @@ class Toolbox(QtWidgets.QToolBox):
         # tb1 = 'Airfoil Database'
         # tb2 = 'Contour Splining and Refinement'
         # tb4 = 'Meshing'
-        # tb5 = 'Aerodynamics'
+        # tb6 = 'Aerodynamics Boundary Conditions'
+        # tb5 = 'Aerodynamics (Panel Code)'
         # tb3 = 'Contour Analysis'
 
         if self.currentIndex() == self.tb1:
@@ -118,12 +133,12 @@ class Toolbox(QtWidgets.QToolBox):
         form = QtWidgets.QFormLayout()
 
         label1 = QtWidgets.QLabel(u'Angle of attack (°)')
-        self.spin = QtWidgets.QDoubleSpinBox()
-        self.spin.setSingleStep(0.1)
-        self.spin.setDecimals(1)
-        self.spin.setRange(-10.0, 10.0)
-        self.spin.setValue(0.0)
-        form.addRow(label1, self.spin)
+        self.aoa = QtWidgets.QDoubleSpinBox()
+        self.aoa.setSingleStep(0.1)
+        self.aoa.setDecimals(1)
+        self.aoa.setRange(-10.0, 10.0)
+        self.aoa.setValue(0.0)
+        form.addRow(label1, self.aoa)
 
         label2 = QtWidgets.QLabel('Freestream velocity (m/s)')
         self.freestream = QtWidgets.QDoubleSpinBox()
@@ -146,6 +161,148 @@ class Toolbox(QtWidgets.QToolBox):
         self.item_ap.setLayout(form)
 
         panelMethodButton.clicked.connect(self.runPanelMethod)
+
+    def itemBoundaryCondtions(self):
+
+        form = QtWidgets.QFormLayout()
+
+        label = QtWidgets.QLabel(u'Reynolds Number (-)')
+        self.reynolds = QtWidgets.QDoubleSpinBox()
+        self.reynolds.setSingleStep(10000.0)
+        self.reynolds.setDecimals(2)
+        self.reynolds.setRange(0.0, 1.0e10)
+        self.reynolds.setValue(100000.0)
+        self.reynolds.valueChanged.connect(self.valuechange)
+        form.addRow(label, self.reynolds)
+
+        label = QtWidgets.QLabel(u'Chord Length (m)')
+        self.chord = QtWidgets.QDoubleSpinBox()
+        self.chord.setSingleStep(0.01)
+        self.chord.setDecimals(2)
+        self.chord.setRange(0.0, 1.0e10)
+        self.chord.setValue(1.0)
+        self.chord.valueChanged.connect(self.valuechange)
+        form.addRow(label, self.chord)
+
+        # angle of attack (from, to, step)
+        # from
+        label = QtWidgets.QLabel(u'Angle of Attack (from) (°)')
+        self.aoaf = QtWidgets.QDoubleSpinBox()
+        self.aoaf.setSingleStep(0.1)
+        self.aoaf.setDecimals(2)
+        self.aoaf.setRange(-90.0, 90.0)
+        self.aoaf.setValue(-10.0)
+        form.addRow(label, self.aoaf)
+        # to
+        label = QtWidgets.QLabel(u'Angle of Attack (to) (°)')
+        self.aoat = QtWidgets.QDoubleSpinBox()
+        self.aoat.setSingleStep(0.1)
+        self.aoat.setDecimals(2)
+        self.aoat.setRange(-90.0, 90.0)
+        self.aoat.setValue(10.0)
+        form.addRow(label, self.aoat)
+        # step
+        label = QtWidgets.QLabel(u'Angle of Attack (step) (°)')
+        self.aoas = QtWidgets.QDoubleSpinBox()
+        self.aoas.setSingleStep(0.1)
+        self.aoas.setDecimals(2)
+        self.aoas.setRange(0.0, 90.0)
+        self.aoas.setValue(1.0)
+        form.addRow(label, self.aoas)
+
+        self.aoaf.valueChanged.connect(self.valuechange)
+        self.aoat.valueChanged.connect(self.valuechange)
+        self.aoas.valueChanged.connect(self.valuechange)
+
+        label = QtWidgets.QLabel(u'Freestream Turbulence Intensity (%)')
+        self.turbulence = QtWidgets.QDoubleSpinBox()
+        self.turbulence.setSingleStep(0.1)
+        self.turbulence.setDecimals(2)
+        self.turbulence.setRange(0.0, 100.0)
+        self.turbulence.setValue(2.0)
+        self.turbulence.valueChanged.connect(self.valuechange)
+        form.addRow(label, self.turbulence)
+
+        label = QtWidgets.QLabel(u'Freestream Length Scale (m)')
+        self.length_sc = QtWidgets.QDoubleSpinBox()
+        self.length_sc.setSingleStep(0.01)
+        self.length_sc.setDecimals(3)
+        self.length_sc.setRange(1.e-6, 1.0e10)
+        self.length_sc.setValue(0.05)
+        self.length_sc.valueChanged.connect(self.valuechange)
+        form.addRow(label, self.length_sc)
+
+        label = QtWidgets.QLabel(u'Pressure (Pa)')
+        self.pressure = QtWidgets.QDoubleSpinBox()
+        self.pressure.setSingleStep(1000.0)
+        self.pressure.setDecimals(2)
+        self.pressure.setRange(0.0, 1.0e10)
+        self.pressure.setValue(101325.0)
+        self.pressure.valueChanged.connect(self.valuechange)
+        form.addRow(label, self.pressure)
+
+        label = QtWidgets.QLabel(u'Temperature (°C)')
+        self.temperature = QtWidgets.QDoubleSpinBox()
+        self.temperature.setSingleStep(1.0)
+        self.temperature.setDecimals(2)
+        self.temperature.setRange(-273.15, 1.0e10)
+        self.temperature.setValue(20.0)
+        self.temperature.valueChanged.connect(self.valuechange)
+        form.addRow(label, self.temperature)
+
+        self.textedit = QtWidgets.QTextEdit()
+        self.textedit.setReadOnly(True)
+        # update text box (computed from initial values)
+        self.valuechange()
+        self.textedit.setHtml(self.te_text)
+        form.addRow(self.textedit)
+
+        self.item_abc = QtWidgets.QGroupBox(
+            'Aerodynamic boundary conditions for CFD')
+        self.item_abc.setLayout(form)
+
+    def valuechange(self):
+        # checks that from and to do not overlap
+        if self.aoaf.value() >= self.aoat.value():
+            self.aoaf.setValue(self.aoat.value() - self.aoas.value())
+        if self.aoat.value() <= self.aoaf.value():
+            self.aoat.setValue(self.aoaf.value() + self.aoas.value())
+
+        gas_constant = 287.14
+        temperature = self.temperature.value() + 273.15
+        density = self.pressure.value() / gas_constant / temperature
+        num = (self.aoat.value() - self.aoaf.value()) / self.aoas.value() + 1
+        self.aoa = np.linspace(self.aoaf.value(), self.aoat.value(),
+                               num=num, endpoint=True)
+
+        def dynamic_viscosity(temperature):
+            # Sutherland formula for air
+            C = 120.0
+            lamb = 1.512041288e-6
+            vis = lamb * temperature**1.5 / (temperature + C)
+            return vis
+
+        viscosity = dynamic_viscosity(temperature)
+        kinematic_viscosity = viscosity / density
+        velocity = self.reynolds.value() / self.chord.value() * \
+            kinematic_viscosity
+        uprime = velocity * self.turbulence.value() / 100.0
+        tke = 3.0 / 2.0 * uprime**2
+        self.u_velocity = velocity * np.cos(self.aoa * np.pi / 180.0)
+        self.v_velocity = velocity * np.sin(self.aoa * np.pi / 180.0)
+
+        newline = '<br>'
+        self.te_text = '<b># TKE  Length-scale</b>' + newline
+        self.te_text += '{:16.8f} {:16.8f}'.\
+            format(tke, self.length_sc.value()) + newline
+        self.te_text += '<b># AOA   u-velocity   v-velocity</b>' + newline
+        for i, line in enumerate(self.u_velocity):
+            self.te_text += '{:5.2f} {:16.8f} {:16.8f}{}'.format(
+                self.aoa[i],
+                self.u_velocity[i],
+                self.v_velocity[i],
+                newline)
+        self.textedit.setHtml(self.te_text)
 
     def itemContourAnalysis(self):
 
@@ -402,15 +559,6 @@ class Toolbox(QtWidgets.QToolBox):
         rdl.addWidget(self.check_GMSH)
         rdl.addStretch(5)
 
-        name = ' '
-        hbox = QtWidgets.QHBoxLayout()
-        lbl = QtWidgets.QLabel('Filename')
-        self.lineedit_mesh = QtWidgets.QLineEdit(name)
-        browseMeshButton = QtWidgets.QPushButton('Browse')
-        hbox.addWidget(lbl)
-        hbox.addWidget(self.lineedit_mesh)
-        hbox.addWidget(browseMeshButton)
-
         exportMeshButton = QtWidgets.QPushButton('Export Mesh')
         hbl = QtWidgets.QHBoxLayout()
         hbl.addStretch(stretch=1)
@@ -420,7 +568,6 @@ class Toolbox(QtWidgets.QToolBox):
         vbl1 = QtWidgets.QVBoxLayout()
         vbl1.addLayout(self.form_bnd)
         vbl1.addLayout(rdl)
-        vbl1.addLayout(hbox)
         vbl1.addLayout(hbl)
 
         self.box_meshexport = QtWidgets.QGroupBox('Mesh Export')
@@ -441,7 +588,6 @@ class Toolbox(QtWidgets.QToolBox):
         self.item_msh = QtWidgets.QWidget()
         self.item_msh.setLayout(vbl)
 
-        browseMeshButton.clicked.connect(self.onBrowseMesh)
         createMeshButton.clicked.connect(self.generateMesh)
         exportMeshButton.clicked.connect(self.exportMesh)
 
@@ -553,11 +699,7 @@ class Toolbox(QtWidgets.QToolBox):
         # export menu
         name = ''
         hbox = QtWidgets.QHBoxLayout()
-        lbl = QtWidgets.QLabel('Filename')
-        self.lineedit = QtWidgets.QLineEdit(name)
         exportContourButton = QtWidgets.QPushButton('Export Contour')
-        hbox.addWidget(lbl)
-        hbox.addWidget(self.lineedit)
         hbox.addWidget(exportContourButton)
 
         box2 = QtWidgets.QGroupBox('Export modified contour')
@@ -577,9 +719,7 @@ class Toolbox(QtWidgets.QToolBox):
 
         splineButton.clicked.connect(self.spline_and_refine)
         trailingButton.clicked.connect(self.makeTrailingEdge)
-        splineButton.clicked.connect(lambda: self.updatename('spline'))
-        trailingButton.clicked.connect(lambda: self.updatename('trailing'))
-        exportContourButton.clicked.connect(self.onBrowse)
+        exportContourButton.clicked.connect(self.exportContour)
 
     def makeToolbox(self):
 
@@ -588,7 +728,9 @@ class Toolbox(QtWidgets.QToolBox):
         self.tb2 = self.addItem(self.item_cm,
                                 'Contour Splining and Refinement')
         self.tb4 = self.addItem(self.item_msh, 'Meshing')
-        self.tb5 = self.addItem(self.item_ap, 'Aerodynamics')
+        self.tb6 = self.addItem(self.item_abc,
+                                'CFD Boundary Conditions')
+        self.tb5 = self.addItem(self.item_ap, 'Aerodynamics (Panel Code)')
         self.tb3 = self.addItem(self.item_ca, 'Contour Analysis')
 
         self.setItemToolTip(0, 'Airfoil database ' +
@@ -596,16 +738,20 @@ class Toolbox(QtWidgets.QToolBox):
         self.setItemToolTip(1, 'Spline and refine the contour')
         self.setItemToolTip(2, 'Generate a 2D mesh around the ' +
                             'selected airfoil')
-        self.setItemToolTip(3, 'Compute panel based aerodynamic ' +
+        self.setItemToolTip(3,
+                            'Compute aerodynamic boundary conditions based' +
+                            ' on Reynolds number and thermodynamics')
+        self.setItemToolTip(4, 'Compute panel based aerodynamic ' +
                             'coefficients')
-        self.setItemToolTip(4, 'Analyze the curvature of the ' +
+        self.setItemToolTip(5, 'Analyze the curvature of the ' +
                             'selected airfoil')
 
         self.setItemIcon(0, QtGui.QIcon(ICONS_L + 'airfoil.png'))
         self.setItemIcon(1, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
         self.setItemIcon(2, QtGui.QIcon(ICONS_L + 'mesh.png'))
         self.setItemIcon(3, QtGui.QIcon(ICONS_L + 'Fast delivery.png'))
-        self.setItemIcon(4, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
+        self.setItemIcon(4, QtGui.QIcon(ICONS_L + 'Fast delivery.png'))
+        self.setItemIcon(5, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
 
         # preselect airfoil database box
         self.setCurrentIndex(self.tb1)
@@ -710,33 +856,6 @@ class Toolbox(QtWidgets.QToolBox):
         self.wind_tunnel = Meshing.Windtunnel()
         self.wind_tunnel.makeMesh()
 
-    def exportMesh(self, from_browse_mesh=False):
-
-        name = self.lineedit_mesh.text()
-
-        # add boundary definition attributes to mesh object
-        self.wind_tunnel.lineedit_airfoil = self.lineedit_airfoil.text()
-        self.wind_tunnel.lineedit_inlet = self.lineedit_inlet.text()
-        self.wind_tunnel.lineedit_outlet = self.lineedit_outlet.text()
-        self.wind_tunnel.lineedit_symmetry = self.lineedit_symmetry.text()
-
-        nameroot, extension = os.path.splitext(str(name))
-
-        if from_browse_mesh:
-            fullname = name
-        else:
-            fullname = OUTPUTDATA + nameroot
-
-        if self.check_FIRE.isChecked():
-            Meshing.BlockMesh.writeFLMA(self.wind_tunnel,
-                                        name=fullname)
-        elif self.check_SU2.isChecked():
-            Meshing.BlockMesh.writeSU2(self.wind_tunnel,
-                                       name=fullname)
-        elif self.check_GMSH.isChecked():
-            Meshing.BlockMesh.writeGMSH(self.wind_tunnel,
-                                        name=fullname)
-
     def analyzeAirfoil(self):
         """Airfoil contour analysis with respect to geometric features"""
 
@@ -764,104 +883,71 @@ class Toolbox(QtWidgets.QToolBox):
         self.cpb3.clicked.connect(lambda:
                                   self.parent.contourview.drawContour('radius'))
 
-    def updatename(self, sender_button):
+    def exportMesh(self):
 
-        name = self.parent.airfoil.name
+        file_dialog = FileDialog.Dialog()
+        file_dialog.setFilter('Mesh files (*.flma *.su2 *.msh)')
+        filename, extension = os.path.splitext(self.parent.airfoil.name)
+        filename, _ = file_dialog.saveFilename(filename)
 
-        nameroot, extension = os.path.splitext(str(name))
-
-        if 'spline' in sender_button:
-            nameroot += '_Spline'
-            self.lineedit.setText(nameroot + extension)
-        if 'trailing' in sender_button:
-            nameroot += '_Spline_TE'
-            self.lineedit.setText(nameroot + extension)
-
-    def onBrowse(self):
-
-        names = []
-
-        dialog = QtWidgets.QFileDialog()
-
-        provider = IconProvider.IconProvider()
-        dialog.setIconProvider(provider)
-        dialog.setNameFilter(DIALOGFILTER)
-        dialog.setNameFilterDetailsVisible(True)
-        dialog.setDirectory(OUTPUTDATA)
-        # allow only to select one file
-        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
-        # display also size and date
-        dialog.setViewMode(QtWidgets.QFileDialog.Detail)
-        # make it a save dialog
-        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        # put default name in the save dialog
-        dialog.selectFile(self.lineedit.text())
-
-        # open custom file dialog using custom icons
-        if dialog.exec_():
-            names = dialog.selectedFiles()
-            # filter = dialog.selectedFilter()
-
-        if not names:
+        if not filename:
+            logger.info('No file selected. Nothing saved.')
             return
 
-        # names is a list of QStrings
-        filename = str(names[0])
+        # clean extension again (because added by file_dialog return)
+        filename, extension = os.path.splitext(filename)
+
+        # add boundary definition attributes to mesh object
+        self.wind_tunnel.lineedit_airfoil = self.lineedit_airfoil.text()
+        self.wind_tunnel.lineedit_inlet = self.lineedit_inlet.text()
+        self.wind_tunnel.lineedit_outlet = self.lineedit_outlet.text()
+        self.wind_tunnel.lineedit_symmetry = self.lineedit_symmetry.text()
+
+        if self.check_FIRE.isChecked():
+            name = filename + '.flma'
+            Meshing.BlockMesh.writeFLMA(self.wind_tunnel,
+                                        name=name)
+        if self.check_SU2.isChecked():
+            name = filename + '.su2'
+            Meshing.BlockMesh.writeSU2(self.wind_tunnel,
+                                       name=name)
+        if self.check_GMSH.isChecked():
+            name = filename + '.msh'
+            Meshing.BlockMesh.writeGMSH(self.wind_tunnel,
+                                        name=name)
+
+    def exportContour(self):
+
+        file_dialog = FileDialog.Dialog()
+        file_dialog.setFilter('Airfoil contour files (*.dat *.txt)')
+        filename, _ = file_dialog.saveFilename(self.parent.airfoil.name)
+
+        if not filename:
+            logger.info('No file selected. Nothing saved.')
+            return
 
         # get coordinates of modified contour
         x, y = self.parent.airfoil.spline_data[0]
         airfoil_name = self.parent.airfoil.name
 
-        # export modified contour
-        with open(filename, 'w') as f:
-            f.write('#\n')
-            f.write('# File created with ' + PyAero.__appname__ + '\n')
-            f.write('# Version: ' + PyAero.__version__ + '\n')
-            f.write('# Author: ' + PyAero.__author__ + '\n')
-            f.write('#\n')
-            f.write('# Derived from: %s\n' % (str(airfoil_name).strip()))
-            f.write('# Number of points: %s\n' % (len(x)))
-            f.write('#\n')
-            for i, _ in enumerate(x):
-                f.write('{:10.6f} {:10.6f}\n'.format(x[i], y[i]))
+        try:
+            # export modified contour
+            with open(filename, 'w') as f:
+                f.write('#\n')
+                f.write('# File created with ' + PyAero.__appname__ + '\n')
+                f.write('# Version: ' + PyAero.__version__ + '\n')
+                f.write('# Author: ' + PyAero.__author__ + '\n')
+                f.write('#\n')
+                f.write('# Derived from: %s\n' % (str(airfoil_name).strip()))
+                f.write('# Number of points: %s\n' % (len(x)))
+                f.write('#\n')
+                for i, _ in enumerate(x):
+                    f.write('{:10.6f} {:10.6f}\n'.format(x[i], y[i]))
+        except IOError as error:
+            logger.info('IO error: {}'.format(error))
 
-    def onBrowseMesh(self):
-
-        names = []
-
-        dialog = QtWidgets.QFileDialog()
-
-        provider = IconProvider.IconProvider()
-        dialog.setIconProvider(provider)
-        options = QtWidgets.QFileDialog.Options()
-        options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        dialog.setOptions(options)
-        dialog.setNameFilter(DIALOGFILTER_MESH)
-        dialog.setNameFilterDetailsVisible(True)
-        dialog.setDirectory(OUTPUTDATA)
-        # allow only to select one file
-        dialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
-        # display also size and date
-        dialog.setViewMode(QtWidgets.QFileDialog.Detail)
-        # make it a save dialog
-        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        # put default name in the save dialog
-        dialog.selectFile(self.lineedit_mesh.text())
-
-        # open custom file dialog using custom icons
-        if dialog.exec_():
-            names = dialog.selectedFiles()
-            # filter = dialog.selectedFilter()
-
-        if not names:
-            return
-
-        # names is a list of QStrings
-        filename = str(names[0])
-
-        self.lineedit_mesh.setText(filename)
-
-        self.exportMesh(from_browse_mesh=True)
+        # log to message window
+        logger.info('Contour saved as {}'.format(filename))
 
 
 class ListWidget(QtWidgets.QListWidget):
