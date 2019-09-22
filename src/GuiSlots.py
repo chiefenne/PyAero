@@ -7,9 +7,9 @@ from PySide2 import QtGui, QtCore, QtWidgets
 
 import PyAero
 import Airfoil
+import FileDialog
 import GraphicsTest
-import IconProvider
-from Settings import DIALOGFILTER, AIRFOILDATA, LOGCOLOR, DEFAULT_CONTOUR
+from Settings import DIALOGFILTER, AIRFOILDATA, DEFAULT_CONTOUR
 import logging
 logger = logging.getLogger(__name__)
 
@@ -29,40 +29,26 @@ class Slots:
         """
         self.parent = parent
 
-    # # @QtCore.pyqtSlot()
     def onOpen(self):
+        """Summary
 
-        dialog = QtWidgets.QFileDialog()
+        Returns:
+            TYPE: Description
+        """
+        file_dialog = FileDialog.Dialog()
+        file_dialog.setFilter(DIALOGFILTER)
+        filename, _ = file_dialog.openFilename(directory=AIRFOILDATA)
 
-        provider = IconProvider.IconProvider()
-        dialog.setIconProvider(provider)
-        dialog.setNameFilter(DIALOGFILTER)
-        dialog.setNameFilterDetailsVisible(True)
-        dialog.setDirectory(AIRFOILDATA)
-        dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-
-        # open custom file dialog using custom icons
-        if dialog.exec_():
-            filenames = dialog.selectedFiles()
-            selfilter = dialog.selectedNameFilter()
-
-        try:
-            filenames
-        # do nothing if CANCEL button was pressed
-        except NameError as error:
-            logger.info('Error during file load: {}'.format(error))
+        if not filename:
+            logger.info('No file selected. Nothing saved.')
             return
 
-        if len(filenames) == 1:
-            fileinfo = QtCore.QFileInfo(filenames[0])
-            if 'su2' in fileinfo.suffix().lower():
-                self.loadSU2(fileinfo.fileName())
-                return
+        if 'su2' in filename:
+            self.loadSU2(filename)
+            return
 
-        for filename in filenames:
-            self.loadAirfoil(filename)
+        self.loadAirfoil(filename)
 
-    # # @QtCore.pyqtSlot()
     def onOpenPredefined(self):
         self.loadAirfoil(DEFAULT_CONTOUR)
 
@@ -143,7 +129,6 @@ class Slots:
         # cache view to be able to keep it during resize
         self.parent.view.getSceneFromView()
 
-    # # @QtCore.pyqtSlot()
     def onViewAll(self):
         """zoom inorder to view all items in the scene"""
 
@@ -160,7 +145,6 @@ class Slots:
         # cache view to be able to keep it during resize
         self.parent.view.getSceneFromView()
 
-    # @QtCore.pyqtSlot()
     def toggleTestObjects(self):
         if self.parent.testitems:
             GraphicsTest.deleteTestItems(self.parent.scene)
@@ -170,7 +154,6 @@ class Slots:
             logger.info('Test items for GraphicsView removed')
         self.parent.testitems = not self.parent.testitems
 
-    # @QtCore.pyqtSlot()
     def onSave(self):
         (fname, thefilter) = QtWidgets.QFileDialog. \
             getSaveFileNameAndFilter(self.parent,
@@ -181,7 +164,6 @@ class Slots:
         with open(fname, 'w') as f:
             f.write('This test worked for me ...')
 
-    # @QtCore.pyqtSlot()
     def onSaveAs(self):
         (fname, thefilter) = QtGui. \
             QFileDialog.getSaveFileNameAndFilter(
@@ -192,13 +174,11 @@ class Slots:
         with open(fname, 'w') as f:
             f.write('This test worked for me ...')
 
-    # @QtCore.pyqtSlot()
     def onPrint(self):
         dialog = QtGui.QPrintDialog()
         if dialog.exec_() == QtGui.QDialog.Accepted:
             self.parent.editor.document().print_(dialog.printer())
 
-    # @QtCore.pyqtSlot()
     def onPreview(self):
         printer = QtGui.QPrinter(QtGui.QPrinter.HighResolution)
 
@@ -225,7 +205,6 @@ class Slots:
             checkbox = self.parent.centralwidget.cb1
             checkbox.setChecked(not checkbox.isChecked())
 
-    # @QtCore.pyqtSlot()
     def onBlockMesh(self):
         pass
 
@@ -235,7 +214,6 @@ class Slots:
                 return airfoil
         return None
 
-    # @QtCore.pyqtSlot()
     def removeAirfoil(self, name=None):
         """Remove all selected airfoils from the scene"""
 
@@ -273,15 +251,12 @@ class Slots:
         self.parent.messages.moveCursor(QtGui.QTextCursor.End)
         self.parent.messages.append(msg)
 
-    # @QtCore.pyqtSlot()
     def onExit(self):
         sys.exit(QtWidgets.qApp.quit())
 
-    # @QtCore.pyqtSlot()
     def onCalculator(self):
         pass
 
-    # @QtCore.pyqtSlot()
     def onBackground(self):
         if self.parent.view.viewstyle == 'gradient':
             self.parent.view.viewstyle = 'solid'
@@ -290,17 +265,14 @@ class Slots:
 
         self.parent.view.setBackground(self.parent.view.viewstyle)
 
-    # @QtCore.pyqtSlot()
     def onUndo(self):
         pass
 
-    # @QtCore.pyqtSlot()
     def onLevelChanged(self):
         """Change size of message window when floating """
         if self.parent.messagedock.isFloating():
             self.parent.messagedock.resize(600, 300)
 
-    # @QtCore.pyqtSlot()
     def onTextChanged(self):
         """Move the scrollbar in the message log-window to the bottom.
         So latest messages are always in the view.
@@ -325,19 +297,15 @@ class Slots:
             information(self.parent, 'Information',
                         message, QtWidgets.QMessageBox.Ok)
 
-    # @QtCore.pyqtSlot()
     def onRedo(self):
         pass
 
-    # @QtCore.pyqtSlot()
     def onHelp(self):
         pass
 
-    # @QtCore.pyqtSlot()
     def onHelpOnline(self):
         webbrowser.open('http://pyaero.readthedocs.io/en/latest/')
 
-    # @QtCore.pyqtSlot()
     def onAbout(self):
         QtWidgets.QMessageBox. \
             about(self.parent, "About " + PyAero.__appname__,
