@@ -396,8 +396,6 @@ class Windtunnel:
 
         # enable mesh export and set filename and boundary definitions
         toolbox.box_meshexport.setEnabled(True)
-        nameroot, extension = os.path.splitext(self.mainwindow.airfoil.name)
-        toolbox.lineedit_mesh.setText(str(nameroot))
 
     def makeLCV(self):
         """Make cell to vertex connectivity for the mesh
@@ -772,7 +770,7 @@ class BlockMesh:
             thickness (float, optional): length of line
 
         Returns:
-            TYPE: Description
+            array: individual line segment lengths
         """
 
         if divisions == 1:
@@ -947,11 +945,8 @@ class BlockMesh:
     @staticmethod
     def writeFLMA(wind_tunnel, name='', depth=0.3):
 
-        if not name[-5:] == '.flma':
-            name += '.flma'
-
-        basename = os.path.basename(str(name))
-        nameroot, extension = os.path.splitext(str(basename))
+        basename = os.path.basename(name)
+        nameroot, extension = os.path.splitext(basename)
 
         mesh = wind_tunnel.mesh
 
@@ -1040,17 +1035,14 @@ class BlockMesh:
             f.write('2\n')
             f.write('0 5\n')
 
-            logger.info('FIRE mesh {} saved to folder {}'.
-                        format(basename, OUTPUTDATA))
+            logger.info('FIRE type mesh saved as {}'.
+                        format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
     def writeSU2(wind_tunnel, name=''):
 
-        if not name[-4:] == '.su2':
-            name += '.su2'
-
-        basename = os.path.basename(str(name))
-        nameroot, extension = os.path.splitext(str(basename))
+        basename = os.path.basename(name)
+        nameroot, extension = os.path.splitext(basename)
 
         mesh = wind_tunnel.mesh
         blocks = wind_tunnel.blocks
@@ -1132,8 +1124,8 @@ class BlockMesh:
                     str(cell[3])
                 f.write('{}\n'.format(cell_connect))
 
-            logger.info('SU2 mesh {} saved to folder {}'.
-                        format(basename, OUTPUTDATA))
+            logger.info('SU2 type mesh saved as {}'.
+                        format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
     def writeGMSH(wind_tunnel, name=''):
@@ -1145,11 +1137,8 @@ class BlockMesh:
             blocks (TYPE): Description
             name (str, optional): Description
         """
-        if not name[-4:] == '.msh':
-            name += '.msh'
-
-        basename = os.path.basename(str(name))
-        nameroot, extension = os.path.splitext(str(basename))
+        basename = os.path.basename(name)
+        nameroot, extension = os.path.splitext(basename)
 
         mesh = wind_tunnel.mesh
         boundary_loops = wind_tunnel.boundary_loops
@@ -1269,8 +1258,8 @@ class BlockMesh:
 
             f.write('$EndElements')
 
-            logger.info('GMSH mesh {} saved to folder {}'.
-                        format(basename, OUTPUTDATA))
+            logger.info('GMSH type mesh saved as {}'.
+                        format(os.path.join(OUTPUTDATA, basename)))
 
 
 class Smooth:
