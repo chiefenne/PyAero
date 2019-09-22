@@ -1,5 +1,5 @@
 
-from Settings import DIALOGFILTER, OUTPUTDATA
+from Settings import DIALOGFILTER, OUTPUTDATA, AIRFOILDATA
 
 from PySide2 import QtWidgets
 
@@ -32,7 +32,7 @@ class Dialog:
 
         return filename, selected_filter
 
-    def openFilename(self):
+    def openFilename(self, directory=AIRFOILDATA):
         """Summary
 
 
@@ -43,7 +43,7 @@ class Dialog:
         filename, selected_filter = QtWidgets.QFileDialog.getOpenFileName(
             None,
             'Open File',
-            OUTPUTDATA,
+            directory,
             self.filter,
             '')
 
