@@ -250,6 +250,15 @@ class Toolbox(QtWidgets.QToolBox):
         self.temperature.valueChanged.connect(self.valuechange)
         form.addRow(label, self.temperature)
 
+        label = QtWidgets.QLabel(u'Flat plate y\u207a (-)')
+        self.yplus = QtWidgets.QDoubleSpinBox()
+        self.yplus.setSingleStep(1.0)
+        self.yplus.setDecimals(2)
+        self.yplus.setRange(1e-6, 1.0e10)
+        self.yplus.setValue(1.0)
+        self.yplus.valueChanged.connect(self.valuechange)
+        form.addRow(label, self.yplus)
+
         self.textedit = QtWidgets.QTextEdit()
         self.textedit.setReadOnly(True)
         # update text box (computed from initial values)
@@ -282,6 +291,7 @@ class Toolbox(QtWidgets.QToolBox):
             vis = lamb * temperature**1.5 / (temperature + C)
             return vis
 
+        # calculate results wrt given inputs
         viscosity = dynamic_viscosity(temperature)
         kinematic_viscosity = viscosity / density
         velocity = self.reynolds.value() / self.chord.value() * \
@@ -291,17 +301,27 @@ class Toolbox(QtWidgets.QToolBox):
         self.u_velocity = velocity * np.cos(self.aoa * np.pi / 180.0)
         self.v_velocity = velocity * np.sin(self.aoa * np.pi / 180.0)
 
+        # calculate 1st cell thickness from y-plus and Reynolds, etc.
+        skin_friction = (2.0 * np.log10(self.reynolds.value()) - 0.65)**(-2.3)
+        wall_shear_stress = skin_friction * 0.5 * density * velocity**2
+        friction_velocity = np.sqrt(wall_shear_stress / density)
+        wall_distance = self.yplus.value() * viscosity / density / friction_velocity
+
+        # text for displaying the results
         newline = '<br>'
-        self.te_text = '<b># TKE  Length-scale</b>' + newline
+        self.te_text = '<b>1st cell layer thickness (m)</b>' + newline
+        self.te_text += '{:16.8f}'.format(wall_distance) + newline
+        self.te_text += '<b>TKE  Length-scale (m2/s2)</b>' + newline
         self.te_text += '{:16.8f} {:16.8f}'.\
             format(tke, self.length_sc.value()) + newline
-        self.te_text += '<b># AOA   u-velocity   v-velocity</b>' + newline
+        self.te_text += '<b>AOA (°)   u-velocity (m/s)   v-velocity (m/s)</b>' + newline
         for i, line in enumerate(self.u_velocity):
             self.te_text += '{:5.2f} {:16.8f} {:16.8f}{}'.format(
                 self.aoa[i],
                 self.u_velocity[i],
                 self.v_velocity[i],
                 newline)
+        self.textedit.setStyleSheet('font-family: Courier; font-size: 12px; ')
         self.textedit.setHtml(self.te_text)
 
     def itemContourAnalysis(self):
