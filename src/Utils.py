@@ -166,6 +166,11 @@ class Utils:
         return p2 - p1
 
     @staticmethod
+    def vector_length(vector):
+        """ Returns the length of the vector.  """
+        return np.linalg.norm(vector)
+
+    @staticmethod
     def unit_vector(vector):
         """ Returns the unit vector of the vector.  """
         return vector / np.linalg.norm(vector)
