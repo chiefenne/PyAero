@@ -42,13 +42,19 @@ class Windtunnel:
         # block mesh around airfoil contour
         self.block_airfoil = BlockMesh(name=name)
         self.block_airfoil.addLine(line)
-        self.block_airfoil.extrudeLine(line, length=thickness, direction=3,
-                                       divisions=divisions, ratio=ratio)
+
+        # self.block_airfoil.extrudeLine(line, length=thickness, direction=3,
+        #                                divisions=divisions, ratio=ratio)
+        self.block_airfoil.extrudeLine_cell_thickness(line,
+                                                      cell_thickness=thickness,
+                                                      growth=ratio,
+                                                      divisions=divisions,
+                                                      direction=3)
 
         self.blocks.append(self.block_airfoil)
 
     def TrailingEdgeMesh(self, name='', te_divisions=3,
-                         length=0.04, divisions=6, ratio=3.0):
+                         thickness=0.04, divisions=10, ratio=1.05):
 
         # compile first line of trailing edge block
         first = self.block_airfoil.getLine(number=0, direction='v')
@@ -73,8 +79,14 @@ class Windtunnel:
         # trailing edge block mesh
         block_te = BlockMesh(name=name)
         block_te.addLine(line)
-        block_te.extrudeLine(line, length=length, direction=4,
-                             divisions=divisions, ratio=ratio)
+
+        # block_te.extrudeLine(line, length=length, direction=4,
+        #                      divisions=divisions, ratio=ratio)
+        block_te.extrudeLine_cell_thickness(line,
+                                            cell_thickness=thickness,
+                                            growth=ratio,
+                                            divisions=divisions,
+                                            direction=4)
 
         # equidistant point distribution
         block_te.distribute(direction='u', number=-1)
@@ -328,7 +340,7 @@ class Windtunnel:
                          contour=contour,
                          divisions=toolbox.points_n.value(),
                          ratio=toolbox.ratio.value(),
-                         thickness=toolbox.normal_thickness.value() / 100.0)
+                         thickness=toolbox.normal_thickness.value())
         progdialog.setValue(20)
 
         if progdialog.wasCanceled():
@@ -336,7 +348,7 @@ class Windtunnel:
 
         self.TrailingEdgeMesh(name='block_TE',
                               te_divisions=toolbox.te_div.value(),
-                              length=toolbox.length_te.value() / 100.0,
+                              thickness=toolbox.length_te.value(),
                               divisions=toolbox.points_te.value(),
                               ratio=toolbox.ratio_te.value())
         progdialog.setValue(30)
@@ -677,7 +689,7 @@ class BlockMesh:
         vec = p2 - p1
         dist = np.linalg.norm(vec)
         spacing = BlockMesh.spacing(divisions=divisions,
-                                    ratio=ratio, thickness=dist)
+                                    ratio=ratio, length=dist)
         line = list()
         line.append((p1.tolist()[0], p1.tolist()[1]))
         for i in range(1, len(spacing)):
@@ -686,6 +698,36 @@ class BlockMesh:
         del line[-1]
         line.append((p2.tolist()[0], p2.tolist()[1]))
         return line
+
+    def extrudeLine_cell_thickness(self, line, cell_thickness=0.04,
+                                   growth=1.05,
+                                   divisions=1,
+                                   direction=3):
+        x, y = list(zip(*line))
+        x = np.array(x)
+        y = np.array(y)
+        if direction == 3:
+            spacing, _ = self.spacing_cell_thickness(cell_thickness=cell_thickness,
+                                                     growth=growth,
+                                                     divisions=divisions)
+            normals = self.curveNormals(x, y)
+            for i in range(1, len(spacing)):
+                xo = x + spacing[i] * normals[:, 0]
+                yo = y + spacing[i] * normals[:, 1]
+                line = list(zip(xo.tolist(), yo.tolist()))
+                self.addLine(line)
+        elif direction == 4:
+            spacing, _ = self.spacing_cell_thickness(cell_thickness=cell_thickness,
+                                                     growth=growth,
+                                                     divisions=divisions)
+            normals = self.curveNormals(x, y)
+            normalx = normals[:, 0].mean()
+            normaly = normals[:, 1].mean()
+            for i in range(1, len(spacing)):
+                xo = x + spacing[i] * normalx
+                yo = y + spacing[i] * normaly
+                line = list(zip(xo.tolist(), yo.tolist()))
+                self.addLine(line)
 
     def extrudeLine(self, line, direction=0, length=0.1, divisions=1,
                     ratio=1.00001, constant=False):
@@ -703,7 +745,7 @@ class BlockMesh:
         elif direction == 3:
             spacing = self.spacing(divisions=divisions,
                                    ratio=ratio,
-                                   thickness=length)
+                                   length=length)
             normals = self.curveNormals(x, y)
             for i in range(1, len(spacing)):
                 xo = x + spacing[i] * normals[:, 0]
@@ -713,7 +755,7 @@ class BlockMesh:
         elif direction == 4:
             spacing = self.spacing(divisions=divisions,
                                    ratio=ratio,
-                                   thickness=length)
+                                   length=length)
             normals = self.curveNormals(x, y)
             normalx = normals[:, 0].mean()
             normaly = normals[:, 1].mean()
@@ -761,13 +803,28 @@ class BlockMesh:
                 self.getULines()[i][number] = line[i]
 
     @staticmethod
-    def spacing(divisions=10, ratio=1.0, thickness=1.0):
+    def spacing_cell_thickness(cell_thickness=0.04, growth=1.1, divisions=10):
+
+        # add cell thickness of first layer
+        spacing = [cell_thickness]
+
+        for i in range(divisions - 1):
+            spacing.append(spacing[0] + spacing[-1] * growth)
+
+        spacing.insert(0, 0.0)
+
+        length = np.sum(spacing)
+
+        return spacing, length
+
+    @staticmethod
+    def spacing(divisions=10, ratio=1.0, length=1.0):
         """Calculate point distribution on a line
 
         Args:
             divisions (int, optional): Number of subdivisions
             ratio (float, optional): Ratio of last to first subdivision size
-            thickness (float, optional): length of line
+            length (float, optional): length of line
 
         Returns:
             array: individual line segment lengths
@@ -782,16 +839,16 @@ class BlockMesh:
         if growth == 1.0:
             growth = 1.0 + 1.0e-10
 
-        s0 = 1.0
-        s = [s0]
+        s = [1.0]
         for i in range(1, divisions + 1):
-            app = s0 * growth**i
-            s.append(app)
-        sp = np.array(s)
-        sp -= sp[0]
-        sp /= sp[-1]
-        sp *= thickness
-        return sp
+            s.append(growth**i)
+
+        spacing = np.array(s)
+        spacing -= spacing[0]
+        spacing /= spacing[-1]
+        spacing *= length
+
+        return spacing
 
     def mapLines(self, line_1, line_2):
         """Map the distribution of points from one line to another line

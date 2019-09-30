@@ -261,6 +261,7 @@ class Toolbox(QtWidgets.QToolBox):
 
         self.textedit = QtWidgets.QTextEdit()
         self.textedit.setReadOnly(True)
+        self.textedit.copyAvailable.connect(self.copy_to_clipboard)
         # update text box (computed from initial values)
         self.valuechange()
         self.textedit.setHtml(self.te_text)
@@ -269,6 +270,10 @@ class Toolbox(QtWidgets.QToolBox):
         self.item_abc = QtWidgets.QGroupBox(
             'Aerodynamic boundary conditions for CFD')
         self.item_abc.setLayout(form)
+
+    def copy_to_clipboard(self):
+        """ Copy any selected text in the self.textedit to the clipboard """
+        self.textedit.copy()
 
     def valuechange(self):
         # checks that from and to do not overlap
@@ -302,8 +307,14 @@ class Toolbox(QtWidgets.QToolBox):
         self.v_velocity = velocity * np.sin(self.aoa * np.pi / 180.0)
 
         # calculate 1st cell thickness from y-plus and Reynolds, etc.
-        skin_friction = (2.0 * np.log10(self.reynolds.value()) - 0.65)**(-2.3)
-        wall_shear_stress = skin_friction * 0.5 * density * velocity**2
+        RE = self.reynolds.value()
+        log10 = np.log10(RE)
+        logRE = np.power(log10, 2.58)
+        if RE < 5.1e6:
+            friction_coefficient = 0.455 / logRE
+        else:
+            friction_coefficient = 0.455 / logRE - 1700.0 / RE
+        wall_shear_stress = friction_coefficient * 0.5 * density * velocity**2
         friction_velocity = np.sqrt(wall_shear_stress / density)
         wall_distance = self.yplus.value() * viscosity / density / friction_velocity
 
@@ -382,24 +393,22 @@ class Toolbox(QtWidgets.QToolBox):
         self.points_n.setValue(15)
         self.form_mesh_airfoil.addRow(label, self.points_n)
 
-        label = QtWidgets.QLabel('Thickness normal to airfoil (%)')
-        label.setToolTip('The thickness is specified wrt to the unit chord')
+        label = QtWidgets.QLabel('1st cell layer thickness (m)')
+        label.setToolTip('Thickness of 1st cell layer perpendicular to the airfoil')
         self.normal_thickness = QtWidgets.QDoubleSpinBox()
-        self.normal_thickness.setSingleStep(0.1)
-        self.normal_thickness.setRange(1., 100.)
-        self.normal_thickness.setValue(4.0)
-        self.normal_thickness.setDecimals(1)
+        self.normal_thickness.setSingleStep(0.001)
+        self.normal_thickness.setRange(1.e-10, 1.e10)
+        self.normal_thickness.setDecimals(8)
+        self.normal_thickness.setValue(0.00400)
         self.form_mesh_airfoil.addRow(label, self.normal_thickness)
 
-        label = QtWidgets.QLabel('Cell thickness ratio (-)')
-        label.setToolTip('Thickness of the last cell vs. the first cell in ' +
-                         'the airfoil mesh block' +
-                         '\nThe first cell is the one attached to the airfoil')
+        label = QtWidgets.QLabel('Cell growth rate (-)')
+        label.setToolTip('Rate at which 1st cell layer grows')
         self.ratio = QtWidgets.QDoubleSpinBox()
-        self.ratio.setSingleStep(0.1)
-        self.ratio.setRange(1., 10.)
-        self.ratio.setValue(3.0)
-        self.ratio.setDecimals(1)
+        self.ratio.setSingleStep(0.01)
+        self.ratio.setRange(1., 100.)
+        self.ratio.setValue(1.05)
+        self.ratio.setDecimals(3)
         self.form_mesh_airfoil.addRow(label, self.ratio)
 
         self.form_mesh_TE = QtWidgets.QFormLayout()
@@ -412,32 +421,30 @@ class Toolbox(QtWidgets.QToolBox):
         self.te_div.setValue(3)
         self.form_mesh_TE.addRow(label, self.te_div)
 
-        label = QtWidgets.QLabel(u'Divisions downstream trailing edge')
+        label = QtWidgets.QLabel(u'Divisions downstream')
+        label.setToolTip('Number of subdivisions downstream within the TE block')
         self.points_te = QtWidgets.QSpinBox()
         self.points_te.setSingleStep(1)
         self.points_te.setRange(1, 100)
-        self.points_te.setValue(6)
+        self.points_te.setValue(15)
         self.form_mesh_TE.addRow(label, self.points_te)
 
-        label = QtWidgets.QLabel('Length behind trailing edge (%)')
-        label.setToolTip('The length is specified wrt to the unit chord')
+        label = QtWidgets.QLabel('1st cell layer thickness (m)')
+        label.setToolTip('Thickness of first cell layer in downstream direction')
         self.length_te = QtWidgets.QDoubleSpinBox()
-        self.length_te.setSingleStep(0.1)
-        self.length_te.setRange(0.1, 30.)
-        self.length_te.setValue(4.0)
-        self.length_te.setDecimals(1)
+        self.length_te.setSingleStep(0.001)
+        self.length_te.setRange(1.e-10, 1.e10)
+        self.length_te.setDecimals(8)
+        self.length_te.setValue(0.00400)
         self.form_mesh_TE.addRow(label, self.length_te)
 
-        label = QtWidgets.QLabel('Cell Thickness ratio (-)')
-        label.setToolTip('Thickness of the last cell vs. the first cell in ' +
-                         'the trailing edge mesh block' + '\n'
-                         'The first cell is the one attached to the airfoil ' +
-                         'trailing edge')
+        label = QtWidgets.QLabel('Cell growth rate (-)')
+        label.setToolTip('Rate at which 1st cell layer downstream the TE grows')
         self.ratio_te = QtWidgets.QDoubleSpinBox()
-        self.ratio_te.setSingleStep(0.1)
-        self.ratio_te.setRange(1., 10.)
-        self.ratio_te.setValue(3.0)
-        self.ratio_te.setDecimals(1)
+        self.ratio_te.setSingleStep(0.01)
+        self.ratio_te.setRange(1., 100.)
+        self.ratio_te.setValue(1.05)
+        self.ratio_te.setDecimals(3)
         self.form_mesh_TE.addRow(label, self.ratio_te)
 
         self.form_mesh_tunnel = QtWidgets.QFormLayout()
