@@ -255,7 +255,7 @@ class Toolbox(QtWidgets.QToolBox):
         self.yplus.setSingleStep(1.0)
         self.yplus.setDecimals(2)
         self.yplus.setRange(1e-6, 1.0e10)
-        self.yplus.setValue(1.0)
+        self.yplus.setValue(30.0)
         self.yplus.valueChanged.connect(self.valuechange)
         form.addRow(label, self.yplus)
 
