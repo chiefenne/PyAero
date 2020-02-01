@@ -285,7 +285,7 @@ class Toolbox(QtWidgets.QToolBox):
         gas_constant = 287.14
         temperature = self.temperature.value() + 273.15
         density = self.pressure.value() / gas_constant / temperature
-        num = (self.aoat.value() - self.aoaf.value()) / self.aoas.value() + 1
+        num = int((self.aoat.value() - self.aoaf.value()) / self.aoas.value() + 1)
         self.aoa = np.linspace(self.aoaf.value(), self.aoat.value(),
                                num=num, endpoint=True)
 
