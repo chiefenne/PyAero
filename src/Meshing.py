@@ -2,6 +2,7 @@
 import os
 import copy
 from datetime import date
+import locale
 import itertools
 import numpy as np
 from scipy import interpolate
@@ -325,6 +326,13 @@ class Windtunnel:
             self.mainwindow.slots.messageBox('No airfoil loaded.')
             return
 
+        # delete blocks outline if existing
+        # because a new one will be generated
+        if hasattr(self.mainwindow.airfoil, 'mesh_blocks'):
+            self.mainwindow.scene.removeItem(
+                self.mainwindow.airfoil.mesh_blocks)
+            del self.mainwindow.airfoil.mesh_blocks
+
         progdialog = QtWidgets.QProgressDialog(
             "", "Cancel", 0, 100, self.mainwindow)
         progdialog.setFixedWidth(300)
@@ -580,7 +588,7 @@ class Windtunnel:
         # FIXME Refactroing of code duplication here and in drawMesh
         # FIXME
 
-        mesh = list()
+        mesh_blocks = list()
 
         for block in self.blocks:
             for lines in [block.getULines()]:
@@ -600,7 +608,7 @@ class Windtunnel:
                     # add contour as a GraphicsItem to the scene
                     # these are the objects which are drawn in the GraphicsView
                     meshline = GraphicsItem.GraphicsItem(contour)
-                    mesh.append(meshline)
+                    mesh_blocks.append(meshline)
 
             for lines in [block.getVLines()]:
                 for line in [lines[0], lines[-1]]:
@@ -619,9 +627,10 @@ class Windtunnel:
                     # add contour as a GraphicsItem to the scene
                     # these are the objects which are drawn in the GraphicsView
                     meshline = GraphicsItem.GraphicsItem(contour)
-                    mesh.append(meshline)
+                    mesh_blocks.append(meshline)
 
-        airfoil.mesh_blocks = self.mainwindow.scene.createItemGroup(mesh)
+        airfoil.mesh_blocks = self.mainwindow.scene \
+            .createItemGroup(mesh_blocks)
 
         # activate viewing options if mesh is created and displayed
         self.mainwindow.centralwidget.cb8.setChecked(True)
@@ -707,9 +716,10 @@ class BlockMesh:
         x = np.array(x)
         y = np.array(y)
         if direction == 3:
-            spacing, _ = self.spacing_cell_thickness(cell_thickness=cell_thickness,
-                                                     growth=growth,
-                                                     divisions=divisions)
+            spacing, _ = self.spacing_cell_thickness(
+                cell_thickness=cell_thickness,
+                growth=growth,
+                divisions=divisions)
             normals = self.curveNormals(x, y)
             for i in range(1, len(spacing)):
                 xo = x + spacing[i] * normals[:, 0]
@@ -717,9 +727,10 @@ class BlockMesh:
                 line = list(zip(xo.tolist(), yo.tolist()))
                 self.addLine(line)
         elif direction == 4:
-            spacing, _ = self.spacing_cell_thickness(cell_thickness=cell_thickness,
-                                                     growth=growth,
-                                                     divisions=divisions)
+            spacing, _ = self.spacing_cell_thickness(
+                cell_thickness=cell_thickness,
+                growth=growth,
+                divisions=divisions)
             normals = self.curveNormals(x, y)
             normalx = normals[:, 0].mean()
             normaly = normals[:, 1].mean()
@@ -1110,7 +1121,6 @@ class BlockMesh:
         trailing_edge_subdivisions, _ = blocks[1].getDivUV()
 
         # SU2 element types
-        element_type_line = '3'
         element_type_quadrilateral = '9'
 
         _date = date.today().strftime("%A %d. %B %Y")
@@ -1123,14 +1133,13 @@ class BlockMesh:
             f.write('% Version: ' + PyAero.__version__ + '\n')
             f.write('% Author: ' + PyAero.__author__ + '\n')
             f.write('% Date: ' + _date + '\n')
-            f.write('%\n')
             # dimension of the problem
+            f.write('%\n')
             f.write('% Problem dimension\n')
             f.write('%\n')
-            # number of interior elements
             f.write('NDIME= 2\n')
-            f.write('%\n')
             # element connectivity
+            f.write('%\n')
             f.write('% Inner element connectivity\n')
             f.write('%\n')
             # number of elements
@@ -1142,47 +1151,59 @@ class BlockMesh:
                     str(cell[0]) + ' ' + \
                     str(cell[1]) + ' ' + \
                     str(cell[2]) + ' ' + \
-                    str(cell[3]) + '\n'
+                    str(cell[3]) + ' ' + str(cell_id) + '\n'
 
                 f.write(cell_connect)
 
-            # number of vertices
+            # comment for vertices
+            f.write('%\n')
+            f.write('% Node coordinates\n')
+            f.write('%\n')
+
             f.write('NPOIN=%s\n' % (len(vertices)))
 
             # x- and y-coordinates
             for node, vertex in enumerate(vertices):
                 x, y = vertex[0], vertex[1]
-                f.write(' {:24.16e} {:24.16e} \n'.format(x, y))
+                f.write(' {:24.16e} {:24.16e} {}\n'.format(x, y, node))
 
+            # boundaries
+            f.write('%\n')
+            f.write('% Boundary elements\n')
+            f.write('%\n')
+
+            # number of vertices
             # number of marks (Airfoil, Farfield, Symmetry)
-            f.write('NMARK= 3\n')
+            # f.write('NMARK= 3\n')
+            f.write('NMARK= 2\n')
 
             # boundary definition (tag) for the airfoil
-            f.write('MARKER_TAG= Airfoil\n')
+            f.write('MARKER_TAG= {}\n'.format(wind_tunnel.boundary_airfoil))
             f.write('MARKER_ELEMS= {}\n'.format(len(boundary_loops[0])))
             for edge in boundary_loops[0]:
                 f.write('3 {} {}\n'.format(edge[0], edge[1]))
 
             # boundary definition (tag) for the farfield
-            f.write('MARKER_TAG= Farfield\n')
+            # this loops the complete outer boundary
+            f.write('MARKER_TAG= {}\n'.format(wind_tunnel.boundary_inlet))
             f.write('MARKER_ELEMS= {}\n'.format(len(boundary_loops[1])))
             for edge in boundary_loops[1]:
                 f.write('3 {} {}\n'.format(edge[0], edge[1]))
 
             # boundary definition (tag) for the symmetry
-            f.write('MARKER_TAG= Symmetry\n')
-            f.write('MARKER_ELEMS= {}\n'.format(len(connectivity)))
-            for cell_id, cell in enumerate(connectivity):
+            # f.write('MARKER_TAG= {}\n'.format(wind_tunnel.boundary_symmetry))
+            # f.write('MARKER_ELEMS= {}\n'.format(len(connectivity)))
+            # for cell_id, cell in enumerate(connectivity):
 
-                cell_connect = element_type_quadrilateral + ' ' + \
-                    str(cell[0]) + ' ' + \
-                    str(cell[1]) + ' ' + \
-                    str(cell[2]) + ' ' + \
-                    str(cell[3])
-                f.write('{}\n'.format(cell_connect))
+            #     cell_connect = element_type_quadrilateral + ' ' + \
+            #         str(cell[0]) + ' ' + \
+            #         str(cell[1]) + ' ' + \
+            #         str(cell[2]) + ' ' + \
+            #         str(cell[3])
+            #     f.write('{}\n'.format(cell_connect))
 
             logger.info('SU2 type mesh saved as {}'.
-                        format(os.path.join(OUTPUTDATA, basename)))
+                        format(name))
 
     @staticmethod
     def writeGMSH(wind_tunnel, name=''):
@@ -1214,6 +1235,8 @@ class BlockMesh:
         # element_type_triangle = '2'
         element_type_quadrangle = '3'
 
+        # write date in English
+        locale.setlocale(locale.LC_ALL, 'en')
         _date = date.today().strftime("%A %d. %B %Y")
 
         with open(name, 'w') as f:
