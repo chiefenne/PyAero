@@ -904,11 +904,14 @@ class Toolbox(QtWidgets.QToolBox):
         # connect signals to slots
         # lambda allows to send extra parameters
         self.cpb1.clicked.connect(lambda:
-                                  self.parent.contourview.drawContour('gradient'))
+                                  self.parent.contourview
+                                  .drawContour('gradient'))
         self.cpb2.clicked.connect(lambda:
-                                  self.parent.contourview.drawContour('curvature'))
+                                  self.parent.contourview
+                                  .drawContour('curvature'))
         self.cpb3.clicked.connect(lambda:
-                                  self.parent.contourview.drawContour('radius'))
+                                  self.parent.contourview
+                                  .drawContour('radius'))
 
     def exportMesh(self):
 
@@ -925,10 +928,10 @@ class Toolbox(QtWidgets.QToolBox):
         filename, extension = os.path.splitext(filename)
 
         # add boundary definition attributes to mesh object
-        self.wind_tunnel.lineedit_airfoil = self.lineedit_airfoil.text()
-        self.wind_tunnel.lineedit_inlet = self.lineedit_inlet.text()
-        self.wind_tunnel.lineedit_outlet = self.lineedit_outlet.text()
-        self.wind_tunnel.lineedit_symmetry = self.lineedit_symmetry.text()
+        self.wind_tunnel.boundary_airfoil = self.lineedit_airfoil.text()
+        self.wind_tunnel.boundary_inlet = self.lineedit_inlet.text()
+        self.wind_tunnel.boundary_outlet = self.lineedit_outlet.text()
+        self.wind_tunnel.boundary_symmetry = self.lineedit_symmetry.text()
 
         if self.check_FIRE.isChecked():
             name = filename + '.flma'
