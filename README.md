@@ -68,13 +68,13 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
 <br><br>
 
 ![](docs/movies/RG14_3D_laminar_Iso-Q_pressure.gif)
-**Unsteady laminar 3D calculation of the RG14 airfoil using the CFD code AVL-FIRE.**
+**Unsteady 3D calculation of the RG14 airfoil using the CFD code AVL-FIRE.**
 <br>
 **RE=330000, AOA=2°, 20 million cells.**
 <br>
 **Laminar calculation: CD=0.0079, CL=0.371**
 <br>
-**LES calculation (Kobayashi SGS): CD=0.0078, CL=0.362**
+**LES calculation (subgrid scale model: Kobayashi CSM): CD=0.0078, CL=0.362**
 <br><br>
 
 ## Documentation
