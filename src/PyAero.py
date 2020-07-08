@@ -27,6 +27,7 @@ import GraphicsView
 import GraphicsScene
 import GuiSlots
 import ContourAnalysis
+import Viewer
 import ToolBox
 from Settings import ICONS, LOCALE, STYLE, EXITONESCAPE, \
                       OUTPUTDATA, MENUDATA, VIEWSTYLE, LOGDATA
@@ -82,6 +83,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # prepare additional views for tabs in right splitter window
         self.contourview = ContourAnalysis.ContourAnalysis(canvas=True)
 
+        # 3D view
+        self.viewer = Viewer.Viewer()
+
         # create slots (i.e. handlers or callbacks)
         self.slots = GuiSlots.Slots(self)
 
@@ -111,15 +115,23 @@ class MainWindow(QtWidgets.QMainWindow):
         # window size, position and title
         # self.setGeometry(700, 100, 1200, 900)
         self.showMaximized()
-        self.setWindowTitle(__appname__ +
-                            ' - Airfoil Contour Analysis and CFD Meshing')
+        title = __appname__ + ' - Airfoil Contour Analysis and CFD Meshing'
+        self.setWindowTitle = title
 
         # create menus and tools of main window
         menusTools = MenusTools.MenusTools(self)
         menusTools.createMenus()
         menusTools.createTools()
-        menusTools.createStatusBar()
         menusTools.createDocks()
+
+        # create statusbar in main window
+        self.statusbar = self.statusBar()
+        self.statusbar.setFixedHeight(22)
+        style = (""" QStatusBar {background-color:rgb(232,232,232); \
+                border: 1px solid grey;}""")
+        self.statusbar.setStyleSheet(style)
+        self.statusbar.setSizeGripEnabled(False)
+        self.statusbar.showMessage('Ready', 3000)
 
         # show the GUI
         self.show()
@@ -157,7 +169,7 @@ class MainWindow(QtWidgets.QMainWindow):
         key = event.key()
 
         if key == QtCore.Qt.Key_Escape and EXITONESCAPE:
-            sys.exit(QtGui.qApp.quit())
+            sys.exit(QtWidgets.QApplication.quit())
         elif key == QtCore.Qt.Key_Home:
             self.slots.onViewAll()
         else:
@@ -203,6 +215,7 @@ class CentralWidget(QtWidgets.QWidget):
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.addTab(self.parent.view, 'Airfoil Viewer')
         self.tabs.addTab(self.parent.contourview, 'Contour Analysis')
+        self.tabs.addTab(self.parent.viewer, '3D Viewer')
 
         # connect tab changed signal to slot
         self.tabs.currentChanged.connect(self.parent.slots.onTabChanged)
@@ -273,8 +286,18 @@ class CentralWidget(QtWidgets.QWidget):
 
 def main():
 
+    # FIXME
+    # FIXME this is a preparation for a batch version of PyAero
+    # FIXME
+    useGUI = '-no-gui' not in sys.argv
+
     # main application (contains the main event loop)
-    app = QtWidgets.QApplication(sys.argv)
+    if useGUI:
+        # run PyAero in GUI mode
+        app = QtWidgets.QApplication(sys.argv)
+    else:
+        # run PyAero in batch mode
+        app = QtCore.QCoreApplication(sys.argv)
 
     # set icon for the application ( upper left window icon and taskbar icon)
     # and add specialization icons per size
