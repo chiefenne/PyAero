@@ -1,5 +1,5 @@
 #
-backup2Diskstation.csh
+backup2Diskstation.sh
 data/OUTPUT/
 data/LOGS/
 docs/*.pptx
