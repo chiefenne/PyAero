@@ -1,4 +1,5 @@
 import os
+import platform
 import xml.etree.ElementTree as etree
 
 from PySide2 import QtGui, QtCore, QtWidgets
@@ -15,19 +16,6 @@ class MenusTools:
     def __init__(self, parent=None):
 
         self.parent = parent
-
-    def createStatusBar(self):
-        # create a status bar
-        self.statusbar = self.parent.statusBar()
-        self.statusbar.setFixedHeight(22)
-        style = (""" QStatusBar {background-color:rgb(232,232,232); \
-                border: 1px solid grey;}""")
-        self.statusbar.setStyleSheet(style)
-        self.statusbar.setSizeGripEnabled(False)
-
-        # DOES NOT WORK IN PySide2
-        # self.statustip = QtWidgets.qApp.aboutQt.QLabel(self.statusbar.showMessage(
-        #     'Ready.', 3000))
 
     def getMenuData(self):
         """get all menus and pulldowns from the external XML file"""
@@ -65,8 +53,13 @@ class MenusTools:
     def createMenus(self):
         """create the menubar and populate it automatically"""
         # create a menu bar
-        self.menubar = QtWidgets.QMenuBar(self.parent)
-        self.parent.setMenuBar(self.menubar)
+        # self.menubar = QtWidgets.QMenuBar()
+        self.menubar = self.parent.menuBar()
+
+        # for MacOS in order that the menu stays with the window
+        pltf = platform.system()
+        if 'Darwin' in pltf:
+            self.menubar.setNativeMenuBar(False)
 
         for eachMenu in self.getMenuData():
             name = eachMenu[0]
@@ -88,8 +81,9 @@ class MenusTools:
 
             logger.debug('HANDLER: {}'.format(handler))
 
-            if 'aboutQt' not in handler:
-                handler = 'self.parent.slots.' + handler
+            handler = 'self.parent.slots.' + handler
+            # if 'aboutQt' in handler:
+            #    handler = handler
 
             action = QtWidgets.QAction(icon, name, self.parent,
                                        shortcut=short, statusTip=tip,

@@ -1,3 +1,4 @@
+import copy
 from scipy import spatial
 
 from PySide2 import QtCore
@@ -44,6 +45,15 @@ class Connect:
 
         return connectivity
 
+    def getMinMaxConnectivityIDs(self, connectivity):
+        id_min = 1e10
+        id_max = -1
+        for cell in connectivity:
+            for id in cell:
+                id_min = min(id_min, id)
+                id_max = max(id_max, id)
+        return id_min, id_max
+
     def getNearestNeighboursPairs(self, vertices, radius=1.e-6):
         tree = spatial.cKDTree(vertices)
         pairs = tree.query_pairs(radius, p=2., eps=0)
@@ -61,6 +71,7 @@ class Connect:
 
     def getNearestNeighbours(self, vertices, neighbours, radius=1.e-6):
         """Get the nearest neighbours to each vertex in a list of vertices
+        uses Scipy kd-tree for quick nearest-neighbor lookup
 
         Args:
             vertices (list of tuples): Vertices for which nearest neighbours
@@ -103,57 +114,133 @@ class Connect:
         vertices = list()
         connectivity = list()
 
-        for block in blocks:
-            # needs to be set here (vertices up to block - 1)
+        for i, block in enumerate(blocks):
+
+            # for i = 0 shift is automatically 0
+            # so the connectivity of the first block doesn't get shifted
+            # thus, this variable must be set before 'vertices += ...'
             shift = len(vertices)
+            print('Shift in block {}: {}'.format(i, shift))
+
+            # concatenate vertices of all blocks
             vertices += [vertex for vertex in self.getVertices(block)]
+
             # shift the block connectivity by accumulated number of vertices
             # from all blocks before this one
             connectivity_block = \
                 self.shiftConnectivity(self.getConnectivity(block), shift)
             connectivity += [tuple(cell) for cell in connectivity_block]
 
+            # DEBUG
+            print('Number of vertices in block {}: {}'.
+                  format(i, len(self.getVertices(block))))
+            id_min, id_max = self.getMinMaxConnectivityIDs(
+                self.getConnectivity(block))
+            print('Min/Max connectivity in block {} / {}'.
+                  format(id_min, id_max))
+            print('Sum of vertices including current block {}: {}'.
+                  format(i, len(vertices)))
+            id_min, id_max = self.getMinMaxConnectivityIDs(
+                connectivity)
+            print('Min/Max overall connectivity {} / {}'.
+                  format(id_min, id_max))
+
         self.progdialog.setValue(80)
 
+        # FIXME
+        # FIXME for some reason tuples need to be redefined
+        # FIXME
         vertices = [(vertex[0], vertex[1]) for vertex in vertices]
 
         # search all vertices against themselves
-        # finds itself AND multiple connections
+        # finds itself AND multiple connections very fast
+        # uses Scipy kd-tree for quick nearest-neighbor lookup
         vertex_and_neighbours = self.getNearestNeighbours(vertices,
                                                           vertices,
                                                           radius=1.e-6)
 
+        # debug the connectivity (single double triple connections)
+        DEBUG = True
+        if DEBUG:
+            self.debugConnectivity(vertex_and_neighbours)
+
         # substitute vertex ids in connectivity at block connections
-        modified = list()
         connectivity_connected = list()
         for cell in connectivity:
             cell_new = list()
             for node in cell:
+                # if there is only one cell in vertex_and_neighbours,
+                # then it is taken as it is
+                # if there is more than one cell,
+                # then the minimum vertex index is used
+                # so a few vertices remain unused and need to be removed later
                 node_new = min(vertex_and_neighbours[node])
                 cell_new.append(node_new)
             connectivity_connected.append(cell_new)
-            if tuple(cell) != tuple(cell_new):
-                modified.append((tuple(cell), tuple(cell_new)))
-
-        '''
-        with open('vertex_and_neighbours.txt', 'w') as f:
-            for vn in vertex_and_neighbours:
-                f.write(str(vn) + ' ' + str(vertex_and_neighbours[vn]) + '\n')
-        with open('vertex_and_neighbours_2.txt', 'w') as f:
-            for vn in vertex_and_neighbours:
-                if len(vertex_and_neighbours[vn]) == 2:
-                    f.write(str(vn) + ' ' + str(vertex_and_neighbours[vn]) +
-                            '\n')
-        with open('vertex_and_neighbours_3.txt', 'w') as f:
-            for vn in vertex_and_neighbours:
-                if len(vertex_and_neighbours[vn]) > 2:
-                    f.write(str(vn) + ' ' + str(vertex_and_neighbours[vn]) +
-                            '\n')
-        with open('block_connections.txt', 'w') as f:
-            for m in modified:
-                f.write(str(m) + '\n')
-        '''
 
         self.progdialog.setValue(90)
 
-        return (vertices, connectivity_connected, self.progdialog)
+        if DEBUG:
+            print('Vertices after connect {}'.
+                  format(len(vertices)))
+            id_min, id_max = self.getMinMaxConnectivityIDs(
+                connectivity_connected)
+            print('Min/Max connectivity after connect {} / {}'.
+                  format(id_min, id_max))
+
+        # list of all vertices
+        cvert = set(range(len(vertices)))
+
+        # list of vertices which are used after connect (these are less)
+        clist = set([item for cell in connectivity_connected for item in cell])
+
+        # check which of the vertex ids are not anymore in the connectivity
+        # get all vertices which are in clist but not in cvert
+
+        diff = sorted(list(cvert.difference(clist)))
+
+        print('Removed vertices {}'.format(diff))
+        print('Number of removed vertices {}'.format(len(diff)))
+
+        connectivity_clean = copy.deepcopy(connectivity_connected)
+
+        print('len(vertices)', len(vertices))
+        connectivity = list()
+        for vert in diff:
+            print('vert', vert)
+            del vertices[vert]
+            for cell in connectivity_clean:
+                cell_new = [c - 1 for c in cell if c > vert]
+                connectivity.append(cell_new)
+
+        return (vertices, connectivity, self.progdialog)
+
+    def debugConnectivity(self, vertex_and_neighbours):
+        '''debug the connectivity'''
+
+        num_1 = 0
+        num_2 = 0
+        num_3 = 0
+        f1 = open('double_connections.txt', 'w')
+        f2 = open('triple_connections.txt', 'w')
+        for node in vertex_and_neighbours:
+            num = len(vertex_and_neighbours[node])
+            if num == 1:
+                num_1 += 1
+            if num == 2:
+                num_2 += 1
+                f1.write(str(node) + ' --> ' + ' '.join([str(v) for v in vertex_and_neighbours[node]]) + '\n')
+            if num == 3:
+                num_3 += 1
+                f2.write(str(node) + ' --> ' + ' '.join([str(v) for v in vertex_and_neighbours[node]]) + '\n')
+            if num == 3:
+                print('node {}, vertex_and_neighbours[node] {}'.
+                      format(node, vertex_and_neighbours[node]))
+        f1.close()
+        f2.close()
+        print('Single points = {}'.format(num_1))
+        print('Double connections = {}'.format(num_2))
+        print('Triple connections = {}'.format(num_3))
+        print('len(vertex_and_neighbours) = {}'.
+              format(len(vertex_and_neighbours)))
+

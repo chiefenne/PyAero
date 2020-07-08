@@ -252,7 +252,7 @@ class Slots:
         self.parent.messages.append(msg)
 
     def onExit(self):
-        sys.exit(QtWidgets.qApp.quit())
+        sys.exit(QtWidgets.QApplication.quit())
 
     def onCalculator(self):
         pass
@@ -305,6 +305,9 @@ class Slots:
 
     def onHelpOnline(self):
         webbrowser.open('http://pyaero.readthedocs.io/en/latest/')
+
+    def onAboutQt(self):
+        QtWidgets.QApplication.aboutQt()
 
     def onAbout(self):
         QtWidgets.QMessageBox. \

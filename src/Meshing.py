@@ -389,7 +389,7 @@ class Windtunnel:
         vertices, connectivity, progdialog = \
             connect.connectAllBlocks(self.blocks)
 
-        # add mesh to Windtunnel instance
+        # add mesh to Wind-tunnel instance
         self.mesh = vertices, connectivity
 
         # generate cell to vertex connectivity from mesh
@@ -431,7 +431,7 @@ class Windtunnel:
         self.edges = list()
 
         for i, cell in enumerate(connectivity):
-            # example for Qudrilateral:
+            # example for Quadrilateral:
             # cell: [0, 1, 5, 4]
             # local_edges: [(0,1), (1,5), (5,4), (4,0)]
             local_edges = [(cell[j], cell[(j + 1) % len(cell)])
