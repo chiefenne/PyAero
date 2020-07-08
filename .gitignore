@@ -5,6 +5,7 @@ data/LOGS/
 docs/*.pptx
 *.txt
 howto_configure_readthedocs.txt
+howto_git.txt
 make_install.sh
 Deploy_PyInstaller/
 lib_AE/
