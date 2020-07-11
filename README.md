@@ -143,29 +143,6 @@ $ pyaero
 
 To keep everything stored across sessions, you might want to add PYAERO_PATH and the *alias* command to your *~.bashrc, ~/.profile* or similar depending on your environment.
 
-### Windows
-
-#### If runnining the binary:
-
-See [download option 1](#option-1-download-windows-executable).
-
-#### If running from source:
-
-In a cmd shell type (if the installation is on drive *D:* in the folder *My_PyAero_Installation_Path*):
-
-```bash
-$ set PYAERO_PATH=D:/My_PyAero_Installation_Path
-```
-
-Since this stores the PYAERO_PATH variable only for the current seesion, you can aslo press the Win+Pause keys and then open the advanced tab to set the PYAERO_PATH environment variable there to keep it also after reboot.
-
-Run PyAero using from a cmd shell (if python is installed in "c:/python3"):
-
-```bash
-$ c:/python3/python.exe %PYAERO_PATH%/src/PyAero.py
-```
-
-You should be good to go.
 
 ## Qt for Python version (PySide2)
 
