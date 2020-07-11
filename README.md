@@ -92,18 +92,11 @@ The documentation is automatically generated using the markdown files in the [do
  - [Numpy](http://www.numpy.org/)
  - [Scipy](https://www.scipy.org/)
 
-At the moment a binary is available for Windows. On other platforms the source code needs to be copied to your computer. Of course it can be done on Windows as well.
+At the moment no binary is available for Windows.
 
 ## Download
 
-### Option 1: Download Windows executable:
-
-> NOTE: Currently the Windows executable is not up to date
-
-Go to the [Windows](https://github.com/chiefenne/PyAero/tree/master/Windows) folder and download *PyAero.zip*. Extract that file in an arbitrary location on the PC. There will be a file and a folder extracted, *PyAero.exe* and *data* respectively.
-Run PyAero by double-clicking the executable.
-
-### Option 2: Download source version using Git:
+### Option 1: Download source version using Git:
 The $ symbol represents the prompt at command shell. It is not part of the command.
 
 ```bash
@@ -111,7 +104,7 @@ $ cd anywhere_on_your_computer
 $ git clone https://github.com/chiefenne/PyAero.git
 ```
 
-### Option 3: Download source version as a ZIP file:
+### Option 2: Download source version as a ZIP file:
 
 From the [PyAero GitHub repository](https://github.com/chiefenne/PyAero). There is on the upper right side a green pull down menu "Clone or download". Click on it and then click "Download ZIP". You get a file "PyAero-master.zip" which you store anywhere on your computer.
 
@@ -150,29 +143,6 @@ $ pyaero
 
 To keep everything stored across sessions, you might want to add PYAERO_PATH and the *alias* command to your *~.bashrc, ~/.profile* or similar depending on your environment.
 
-### Windows
-
-#### If runnining the binary:
-
-See [download option 1](#option-1-download-windows-executable).
-
-#### If running from source:
-
-In a cmd shell type (if the installation is on drive *D:* in the folder *My_PyAero_Installation_Path*):
-
-```bash
-$ set PYAERO_PATH=D:/My_PyAero_Installation_Path
-```
-
-Since this stores the PYAERO_PATH variable only for the current seesion, you can aslo press the Win+Pause keys and then open the advanced tab to set the PYAERO_PATH environment variable there to keep it also after reboot.
-
-Run PyAero using from a cmd shell (if python is installed in "c:/python3"):
-
-```bash
-$ c:/python3/python.exe %PYAERO_PATH%/src/PyAero.py
-```
-
-You should be good to go.
 
 ## Qt for Python version (PySide2)
 
