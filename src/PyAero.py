@@ -15,6 +15,11 @@ accurate input to the subsequent meshing process.
 import os
 import sys
 
+# to resolve macOS problem (beginning with Big Sur)
+# e.g.: https://stackoverflow.com/questions/64833558/apps-not-popping-up-on-macos-big-sur-11-0-1
+if 'darwin' in sys.platform:
+    os.environ["QT_MAC_WANTS_LAYER"] = "1"
+
 path_of_this_file = os.path.dirname(__file__)
 sys.path.append(path_of_this_file)
 
@@ -27,7 +32,6 @@ import GraphicsView
 import GraphicsScene
 import GuiSlots
 import ContourAnalysis
-import Viewer
 import ToolBox
 from Settings import ICONS, LOCALE, STYLE, EXITONESCAPE, \
                       OUTPUTDATA, MENUDATA, VIEWSTYLE, LOGDATA
@@ -82,9 +86,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # prepare additional views for tabs in right splitter window
         self.contourview = ContourAnalysis.ContourAnalysis(canvas=True)
-
-        # 3D view
-        self.viewer = Viewer.Viewer()
 
         # create slots (i.e. handlers or callbacks)
         self.slots = GuiSlots.Slots(self)
@@ -215,7 +216,6 @@ class CentralWidget(QtWidgets.QWidget):
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.addTab(self.parent.view, 'Airfoil Viewer')
         self.tabs.addTab(self.parent.contourview, 'Contour Analysis')
-        self.tabs.addTab(self.parent.viewer, '3D Viewer')
 
         # connect tab changed signal to slot
         self.tabs.currentChanged.connect(self.parent.slots.onTabChanged)

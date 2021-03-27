@@ -85,9 +85,15 @@ class MenusTools:
             # if 'aboutQt' in handler:
             #    handler = handler
 
-            action = QtWidgets.QAction(icon, name, self.parent,
-                                       shortcut=short, statusTip=tip,
-                                       triggered=eval(handler))
+            # The parent argument is optional since Qt 5.7
+            # https://doc.qt.io/qtforpython/PySide2/QtWidgets/QAction.html#more
+            # action = QtWidgets.QAction(icon, name, self.parent,
+            #                            shortcut=short, statusTip=tip,
+            #                            triggered=eval(handler))
+            action = QtWidgets.QAction(icon, name, self.parent)
+            action.setStatusTip(tip)
+            action.setShortcut(short)
+            # action.triggered.connect(eval(handler))
             menu.addAction(action)
 
     def getToolbarData(self):
@@ -123,9 +129,13 @@ class MenusTools:
                 self.toolbar.addSeparator()
                 continue
             icon = QtGui.QIcon(ICONS_L + icon)
-            action = QtWidgets.QAction(
-                icon, tip, self.parent, triggered=eval(
-                    'self.parent.slots.' + handler))
+            # The parent argument is optional since Qt 5.7
+            # https://doc.qt.io/qtforpython/PySide2/QtWidgets/QAction.html#more
+            # action = QtWidgets.QAction(
+            #     icon, tip, self.parent, triggered=eval(
+            #         'self.parent.slots.' + handler))
+            action = QtWidgets.QAction(icon, tip, self.parent)
+            # action.triggered(eval('self.parent.slots.' + handler))
             self.toolbar.addAction(action)
 
     def createDocks(self):

@@ -1,4 +1,5 @@
 #
+.DS_Store
 backup2Diskstation.sh
 data/OUTPUT/
 data/LOGS/
@@ -9,6 +10,7 @@ howto_git.txt
 make_install.sh
 Deploy_PyInstaller/
 lib_AE/
+src/.vscode
 src/__pycache__/
 .spyproject/
 Windows/
