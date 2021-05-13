@@ -123,6 +123,8 @@ class MenusTools:
         # create a toolbar
         toolbar = QtWidgets.QToolBar('Toolbar')
         self.toolbar = self.parent.addToolBar(toolbar)
+        print('self.parent', self.parent)
+        print('self.toolbar', self.toolbar)
 
         for tip, icon, handler in self.getToolbarData():
             if len(tip) == 0:
