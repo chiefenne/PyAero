@@ -194,9 +194,6 @@ class Slots:
     def toggleLogDock(self, _sender):
         """Switch message log window on/off"""
 
-        logger.debug('I am toggleLogDock')
-        logger.debug('This is _sender: {}'.format(_sender))
-
         visible = self.parent.messagedock.isVisible()
         self.parent.messagedock.setVisible(not visible)
 
