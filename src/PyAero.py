@@ -52,17 +52,6 @@ __email__ = 'andreas.ennemoser@aon.at'
 __status__ = 'Release'
 
 
-'''
-# FIXME
-# FIXME should prevent "Python wurde unerwartet beendet"
-# FIXME
-def sigquit_handler(signum, frame):
-    print('SIGQUIT received; exiting')
-    sys.exit(os.EX_SOFTWARE)
-
-signal.signal(signal.SIGQUIT, sigquit_handler)
-'''
-
 class MainWindow(QtWidgets.QMainWindow):
     """PyAero's main QT window"""
     # constructor of MainWindow
@@ -183,7 +172,7 @@ class MainWindow(QtWidgets.QMainWindow):
         key = event.key()
 
         if key == QtCore.Qt.Key_Escape and EXITONESCAPE:
-            sys.exit(QtWidgets.QApplication.quit())
+            sys.exit(self.app.exit(retcode=0))
         elif key == QtCore.Qt.Key_Home:
             self.slots.onViewAll()
         else:
