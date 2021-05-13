@@ -121,23 +121,23 @@ class MenusTools:
          from  method toolData
         """
         # create a toolbar
-        toolbar = QtWidgets.QToolBar('Toolbar')
-        self.toolbar = self.parent.addToolBar(toolbar)
-        print('self.parent', self.parent)
-        print('self.toolbar', self.toolbar)
+        self.toolbar = QtWidgets.QToolBar('Toolbar')
+        self.parent.addToolBar(self.toolbar)
 
         for tip, icon, handler in self.getToolbarData():
             if len(tip) == 0:
                 self.toolbar.addSeparator()
                 continue
-            icon = QtGui.QIcon(ICONS_L + icon)
+            icon = QtGui.QIcon(os.path.join(ICONS_L, icon))
 
-            handler = 'self.parent.slots.' + handler
+            # guislot converts to:
+            # self.parent.slots.slotMethod()
+            guislot = getattr(self.parent.slots, handler)
 
-            action = QtGui.QAction()
-            action.setIcon(icon)
-            action.setToolTip(tip)
-            action.triggered.connect(handler)
+            action = QtGui.QAction(icon, tip, parent=self.parent)
+            # action.setIcon(icon)
+            # action.setToolTip(tip)
+            action.triggered.connect(guislot)
 
             self.toolbar.addAction(action)
 
