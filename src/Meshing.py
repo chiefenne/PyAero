@@ -7,7 +7,7 @@ import itertools
 import numpy as np
 from scipy import interpolate
 
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets
 
 import PyAero
 import GraphicsItemsCollection as gic

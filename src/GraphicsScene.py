@@ -1,4 +1,4 @@
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 
 import logging
 logger = logging.getLogger(__name__)

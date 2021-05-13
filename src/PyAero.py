@@ -14,18 +14,20 @@ accurate input to the subsequent meshing process.
 
 import os
 import sys
+import signal
 
 # to resolve macOS problem (beginning with Big Sur)
 # e.g.: https://stackoverflow.com/questions/64833558/apps-not-popping-up-on-macos-big-sur-11-0-1
-if 'darwin' in sys.platform:
-    os.environ["QT_MAC_WANTS_LAYER"] = "1"
+# not needed with PySide6 anymore
+# if 'darwin' in sys.platform:
+#     os.environ["QT_MAC_WANTS_LAYER"] = "1"
 
 path_of_this_file = os.path.dirname(__file__)
 sys.path.append(path_of_this_file)
 
 import datetime
 
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets
 
 import MenusTools
 import GraphicsView
@@ -49,6 +51,17 @@ __version__ = '1.2.0'
 __email__ = 'andreas.ennemoser@aon.at'
 __status__ = 'Release'
 
+
+'''
+# FIXME
+# FIXME should prevent "Python wurde unerwartet beendet"
+# FIXME
+def sigquit_handler(signum, frame):
+    print('SIGQUIT received; exiting')
+    sys.exit(os.EX_SOFTWARE)
+
+signal.signal(signal.SIGQUIT, sigquit_handler)
+'''
 
 class MainWindow(QtWidgets.QMainWindow):
     """PyAero's main QT window"""
@@ -141,7 +154,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # check if path is correct
         if not os.path.exists(MENUDATA):
-            print('\n PyAero ERROR: Folder %s does not exist.' % (MENUDATA))
+            print(f'\n PyAero ERROR: Folder {MENUDATA} does not exist.')
             print(' PyAero ERROR: Maybe you are starting '
                   'PyAero from the wrong location.\n')
             sys.exit()

@@ -1,5 +1,5 @@
 
-from PySide2 import QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 class ShortCuts:
     """docstring for ClassName """
@@ -24,7 +24,7 @@ class ShortCuts:
         # self.parent.slots.slotMethod()
         guislot = getattr(self.parent.slots, slotMethod)
         
-        sc = QtWidgets.QShortcut(QtGui.QKeySequence(shortcut), self.parent)
+        sc = QtGui.QShortcut(QtGui.QKeySequence(shortcut), self.parent)
         
         # connect shortcut to self.parent.slots(*args)
         sc.activated.connect(lambda: guislot(*args))

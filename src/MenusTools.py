@@ -1,8 +1,11 @@
+
+
+
 import os
 import platform
 import xml.etree.ElementTree as etree
 
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets
 
 from Settings import ICONS_S, ICONS_L, MENUDATA
 
@@ -82,15 +85,11 @@ class MenusTools:
             logger.debug('HANDLER: {}'.format(handler))
 
             handler = 'self.parent.slots.' + handler
-            # if 'aboutQt' in handler:
-            #    handler = handler
 
-            # The parent argument is optional since Qt 5.7
-            # https://doc.qt.io/qtforpython/PySide2/QtWidgets/QAction.html#more
-            # action = QtWidgets.QAction(icon, name, self.parent,
-            #                            shortcut=short, statusTip=tip,
-            #                            triggered=eval(handler))
-            action = QtWidgets.QAction(icon, name, self.parent)
+            action = QtGui.QAction(icon, name, self.parent,
+                                       shortcut=short, statusTip=tip,
+                                       triggered=eval(handler))
+
             action.setStatusTip(tip)
             action.setShortcut(short)
             # action.triggered.connect(eval(handler))
@@ -121,21 +120,23 @@ class MenusTools:
         """create the toolbar and populate it automatically
          from  method toolData
         """
-        # create a tool bar
-        self.toolbar = self.parent.addToolBar('Toolbar')
+        # create a toolbar
+        toolbar = QtWidgets.QToolBar('Toolbar')
+        self.toolbar = self.parent.addToolBar(toolbar)
 
         for tip, icon, handler in self.getToolbarData():
             if len(tip) == 0:
                 self.toolbar.addSeparator()
                 continue
             icon = QtGui.QIcon(ICONS_L + icon)
-            # The parent argument is optional since Qt 5.7
-            # https://doc.qt.io/qtforpython/PySide2/QtWidgets/QAction.html#more
-            # action = QtWidgets.QAction(
-            #     icon, tip, self.parent, triggered=eval(
-            #         'self.parent.slots.' + handler))
-            action = QtWidgets.QAction(icon, tip, self.parent)
-            # action.triggered(eval('self.parent.slots.' + handler))
+
+            handler = 'self.parent.slots.' + handler
+
+            action = QtGui.QAction()
+            action.setIcon(icon)
+            action.setToolTip(tip)
+            action.triggered.connect(handler)
+
             self.toolbar.addAction(action)
 
     def createDocks(self):

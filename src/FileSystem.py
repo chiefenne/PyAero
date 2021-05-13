@@ -1,6 +1,6 @@
 import os
 
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets
 
 from Settings import AIRFOILDATA, FILEFILTER, ICONS_L
 

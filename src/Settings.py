@@ -3,25 +3,42 @@
 # ****************
 
 import os
+import sys
 
-# path to PyAero installation
-DEFAULTPATH = '.'
+
+# check where we are
+current_working_directory = os.getcwd()
+
+# check if started from source (src) directory, PyAero.py should live only there
+# enables to debug (e.g. from VS Code by running PyAero.py)
 if os.path.exists('PyAero.py'):
-    DEFAULTPATH = '..'
-PYAEROPATH = os.getenv('PYAERO_PATH', DEFAULTPATH)
+    PYAEROPATH = os.path.dirname(current_working_directory)
+else:
+    # check if we are in the correct location
+    if 'src' not in os.listdir():
+        print(f'\n PyAero ERROR: Wrong folder for starting PyAero: {current_working_directory}\n')
+        sys.exit()
+    PYAEROPATH = current_working_directory
+
+# check if user has set the path via environment variable
+if os.getenv('PYAERO_PATH'):
+    PYAEROPATH = os.getenv('PYAERO_PATH')
+
+# path to data
+DATAPATH = os.path.join(PYAEROPATH, 'data')
 
 # modified contours and mesh folder
-OUTPUTDATA = PYAEROPATH + '/data/OUTPUT/'
+OUTPUTDATA = os.path.join(DATAPATH, 'OUTPUT')
 
 # path to menu data
-MENUDATA = PYAEROPATH + '/data/Menus'
+MENUDATA = os.path.join(DATAPATH, 'Menus')
 
 # path to log files
-LOGDATA = PYAEROPATH + '/data/LOGS'
+LOGDATA = os.path.join(DATAPATH, 'LOGS')
 
 # set locale
 # can be either 'C' or ''
-# if string is empty than system default locale is used
+# if string is empty then system default locale is used
 # in case of 'C' decimal separator is a dot in spin boxes, etc.
 LOCALE = 'C'
 
@@ -40,19 +57,19 @@ EXITONESCAPE = True
 CHORDLENGTH = 1.
 
 # path to icons
-ICONS = PYAEROPATH + '/data/Icons/'
-ICONS_S = ICONS + '16x16/'
-ICONS_L = ICONS + '24x24/'
+ICONS = os.path.join(PYAEROPATH, 'data/Icons')
+ICONS_S = os.path.join(ICONS, '16x16')
+ICONS_L = os.path.join(ICONS, '24x24')
 
 # path to data (e.g. airfoil coordinate files)
 # path can be absolute or relative (to position where starting PyAero)
-AIRFOILDATA = PYAEROPATH + '/data/Airfoils'
+AIRFOILDATA = os.path.join(PYAEROPATH, 'data/Airfoils')
 
 # size of airfoil coordinate markers in pixels
 MARKERSIZE = 3
 
 # default airfoil for fast loading
-DEFAULT_CONTOUR = AIRFOILDATA + '/F1K/hn1033a.dat'
+DEFAULT_CONTOUR = os.path.join(AIRFOILDATA, 'F1K/hn1033a.dat')
 
 # set the filter for files to be shown in dialogs
 DIALOGFILTER = 'Airfoil contour files (*.dat *.txt)'

@@ -1,4 +1,4 @@
-from PySide2 import QtGui, QtCore
+from PySide6 import QtGui, QtCore
 
 
 class GraphicsCollection:
@@ -11,7 +11,6 @@ class GraphicsCollection:
         self.shape ... more accurate results for collision detection
                        wrt to bounding rect
         self.method ... draw method of QPainter (e.g. drawEllipse)
-                    see http://pyqt.sourceforge.net/Docs/PySide2/qpainter.html
         self.args ... list of arguments to self.method
     """
 

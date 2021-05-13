@@ -2,7 +2,7 @@
 Functions for color customizing of all PyAero items.
 """
 
-from PySide2 import QtCore
+from PySide6 import QtCore
 
 
 def torgb(color):

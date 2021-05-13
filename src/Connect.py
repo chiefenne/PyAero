@@ -1,7 +1,7 @@
 import copy
 from scipy import spatial
 
-from PySide2 import QtCore
+from PySide6 import QtCore
 
 
 class Connect:
@@ -196,7 +196,6 @@ class Connect:
 
         # check which of the vertex ids are not anymore in the connectivity
         # get all vertices which are in clist but not in cvert
-
         diff = sorted(list(cvert.difference(clist)))
 
         print('Removed vertices {}'.format(diff))
@@ -207,7 +206,7 @@ class Connect:
         print('len(vertices)', len(vertices))
         connectivity = list()
         for vert in diff:
-            print('vert', vert)
+            # print('vert', vert)
             del vertices[vert]
             for cell in connectivity_clean:
                 cell_new = [c - 1 for c in cell if c > vert]

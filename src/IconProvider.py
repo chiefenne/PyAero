@@ -4,7 +4,7 @@ The PIconProvider class overwrites QFileIconProvider.
 This allows to use custom icons in different
 places of the application (e.g. file dialogs)
 """
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets
 
 from Settings import *
 

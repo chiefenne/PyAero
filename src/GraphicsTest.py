@@ -1,4 +1,4 @@
-from PySide2 import QtGui, QtCore
+from PySide6 import QtGui, QtCore
 
 import GraphicsItemsCollection as gic
 import GraphicsItem

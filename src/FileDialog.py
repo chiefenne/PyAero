@@ -1,7 +1,7 @@
 
 from Settings import DIALOGFILTER, OUTPUTDATA, AIRFOILDATA
 
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 
 
 class Dialog:
