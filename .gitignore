@@ -5,14 +5,6 @@ data/OUTPUT/
 data/LOGS/
 docs/*.pptx
 *.txt
-howto_configure_readthedocs.txt
-howto_git.txt
-make_install.sh
-Deploy_PyInstaller/
 lib_AE/
 src/.vscode
 src/__pycache__/
-.spyproject/
-Windows/
-PyAero.sublime-project
-PyAero.sublime-workspace

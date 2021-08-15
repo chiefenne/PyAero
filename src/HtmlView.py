@@ -6,7 +6,3 @@ class HtmlView(QtGui.QWebView):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-
-
-    localfile = '.'
-    webview.fromLocalFile(localfile)
