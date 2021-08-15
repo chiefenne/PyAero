@@ -3,6 +3,7 @@ from scipy import spatial
 
 from PySide6 import QtCore
 
+DEBUG = True
 
 class Connect:
     """docstring"""
@@ -116,6 +117,7 @@ class Connect:
 
         for i, block in enumerate(blocks):
 
+            # accumulated number of vertices
             # for i = 0 shift is automatically 0
             # so the connectivity of the first block doesn't get shifted
             # thus, this variable must be set before 'vertices += ...'
@@ -123,7 +125,8 @@ class Connect:
             print('Shift in block {}: {}'.format(i, shift))
 
             # concatenate vertices of all blocks
-            vertices += [vertex for vertex in self.getVertices(block)]
+            # vertices += [vertex for vertex in self.getVertices(block)]
+            vertices += self.getVertices(block)
 
             # shift the block connectivity by accumulated number of vertices
             # from all blocks before this one
@@ -131,19 +134,19 @@ class Connect:
                 self.shiftConnectivity(self.getConnectivity(block), shift)
             connectivity += [tuple(cell) for cell in connectivity_block]
 
-            # DEBUG
-            print('Number of vertices in block {}: {}'.
-                  format(i, len(self.getVertices(block))))
-            id_min, id_max = self.getMinMaxConnectivityIDs(
-                self.getConnectivity(block))
-            print('Min/Max connectivity in block {} / {}'.
-                  format(id_min, id_max))
-            print('Sum of vertices including current block {}: {}'.
-                  format(i, len(vertices)))
-            id_min, id_max = self.getMinMaxConnectivityIDs(
-                connectivity)
-            print('Min/Max overall connectivity {} / {}'.
-                  format(id_min, id_max))
+            if DEBUG:
+                print('Number of vertices in block {}: {}'.
+                      format(i, len(self.getVertices(block))))
+                id_min, id_max = self.getMinMaxConnectivityIDs(
+                    self.getConnectivity(block))
+                print('Min/Max connectivity in block {} / {}'.
+                      format(id_min, id_max))
+                print('Sum of vertices including current block {}: {}'.
+                      format(i, len(vertices)))
+                id_min, id_max = self.getMinMaxConnectivityIDs(
+                    connectivity)
+                print('Min/Max overall connectivity {} / {}'.
+                      format(id_min, id_max))
 
         self.progdialog.setValue(80)
 
@@ -152,15 +155,15 @@ class Connect:
         # FIXME
         vertices = [(vertex[0], vertex[1]) for vertex in vertices]
 
-        # search all vertices against themselves
+        # search vertices of all blocks against themselves
         # finds itself AND multiple connections very fast
         # uses Scipy kd-tree for quick nearest-neighbor lookup
+        # the distance tolerance is specified via the radius variable
         vertex_and_neighbours = self.getNearestNeighbours(vertices,
                                                           vertices,
                                                           radius=1.e-6)
 
         # debug the connectivity (single double triple connections)
-        DEBUG = True
         if DEBUG:
             self.debugConnectivity(vertex_and_neighbours)
 
