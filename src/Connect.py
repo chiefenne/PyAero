@@ -3,8 +3,6 @@ from scipy import spatial
 
 from PySide6 import QtCore
 
-DEBUG = True
-
 class Connect:
     """docstring"""
 
@@ -134,20 +132,6 @@ class Connect:
                 self.shiftConnectivity(self.getConnectivity(block), shift)
             connectivity += [tuple(cell) for cell in connectivity_block]
 
-            if DEBUG:
-                print('Number of vertices in block {}: {}'.
-                      format(i, len(self.getVertices(block))))
-                id_min, id_max = self.getMinMaxConnectivityIDs(
-                    self.getConnectivity(block))
-                print('Min/Max connectivity in block {} / {}'.
-                      format(id_min, id_max))
-                print('Sum of vertices including current block {}: {}'.
-                      format(i, len(vertices)))
-                id_min, id_max = self.getMinMaxConnectivityIDs(
-                    connectivity)
-                print('Min/Max overall connectivity {} / {}'.
-                      format(id_min, id_max))
-
         self.progdialog.setValue(80)
 
         # FIXME
@@ -162,10 +146,6 @@ class Connect:
         vertex_and_neighbours = self.getNearestNeighbours(vertices,
                                                           vertices,
                                                           radius=1.e-6)
-
-        # debug the connectivity (single double triple connections)
-        if DEBUG:
-            self.debugConnectivity(vertex_and_neighbours)
 
         # substitute vertex ids in connectivity at block connections
         connectivity_connected = list()
@@ -183,66 +163,6 @@ class Connect:
 
         self.progdialog.setValue(90)
 
-        if DEBUG:
-            print('Vertices after connect {}'.
-                  format(len(vertices)))
-            id_min, id_max = self.getMinMaxConnectivityIDs(
-                connectivity_connected)
-            print('Min/Max connectivity after connect {} / {}'.
-                  format(id_min, id_max))
-
-        # list of all vertices
-        cvert = set(range(len(vertices)))
-
-        # list of vertices which are used after connect (these are less)
-        clist = set([item for cell in connectivity_connected for item in cell])
-
-        # check which of the vertex ids are not anymore in the connectivity
-        # get all vertices which are in clist but not in cvert
-        diff = sorted(list(cvert.difference(clist)))
-
-        print('Removed vertices {}'.format(diff))
-        print('Number of removed vertices {}'.format(len(diff)))
-
         connectivity_clean = copy.deepcopy(connectivity_connected)
 
-        print('len(vertices)', len(vertices))
-        connectivity = list()
-        for vert in diff:
-            # print('vert', vert)
-            del vertices[vert]
-            for cell in connectivity_clean:
-                cell_new = [c - 1 for c in cell if c > vert]
-                connectivity.append(cell_new)
-
         return (vertices, connectivity, self.progdialog)
-
-    def debugConnectivity(self, vertex_and_neighbours):
-        '''debug the connectivity'''
-
-        num_1 = 0
-        num_2 = 0
-        num_3 = 0
-        f1 = open('double_connections.txt', 'w')
-        f2 = open('triple_connections.txt', 'w')
-        for node in vertex_and_neighbours:
-            num = len(vertex_and_neighbours[node])
-            if num == 1:
-                num_1 += 1
-            if num == 2:
-                num_2 += 1
-                f1.write(str(node) + ' --> ' + ' '.join([str(v) for v in vertex_and_neighbours[node]]) + '\n')
-            if num == 3:
-                num_3 += 1
-                f2.write(str(node) + ' --> ' + ' '.join([str(v) for v in vertex_and_neighbours[node]]) + '\n')
-            if num == 3:
-                print('node {}, vertex_and_neighbours[node] {}'.
-                      format(node, vertex_and_neighbours[node]))
-        f1.close()
-        f2.close()
-        print('Single points = {}'.format(num_1))
-        print('Double connections = {}'.format(num_2))
-        print('Triple connections = {}'.format(num_3))
-        print('len(vertex_and_neighbours) = {}'.
-              format(len(vertex_and_neighbours)))
-
