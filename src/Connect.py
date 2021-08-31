@@ -161,6 +161,17 @@ class Connect:
                 cell_new.append(node_new)
             connectivity_connected.append(cell_new)
 
+        # DEBUG
+        with open('vertices.dat', 'w') as f:
+            for i, vertex in enumerate(vertices):
+                f.write('{:8d} {:10.6f} {:10.6f}\n'.format(i, vertex[0], vertex[1]))
+        with open('connectivity.dat', 'w') as f:
+            for i, cell in enumerate(connectivity):
+                f.write('{:8d}'.format(i) + ' '.join(['{:8d}'.format(c) for c in cell]) + '\n')
+        with open('connectivity_connected.dat', 'w') as f:
+            for i, cell in enumerate(connectivity_connected):
+                f.write('{:8d}'.format(i) + ' '.join(['{:8d}'.format(c) for c in cell]) + '\n')
+
         self.progdialog.setValue(90)
 
         connectivity_clean = copy.deepcopy(connectivity_connected)
