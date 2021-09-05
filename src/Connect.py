@@ -1,4 +1,6 @@
 import copy
+
+import numpy as np
 from scipy import spatial
 
 from PySide6 import QtCore
@@ -171,6 +173,9 @@ class Connect:
         with open('connectivity_connected.dat', 'w') as f:
             for i, cell in enumerate(connectivity_connected):
                 f.write('{:8d}'.format(i) + ' '.join(['{:8d}'.format(c) for c in cell]) + '\n')
+
+        connectivity_array = np.array(connectivity)
+        cconnectivity_connected_array = np.array(connectivity_connected)
 
         self.progdialog.setValue(90)
 
