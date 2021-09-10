@@ -122,7 +122,6 @@ class Connect:
             # so the connectivity of the first block doesn't get shifted
             # thus, this variable must be set before 'vertices += ...'
             shift = len(vertices)
-            print('Shift in block {}: {}'.format(i, shift))
 
             # concatenate vertices of all blocks
             # vertices += [vertex for vertex in self.getVertices(block)]
@@ -171,7 +170,7 @@ class Connect:
         deleted_nodes = np.unique(unconnected[np.where(connected != unconnected)])
 
         # delete unused vertices
-        vertices_clean = np.delete(np.array(vertices), deleted_nodes)
+        vertices_clean = [e for e in vertices if e not in (deleted_nodes)]
 
         # find remaining node ids
         remaining_nodes = np.setdiff1d(np.unique(connected), deleted_nodes)
