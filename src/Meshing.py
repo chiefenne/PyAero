@@ -7,6 +7,8 @@ import itertools
 import numpy as np
 from scipy import interpolate
 
+import meshio
+
 from PySide6 import QtGui, QtCore, QtWidgets
 
 import PyAero
@@ -1019,6 +1021,13 @@ class BlockMesh:
         mesh = wind_tunnel.mesh
 
         vertices, connectivity = mesh
+
+        # demo of using meshio
+        meshio.write_points_cells("foo.vtk", vertices, connectivity)
+        meshio.write_points_cells("foo.msh", vertices, connectivity)
+        meshio.write_points_cells("foo.su2", vertices, connectivity)
+        meshio.write_points_cells("foo.cgns", vertices, connectivity)
+        meshio.write_points_cells("foo.nas", vertices, connectivity)
 
         with open(name, 'w') as f:
 
