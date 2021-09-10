@@ -163,22 +163,28 @@ class Connect:
                 cell_new.append(node_new)
             connectivity_connected.append(cell_new)
 
-        # DEBUG
-        with open('vertices.dat', 'w') as f:
-            for i, vertex in enumerate(vertices):
-                f.write('{:8d} {:10.6f} {:10.6f}\n'.format(i, vertex[0], vertex[1]))
-        with open('connectivity.dat', 'w') as f:
-            for i, cell in enumerate(connectivity):
-                f.write('{:8d}'.format(i) + ' '.join(['{:8d}'.format(c) for c in cell]) + '\n')
-        with open('connectivity_connected.dat', 'w') as f:
-            for i, cell in enumerate(connectivity_connected):
-                f.write('{:8d}'.format(i) + ' '.join(['{:8d}'.format(c) for c in cell]) + '\n')
+        # use numpy arrays
+        unconnected = np.array(connectivity)
+        connected = np.array(connectivity_connected)
 
-        connectivity_array = np.array(connectivity)
-        cconnectivity_connected_array = np.array(connectivity_connected)
+        # deleted nodes
+        deleted_nodes = np.unique(unconnected[np.where(connected != unconnected)])
+
+        # delete unused vertices
+        vertices_clean = np.delete(np.array(vertices), deleted_nodes)
+
+        # find remaining node ids
+        remaining_nodes = np.setdiff1d(np.unique(connected), deleted_nodes)
+
+        # replace node ids so that a contiguous numbering is established
+        # divakar, method 3 (https://stackoverflow.com/a/55950051/2264936)
+        mapping = {rn:i for i, rn in enumerate(remaining_nodes)}
+        k = np.array(list(mapping.keys()))
+        v = np.array(list(mapping.values()))
+        mapping_ar = np.zeros(k.max()+1,dtype=v.dtype)
+        mapping_ar[k] = v
+        connectivity_clean = mapping_ar[connected]
 
         self.progdialog.setValue(90)
 
-        connectivity_clean = copy.deepcopy(connectivity_connected)
-
-        return (vertices, connectivity, self.progdialog)
+        return (vertices_clean, connectivity_clean, self.progdialog)
