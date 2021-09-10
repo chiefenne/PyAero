@@ -91,6 +91,7 @@ The documentation is automatically generated using the markdown files in the [do
  - [Qt for Python (PySide6)](https://www.qt.io/qt-for-python)
  - [Numpy](http://www.numpy.org/)
  - [Scipy](https://www.scipy.org/)
+ - [meshio](https://github.com/nschloe/meshio)
 
 At the moment no binary is available for Windows.
 
