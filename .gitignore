@@ -10,6 +10,6 @@ howto_git.txt
 *.txt
 lib_AE/
 setup.py
-src/.vscode
+.vscode/
 src/__pycache__/
 todo.txt
