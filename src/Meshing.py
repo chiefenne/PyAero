@@ -512,6 +512,13 @@ class Windtunnel:
         # split outer boundary into inlet and outlet
         self.is_outlet = list()
 
+        # FIXME
+        # FIXME
+        # FIXME this is not finished here, but only intermediate
+        # FIXME
+        # FIXME
+        return new_loops
+
         # edge is e.g.: (27, 53)
         for i, edge in enumerate(new_loops[1]):
             self.is_outlet.append(0)
@@ -1023,11 +1030,16 @@ class BlockMesh:
         vertices, connectivity = mesh
 
         # demo of using meshio
-        meshio.write_points_cells("foo.vtk", vertices, connectivity)
-        meshio.write_points_cells("foo.msh", vertices, connectivity)
-        meshio.write_points_cells("foo.su2", vertices, connectivity)
-        meshio.write_points_cells("foo.cgns", vertices, connectivity)
-        meshio.write_points_cells("foo.nas", vertices, connectivity)
+        cells = list()
+        for cell in connectivity:
+            if len(cell) != 4:
+                print(cell)
+            cells.append(("quad", [cell]))
+        meshio.write_points_cells("foo.vtk", vertices, cells)
+        meshio.write_points_cells("foo.su2", vertices, cells)
+        meshio.write_points_cells("foo.cgns", vertices, cells)
+        meshio.write_points_cells("foo.nas", vertices, cells)
+        # meshio.write_points_cells("foo.msh", vertices, cells)
 
         with open(name, 'w') as f:
 
