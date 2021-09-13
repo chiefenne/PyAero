@@ -170,7 +170,7 @@ class Connect:
         deleted_nodes = np.unique(unconnected[np.where(connected != unconnected)])
 
         # delete unused vertices
-        vertices_clean = [e for e in vertices if e not in (deleted_nodes)]
+        vertices_clean = [v for v in vertices if v not in deleted_nodes]
 
         # find remaining node ids
         remaining_nodes = np.setdiff1d(np.unique(connected), deleted_nodes)
