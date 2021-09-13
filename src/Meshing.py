@@ -1030,11 +1030,7 @@ class BlockMesh:
         vertices, connectivity = mesh
 
         # demo of using meshio
-        cells = list()
-        for cell in connectivity:
-            if len(cell) != 4:
-                print(cell)
-            cells.append(("quad", [cell]))
+        cells = [('quad', [cell]) for cell in connectivity]
         meshio.write_points_cells("foo.vtk", vertices, cells)
         meshio.write_points_cells("foo.su2", vertices, cells)
         meshio.write_points_cells("foo.cgns", vertices, cells)
