@@ -1030,11 +1030,12 @@ class BlockMesh:
         vertices, connectivity = mesh
 
         # demo of using meshio
+        vertices_3D = [v + (0.0,) for v in vertices]
         cells = [('quad', [cell]) for cell in connectivity]
-        meshio.write_points_cells("foo.vtk", vertices, cells)
-        meshio.write_points_cells("foo.su2", vertices, cells)
-        meshio.write_points_cells("foo.cgns", vertices, cells)
-        meshio.write_points_cells("foo.nas", vertices, cells)
+        meshio.write_points_cells(os.path.join(OUTPUTDATA, "foo.vtk"), vertices_3D, cells)
+        meshio.write_points_cells(os.path.join(OUTPUTDATA, "foo.su2"), vertices, cells)
+        meshio.write_points_cells(os.path.join(OUTPUTDATA, "foo.cgns"), vertices_3D, cells)
+        meshio.write_points_cells(os.path.join(OUTPUTDATA, "foo.nas"), vertices_3D, cells)
         # meshio.write_points_cells("foo.msh", vertices, cells)
 
         with open(name, 'w') as f:
