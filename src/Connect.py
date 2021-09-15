@@ -3,7 +3,11 @@ import copy
 import numpy as np
 from scipy import spatial
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtGui
+
+import GraphicsItemsCollection as gic
+import GraphicsItem
+
 
 class Connect:
     """docstring"""
@@ -153,9 +157,9 @@ class Connect:
         for cell in connectivity:
             cell_new = list()
             for node in cell:
-                # if there is only one cell in vertex_and_neighbours,
+                # if there is only one vertex in vertex_and_neighbours,
                 # then it is taken as it is
-                # if there is more than one cell,
+                # if there is more than one vertex,
                 # then the minimum vertex index is used
                 # so a few vertices remain unused and need to be removed later
                 node_new = min(vertex_and_neighbours[node])
@@ -169,8 +173,11 @@ class Connect:
         # deleted nodes
         deleted_nodes = np.unique(unconnected[np.where(connected != unconnected)])
 
+        # DEBUGGING HELP
+        self.draw_connectivity(vertices, deleted_nodes)
+
         # delete unused vertices
-        vertices_clean = [v for v in reversed(vertices) if v not in deleted_nodes]
+        vertices_clean = [v for v in vertices if v not in sorted(deleted_nodes.tolist())]
 
         # find remaining node ids
         remaining_nodes = np.setdiff1d(np.unique(connected), deleted_nodes)
@@ -187,3 +194,25 @@ class Connect:
         self.progdialog.setValue(90)
 
         return (vertices_clean, connectivity_clean, self.progdialog)
+
+    def draw_connectivity(self, vertices, deleted_nodes):
+
+        self.connections = list()
+
+        # instantiate a graphics item
+        marker = gic.GraphicsCollection()
+         # set its properties
+        marker.pen.setColor(QtGui.QColor(60, 60, 255, 255))
+        marker.brush.setColor(QtGui.QColor(255, 50, 50, 230))
+        marker.pen.setWidthF(1.6)
+        # no pen thickness change when zoomed
+        marker.pen.setCosmetic(True)
+
+        for node in deleted_nodes:
+            marker.Circle(vertices[node][0], vertices[node][1], 0.003)
+            marker_item = GraphicsItem.GraphicsItem(marker)
+            self.connections.append(marker_item)
+            
+        # add to the scene
+        self.connections = self.mainwindow.scene. \
+            createItemGroup(self.connections)
