@@ -6,23 +6,11 @@ import os
 import sys
 
 
-# check where we are
-current_working_directory = os.getcwd()
-
-# check if started from source (src) directory, PyAero.py should live only there
-# enables to debug (e.g. from VS Code by running PyAero.py)
-if os.path.exists('PyAero.py'):
-    PYAEROPATH = os.path.dirname(current_working_directory)
-else:
-    # check if we are in the correct location
-    if 'src' not in os.listdir():
-        print(f'\n PyAero ERROR: Wrong folder for starting PyAero: {current_working_directory}\n')
-        sys.exit()
-    PYAEROPATH = current_working_directory
+PYAEROPATH = os.getcwd()
 
 # check if user has set the path via environment variable
-if os.getenv('PYAERO_PATH'):
-    PYAEROPATH = os.getenv('PYAERO_PATH')
+if os.getenv('PYAEROPATH'):
+    PYAEROPATH = os.getenv('PYAEROPATH')
 
 # path to data
 DATAPATH = os.path.join(PYAEROPATH, 'data')

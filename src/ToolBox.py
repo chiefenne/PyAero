@@ -773,12 +773,12 @@ class Toolbox(QtWidgets.QToolBox):
         self.setItemToolTip(5, 'Analyze the curvature of the ' +
                             'selected airfoil')
 
-        self.setItemIcon(0, QtGui.QIcon(ICONS_L + 'airfoil.png'))
-        self.setItemIcon(1, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
-        self.setItemIcon(2, QtGui.QIcon(ICONS_L + 'mesh.png'))
-        self.setItemIcon(3, QtGui.QIcon(ICONS_L + 'Fast delivery.png'))
-        self.setItemIcon(4, QtGui.QIcon(ICONS_L + 'Fast delivery.png'))
-        self.setItemIcon(5, QtGui.QIcon(ICONS_L + 'Pixel editor.png'))
+        self.setItemIcon(0, QtGui.QIcon(os.path.join(ICONS_L, 'airfoil.png')))
+        self.setItemIcon(1, QtGui.QIcon(os.path.join(ICONS_L, 'Pixel editor.png')))
+        self.setItemIcon(2, QtGui.QIcon(os.path.join(ICONS_L, 'mesh.png')))
+        self.setItemIcon(3, QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png')))
+        self.setItemIcon(4, QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png')))
+        self.setItemIcon(5, QtGui.QIcon(os.path.join(ICONS_L, 'Pixel editor.png')))
 
         # preselect airfoil database box
         self.setCurrentIndex(self.tb1)

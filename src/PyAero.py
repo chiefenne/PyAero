@@ -304,12 +304,13 @@ def main():
     # set icon for the application ( upper left window icon and taskbar icon)
     # and add specialization icons per size
     # (needed depending on the operating system)
-    app_icon = QtGui.QIcon(ICONS+'app_image.png')
-    app_icon.addFile(ICONS+'app_image_16x16.png', QtCore.QSize(16, 16))
-    app_icon.addFile(ICONS+'app_image_24x24.png', QtCore.QSize(24, 24))
-    app_icon.addFile(ICONS+'app_image_32x32.png', QtCore.QSize(32, 32))
-    app_icon.addFile(ICONS+'app_image_48x48.png', QtCore.QSize(48, 48))
-    app_icon.addFile(ICONS+'app_image_256x256.png', QtCore.QSize(256, 256))
+    app_icon = QtGui.QIcon(os.path.join(ICONS, 'app_image.png'))
+    app_icon.addFile(os.path.join(ICONS, 'app_image_16x16.png'), QtCore.QSize(16, 16))
+    app_icon.addFile(os.path.join(ICONS, 'app_image_24x24.png'), QtCore.QSize(24, 24))
+    app_icon.addFile(os.path.join(ICONS, 'app_image_32x32.png'), QtCore.QSize(32, 32))
+    app_icon.addFile(os.path.join(ICONS, 'app_image_48x48.png'), QtCore.QSize(48, 48))
+    app_icon.addFile(os.path.join(ICONS, 'app_image_256x256.png'), QtCore.QSize(256, 256))
+
     app.setWindowIcon(app_icon)
 
     if LOCALE == 'C':

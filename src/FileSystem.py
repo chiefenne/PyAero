@@ -39,9 +39,9 @@ class FileSystemModel(QtWidgets.QFileSystemModel):
 
         if role == QtCore.Qt.DecorationRole:
             if fileInfo.isDir():
-                return QtGui.QPixmap(ICONS_L + 'Folder.png')
+                return QtGui.QPixmap(os.path.join(ICONS_L, 'Folder.png'))
             elif fileInfo.isFile():
-                return QtGui.QPixmap(ICONS_L + 'airfoil.png')
+                return QtGui.QPixmap(os.path.join(ICONS_L, 'airfoil.png'))
 
         # return QtWidgets.QFileSystemModel.data(self, index, role)
         return super().data(index, role)

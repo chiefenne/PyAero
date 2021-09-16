@@ -80,7 +80,7 @@ class MenusTools:
                 menu.addSeparator()
                 continue
 
-            icon = QtGui.QIcon(ICONS_S + icon)
+            icon = QtGui.QIcon(os.path.join(ICONS_S, icon))
 
             logger.debug('HANDLER: {}'.format(handler))
 
