@@ -5,7 +5,7 @@
 [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://en.wikipedia.org/wiki/MIT_License)
 
 
-PyAero is an open-source airfoil contour analysis and CFD meshing tool written in Python. The graphical user interface is written in Qt for Python (PySide2).
+PyAero is an open-source airfoil contour analysis and CFD meshing tool written in Python. The graphical user interface is written in [Qt for Python](https://www.qt.io/qt-for-python).
 
 ## Features
 
@@ -88,9 +88,10 @@ The documentation is automatically generated using the markdown files in the [do
 ## Dependencies
 
  - [Python 3.x](https://www.python.org/)
- - [Qt for Python (PySide2) 5.11.x](https://www.qt.io/qt-for-python)
+ - [Qt for Python (PySide6)](https://www.qt.io/qt-for-python)
  - [Numpy](http://www.numpy.org/)
  - [Scipy](https://www.scipy.org/)
+ - [meshio](https://github.com/nschloe/meshio)
 
 At the moment no binary is available for Windows.
 
@@ -120,19 +121,19 @@ After cloning from Git, or downloading and unzipping, set the environment variab
 ### Linux and Cygwin
 
 ```bash
-$ setenv PYAERO_PATH path_to_your_installation
+$ setenv PYAEROPATH path_to_your_installation
 ```
 
 Run PyAero using:
 
 ```bash
-$ python $PYAERO_PATH/src/PyAero.py
+$ python $PYAEROPATH/src/PyAero.py
 ```
 
 To simplify the command, set an *alias*.
 
 ```bash
-$ alias pyaero  "python $PYAERO_PATH/src/PyAero.py"
+$ alias pyaero  "python $PYAEROPATH/src/PyAero.py"
 ```
 
 Then start PyAero using simply:
@@ -141,7 +142,7 @@ Then start PyAero using simply:
 $ pyaero
 ```
 
-To keep everything stored across sessions, you might want to add PYAERO_PATH and the *alias* command to your *~.bashrc, ~/.profile* or similar depending on your environment.
+To keep everything stored across sessions, you might want to add PYAEROPATH and the *alias* command to your *~.bashrc, ~/.profile* or similar depending on your environment.
 
 
 ## Qt for Python version (PySide2)

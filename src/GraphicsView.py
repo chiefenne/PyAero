@@ -1,7 +1,7 @@
 import os
 import math
 
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets
 
 from Settings import ZOOMANCHOR, SCALEINC, MINZOOM, MAXZOOM, \
                       MARKERSIZE, RUBBERBANDSIZE, VIEWSTYLE

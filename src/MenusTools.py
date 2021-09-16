@@ -1,7 +1,11 @@
+
+
+
 import os
+import platform
 import xml.etree.ElementTree as etree
 
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets
 
 from Settings import ICONS_S, ICONS_L, MENUDATA
 
@@ -15,19 +19,6 @@ class MenusTools:
     def __init__(self, parent=None):
 
         self.parent = parent
-
-    def createStatusBar(self):
-        # create a status bar
-        self.statusbar = self.parent.statusBar()
-        self.statusbar.setFixedHeight(22)
-        style = (""" QStatusBar {background-color:rgb(232,232,232); \
-                border: 1px solid grey;}""")
-        self.statusbar.setStyleSheet(style)
-        self.statusbar.setSizeGripEnabled(False)
-
-        # DOES NOT WORK IN PySide2
-        # self.statustip = QtWidgets.qApp.aboutQt.QLabel(self.statusbar.showMessage(
-        #     'Ready.', 3000))
 
     def getMenuData(self):
         """get all menus and pulldowns from the external XML file"""
@@ -65,8 +56,13 @@ class MenusTools:
     def createMenus(self):
         """create the menubar and populate it automatically"""
         # create a menu bar
-        self.menubar = QtWidgets.QMenuBar(self.parent)
-        self.parent.setMenuBar(self.menubar)
+        # self.menubar = QtWidgets.QMenuBar()
+        self.menubar = self.parent.menuBar()
+
+        # for MacOS in order that the menu stays with the window
+        pltf = platform.system()
+        if 'Darwin' in pltf:
+            self.menubar.setNativeMenuBar(False)
 
         for eachMenu in self.getMenuData():
             name = eachMenu[0]
@@ -84,16 +80,19 @@ class MenusTools:
                 menu.addSeparator()
                 continue
 
-            icon = QtGui.QIcon(ICONS_S + icon)
+            icon = QtGui.QIcon(os.path.join(ICONS_S, icon))
 
             logger.debug('HANDLER: {}'.format(handler))
 
-            if 'aboutQt' not in handler:
-                handler = 'self.parent.slots.' + handler
+            handler = 'self.parent.slots.' + handler
 
-            action = QtWidgets.QAction(icon, name, self.parent,
+            action = QtGui.QAction(icon, name, self.parent,
                                        shortcut=short, statusTip=tip,
                                        triggered=eval(handler))
+
+            action.setStatusTip(tip)
+            action.setShortcut(short)
+            # action.triggered.connect(eval(handler))
             menu.addAction(action)
 
     def getToolbarData(self):
@@ -121,17 +120,25 @@ class MenusTools:
         """create the toolbar and populate it automatically
          from  method toolData
         """
-        # create a tool bar
-        self.toolbar = self.parent.addToolBar('Toolbar')
+        # create a toolbar
+        self.toolbar = QtWidgets.QToolBar('Toolbar')
+        self.parent.addToolBar(self.toolbar)
 
         for tip, icon, handler in self.getToolbarData():
             if len(tip) == 0:
                 self.toolbar.addSeparator()
                 continue
-            icon = QtGui.QIcon(ICONS_L + icon)
-            action = QtWidgets.QAction(
-                icon, tip, self.parent, triggered=eval(
-                    'self.parent.slots.' + handler))
+            icon = QtGui.QIcon(os.path.join(ICONS_L, icon))
+
+            # guislot converts to:
+            # self.parent.slots.slotMethod()
+            guislot = getattr(self.parent.slots, handler)
+
+            action = QtGui.QAction(icon, tip, parent=self.parent)
+            # action.setIcon(icon)
+            # action.setToolTip(tip)
+            action.triggered.connect(guislot)
+
             self.toolbar.addAction(action)
 
     def createDocks(self):

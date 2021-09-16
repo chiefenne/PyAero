@@ -3,7 +3,7 @@ import copy
 import numpy as np
 from scipy import interpolate
 
-from PySide2 import QtGui, QtCore
+from PySide6 import QtGui, QtCore
 
 from Utils import Utils
 import GraphicsItemsCollection as gic

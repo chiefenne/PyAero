@@ -4,7 +4,7 @@ The PIconProvider class overwrites QFileIconProvider.
 This allows to use custom icons in different
 places of the application (e.g. file dialogs)
 """
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets
 
 from Settings import *
 
@@ -20,12 +20,12 @@ class IconProvider(QtWidgets.QFileIconProvider):
 
         if isinstance(icontype, QtCore.QFileInfo):
             if icontype.isDir():
-                return QtGui.QIcon(ICONS_L + 'Folder.png')
+                return QtGui.QIcon(os.path.join(ICONS_L, 'Folder.png'))
             if icontype.isFile():
-                return QtGui.QIcon(ICONS_L + 'Fast delivery.png')
+                return QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png'))
         if icontype == QtGui.QFileIconProvider.Folder:
-            return QtGui.QIcon(ICONS_L + 'Folder.png')
+            return QtGui.QIcon(os.path.join(ICONS_L, 'Folder.png'))
         if icontype == QtGui.QFileIconProvider.File:
-            return QtGui.QIcon(ICONS_L + 'Fast delivery.png')
+            return QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png'))
 
         return super().icon(icontype)

@@ -1,6 +1,13 @@
+import os
+import copy
+
+import numpy as np
 from scipy import spatial
 
-from PySide2 import QtCore
+from PySide6 import QtCore, QtGui
+
+import GraphicsItemsCollection as gic
+import GraphicsItem
 
 
 class Connect:
@@ -44,6 +51,15 @@ class Connect:
 
         return connectivity
 
+    def getMinMaxConnectivityIDs(self, connectivity):
+        id_min = 1e10
+        id_max = -1
+        for cell in connectivity:
+            for id in cell:
+                id_min = min(id_min, id)
+                id_max = max(id_max, id)
+        return id_min, id_max
+
     def getNearestNeighboursPairs(self, vertices, radius=1.e-6):
         tree = spatial.cKDTree(vertices)
         pairs = tree.query_pairs(radius, p=2., eps=0)
@@ -61,6 +77,7 @@ class Connect:
 
     def getNearestNeighbours(self, vertices, neighbours, radius=1.e-6):
         """Get the nearest neighbours to each vertex in a list of vertices
+        uses Scipy kd-tree for quick nearest-neighbor lookup
 
         Args:
             vertices (list of tuples): Vertices for which nearest neighbours
@@ -103,10 +120,18 @@ class Connect:
         vertices = list()
         connectivity = list()
 
-        for block in blocks:
-            # needs to be set here (vertices up to block - 1)
+        for i, block in enumerate(blocks):
+
+            # accumulated number of vertices
+            # for i = 0 shift is automatically 0
+            # so the connectivity of the first block doesn't get shifted
+            # thus, this variable must be set before 'vertices += ...'
             shift = len(vertices)
-            vertices += [vertex for vertex in self.getVertices(block)]
+
+            # concatenate vertices of all blocks
+            # vertices += [vertex for vertex in self.getVertices(block)]
+            vertices += self.getVertices(block)
+
             # shift the block connectivity by accumulated number of vertices
             # from all blocks before this one
             connectivity_block = \
@@ -115,45 +140,106 @@ class Connect:
 
         self.progdialog.setValue(80)
 
+        # FIXME
+        # FIXME for some reason tuples need to be redefined
+        # FIXME
         vertices = [(vertex[0], vertex[1]) for vertex in vertices]
 
-        # search all vertices against themselves
-        # finds itself AND multiple connections
+        # search vertices of all blocks against themselves
+        # finds itself AND multiple connections very fast
+        # uses Scipy kd-tree for quick nearest-neighbor lookup
+        # the distance tolerance is specified via the radius variable
         vertex_and_neighbours = self.getNearestNeighbours(vertices,
                                                           vertices,
                                                           radius=1.e-6)
 
         # substitute vertex ids in connectivity at block connections
-        modified = list()
         connectivity_connected = list()
         for cell in connectivity:
             cell_new = list()
             for node in cell:
+                # if there is only one vertex in vertex_and_neighbours,
+                # then it is taken as it is
+                # if there is more than one vertex,
+                # then the minimum vertex index is used
+                # so a few vertices remain unused and need to be removed later
                 node_new = min(vertex_and_neighbours[node])
                 cell_new.append(node_new)
             connectivity_connected.append(cell_new)
-            if tuple(cell) != tuple(cell_new):
-                modified.append((tuple(cell), tuple(cell_new)))
 
-        '''
-        with open('vertex_and_neighbours.txt', 'w') as f:
-            for vn in vertex_and_neighbours:
-                f.write(str(vn) + ' ' + str(vertex_and_neighbours[vn]) + '\n')
-        with open('vertex_and_neighbours_2.txt', 'w') as f:
-            for vn in vertex_and_neighbours:
-                if len(vertex_and_neighbours[vn]) == 2:
-                    f.write(str(vn) + ' ' + str(vertex_and_neighbours[vn]) +
-                            '\n')
-        with open('vertex_and_neighbours_3.txt', 'w') as f:
-            for vn in vertex_and_neighbours:
-                if len(vertex_and_neighbours[vn]) > 2:
-                    f.write(str(vn) + ' ' + str(vertex_and_neighbours[vn]) +
-                            '\n')
-        with open('block_connections.txt', 'w') as f:
-            for m in modified:
-                f.write(str(m) + '\n')
-        '''
+        # use numpy arrays
+        unconnected = np.array(connectivity)
+        connected = np.array(connectivity_connected)
+
+        # deleted nodes
+        deleted_nodes = np.unique(unconnected[np.where(connected != unconnected)])
+
+
+        # delete unused vertices
+        vertices_clean = [v for i,v in enumerate(vertices) if i not in sorted(deleted_nodes.tolist())]
+
+        # find remaining node ids
+        remaining_nodes = np.setdiff1d(np.unique(connected), deleted_nodes)
+
+        # replace node ids so that a contiguous numbering is established
+        # divakar, method 3 (https://stackoverflow.com/a/55950051/2264936)
+        mapping = {rn:i for i, rn in enumerate(remaining_nodes)}
+        k = np.array(list(mapping.keys()))
+        v = np.array(list(mapping.values()))
+        mapping_ar = np.zeros(k.max()+1,dtype=v.dtype)
+        mapping_ar[k] = v
+        connectivity_clean = mapping_ar[connected]
+
+        # debug
+        # print('min/max id unconnected', unconnected.min(), unconnected.max())
+        # print('min/max id connected', connected.min(), connected.max())
+        # print('min/max id connected clean', connectivity_clean.min(), connectivity_clean.max())
+        # print('len vertices', len(vertices))
+        # print('len vertices_clean', len(vertices_clean))
 
         self.progdialog.setValue(90)
 
-        return (vertices, connectivity_connected, self.progdialog)
+        # DEBUGGING HELP
+        # self.write_debug(unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean)
+        # self.draw_connectivity(vertices, deleted_nodes)
+
+        return (vertices_clean, connectivity_clean, self.progdialog)
+
+    def draw_connectivity(self, vertices, deleted_nodes):
+
+        self.connections = list()
+
+        # instantiate a graphics item
+        marker = gic.GraphicsCollection()
+         # set its properties
+        marker.pen.setColor(QtGui.QColor(60, 60, 255, 255))
+        marker.brush.setColor(QtGui.QColor(255, 50, 50, 230))
+        marker.pen.setWidthF(1.6)
+        # no pen thickness change when zoomed
+        marker.pen.setCosmetic(True)
+
+        for node in deleted_nodes:
+            marker.Circle(vertices[node][0], vertices[node][1], 0.003)
+            marker_item = GraphicsItem.GraphicsItem(marker)
+            self.connections.append(marker_item)
+            
+        # add to the scene
+        self.connections = self.mainwindow.scene. \
+            createItemGroup(self.connections)
+
+    def write_debug(self, unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean):
+
+        dicts = locals()
+        # print('dicts keys', dicts.keys())
+        # print('type', type(dicts))
+        dicts.pop('self')
+
+        folder = 'debug'
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+
+        # write all data to individual files
+        for listname in dicts:
+            with open(os.path.join(folder, listname + '.txt'), 'w') as f:
+                for item in dicts[listname]:
+                    f.write(str(item) + '\n')

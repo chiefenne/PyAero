@@ -1,4 +1,4 @@
-from PySide2 import QtGui, QtCore
+from PySide6 import QtGui, QtCore
 
 
 class HtmlView(QtGui.QWebView):
@@ -6,7 +6,3 @@ class HtmlView(QtGui.QWebView):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-
-
-    localfile = '.'
-    webview.fromLocalFile(localfile)

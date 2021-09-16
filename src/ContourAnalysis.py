@@ -1,8 +1,11 @@
 
 import numpy as np
 
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCharts import QtCharts
+from PySide6 import QtCore, QtGui, QtWidgets
+# FIXME
+# FIXME QtCharts will probably be available in Qt for Python 6.1
+# FIXME
+# from PySide6.QtCharts import QtChart
 
 import logging
 logger = logging.getLogger(__name__)
@@ -25,10 +28,14 @@ class ContourAnalysis(QtWidgets.QFrame):
 
         # run the gui part only when canvas set to true
         if canvas:
-            self.initUI()
+            # FIXME
+            # FIXME QtCharts will probably be available in Qt for Python 6.1
+            # FIXME
+            pass
+            # self.initUI()
 
     def initUI(self):
-        self.lineSeries = QtCharts.QLineSeries()
+        self.lineSeries = QtChart.QLineSeries()
         # legend name
         # self.lineSeries.setName("trend")
         self.lineSeries.append(QtCore.QPoint(0, 0))
@@ -36,16 +43,16 @@ class ContourAnalysis(QtWidgets.QFrame):
         pen = QtGui.QPen(QtCore.Qt.red, 6, QtCore.Qt.SolidLine)
         self.lineSeries.setPen(pen)
 
-        self.chart = QtCharts.QChart()
-        self.chart.setAnimationOptions(QtCharts.QChart.AllAnimations)
+        self.chart = QtChart.QChart()
+        self.chart.setAnimationOptions(QtChart.QChart.AllAnimations)
         self.chart.setTitle("Airfoil contour analysis")
         self.chart.addSeries(self.lineSeries)
 
         self.chart.legend().setVisible(False)
         self.chart.legend().setAlignment(QtCore.Qt.AlignBottom)
 
-        self.axisX = QtCharts.QValueAxis()
-        self.axisY = QtCharts.QValueAxis()
+        self.axisX = QtChart.QValueAxis()
+        self.axisY = QtChart.QValueAxis()
         self.chart.setAxisX(self.axisX, self.lineSeries)
         self.chart.setAxisY(self.axisY, self.lineSeries)
 

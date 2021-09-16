@@ -33,7 +33,7 @@
         <Submenu name='Manual (PDF)' tip='Open PyAero manual' short='CTRL+h' icon='Help book.png' handler='onHelp'></Submenu>
         <Submenu name='Manual (online)' tip='Open PyAero online documentation' short='CTRL+SHIFT+h' icon='Help book.png' handler='onHelpOnline'></Submenu>
         <Submenu name='Separator' tip=' ' short=' ' icon=' ' handler=' '></Submenu>
-        <Submenu name='About Qt' tip='Show the Qt librarys about box' short='' icon='' handler='QtWidgets.qApp.aboutQt'></Submenu>
+        <Submenu name='About Qt' tip='Show the Qt librarys about box' short='' icon='' handler='onAboutQt'></Submenu>
         <Submenu name='About PyAero' tip='Information about the PyAero and its licensing' short='' icon='About.png' handler='onAbout'></Submenu>
     </Menubar>
 </PyAero>

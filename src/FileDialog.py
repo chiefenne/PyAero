@@ -1,7 +1,9 @@
 
+import os
+
 from Settings import DIALOGFILTER, OUTPUTDATA, AIRFOILDATA
 
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 
 
 class Dialog:
@@ -23,10 +25,11 @@ class Dialog:
             string: filename inlcuding path to filename
             string: filter which was selected
         """
+        path = os.path.join(OUTPUTDATA, filename)
         filename, selected_filter = QtWidgets.QFileDialog.getSaveFileName(
             None,
             'Save File As',
-            OUTPUTDATA + filename,
+            path,
             self.filter,
             '')
 

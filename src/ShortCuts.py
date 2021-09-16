@@ -1,5 +1,5 @@
 
-from PySide2 import QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 class ShortCuts:
     """docstring for ClassName """
@@ -20,14 +20,15 @@ class ShortCuts:
             object: QShortcut object
         """
         
-        # guislot converts to:
-        # self.parent.slots.slotMethod()
-        guislot = getattr(self.parent.slots, slotMethod)
+        # gui_slot converts to:
+        # self.parent.slots.slotMethod(*args)
+        gui_slot = getattr(self.parent.slots, slotMethod)
         
-        sc = QtWidgets.QShortcut(QtGui.QKeySequence(shortcut), self.parent)
+        sc = QtGui.QShortcut(QtGui.QKeySequence(shortcut), self.parent)
         
-        # connect shortcut to self.parent.slots(*args)
-        sc.activated.connect(lambda: guislot(*args))
+        # connect shortcut to slot
+        # e.g. self.parent.slots.toggleLogDock(*args)
+        sc.activated.connect(lambda: gui_slot(*args))
 
         return
 

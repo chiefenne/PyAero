@@ -14,13 +14,20 @@ accurate input to the subsequent meshing process.
 
 import os
 import sys
+import signal
+
+# to resolve macOS problem (beginning with Big Sur)
+# e.g.: https://stackoverflow.com/questions/64833558/apps-not-popping-up-on-macos-big-sur-11-0-1
+# not needed with PySide6 anymore
+# if 'darwin' in sys.platform:
+#     os.environ["QT_MAC_WANTS_LAYER"] = "1"
 
 path_of_this_file = os.path.dirname(__file__)
 sys.path.append(path_of_this_file)
 
 import datetime
 
-from PySide2 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets
 
 import MenusTools
 import GraphicsView
@@ -111,15 +118,23 @@ class MainWindow(QtWidgets.QMainWindow):
         # window size, position and title
         # self.setGeometry(700, 100, 1200, 900)
         self.showMaximized()
-        self.setWindowTitle(__appname__ +
-                            ' - Airfoil Contour Analysis and CFD Meshing')
+        title = __appname__ + ' - Airfoil Contour Analysis and CFD Meshing'
+        self.setWindowTitle = title
 
         # create menus and tools of main window
         menusTools = MenusTools.MenusTools(self)
         menusTools.createMenus()
         menusTools.createTools()
-        menusTools.createStatusBar()
         menusTools.createDocks()
+
+        # create statusbar in main window
+        self.statusbar = self.statusBar()
+        self.statusbar.setFixedHeight(22)
+        style = (""" QStatusBar {background-color:rgb(232,232,232); \
+                border: 1px solid grey;}""")
+        self.statusbar.setStyleSheet(style)
+        self.statusbar.setSizeGripEnabled(False)
+        self.statusbar.showMessage('Ready', 3000)
 
         # show the GUI
         self.show()
@@ -128,7 +143,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # check if path is correct
         if not os.path.exists(MENUDATA):
-            print('\n PyAero ERROR: Folder %s does not exist.' % (MENUDATA))
+            print(f'\n PyAero ERROR: Folder {MENUDATA} does not exist.')
             print(' PyAero ERROR: Maybe you are starting '
                   'PyAero from the wrong location.\n')
             sys.exit()
@@ -157,7 +172,7 @@ class MainWindow(QtWidgets.QMainWindow):
         key = event.key()
 
         if key == QtCore.Qt.Key_Escape and EXITONESCAPE:
-            sys.exit(QtGui.qApp.quit())
+            sys.exit(self.app.exit(retcode=0))
         elif key == QtCore.Qt.Key_Home:
             self.slots.onViewAll()
         else:
@@ -273,18 +288,29 @@ class CentralWidget(QtWidgets.QWidget):
 
 def main():
 
+    # FIXME
+    # FIXME this is a preparation for a batch version of PyAero
+    # FIXME
+    useGUI = '-no-gui' not in sys.argv
+
     # main application (contains the main event loop)
-    app = QtWidgets.QApplication(sys.argv)
+    if useGUI:
+        # run PyAero in GUI mode
+        app = QtWidgets.QApplication(sys.argv)
+    else:
+        # run PyAero in batch mode
+        app = QtCore.QCoreApplication(sys.argv)
 
     # set icon for the application ( upper left window icon and taskbar icon)
     # and add specialization icons per size
     # (needed depending on the operating system)
-    app_icon = QtGui.QIcon(ICONS+'app_image.png')
-    app_icon.addFile(ICONS+'app_image_16x16.png', QtCore.QSize(16, 16))
-    app_icon.addFile(ICONS+'app_image_24x24.png', QtCore.QSize(24, 24))
-    app_icon.addFile(ICONS+'app_image_32x32.png', QtCore.QSize(32, 32))
-    app_icon.addFile(ICONS+'app_image_48x48.png', QtCore.QSize(48, 48))
-    app_icon.addFile(ICONS+'app_image_256x256.png', QtCore.QSize(256, 256))
+    app_icon = QtGui.QIcon(os.path.join(ICONS, 'app_image.png'))
+    app_icon.addFile(os.path.join(ICONS, 'app_image_16x16.png'), QtCore.QSize(16, 16))
+    app_icon.addFile(os.path.join(ICONS, 'app_image_24x24.png'), QtCore.QSize(24, 24))
+    app_icon.addFile(os.path.join(ICONS, 'app_image_32x32.png'), QtCore.QSize(32, 32))
+    app_icon.addFile(os.path.join(ICONS, 'app_image_48x48.png'), QtCore.QSize(48, 48))
+    app_icon.addFile(os.path.join(ICONS, 'app_image_256x256.png'), QtCore.QSize(256, 256))
+
     app.setWindowIcon(app_icon)
 
     if LOCALE == 'C':
@@ -296,7 +322,7 @@ def main():
     window = MainWindow(app, STYLE)
     window.show()
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == '__main__':

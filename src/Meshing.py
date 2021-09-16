@@ -7,7 +7,9 @@ import itertools
 import numpy as np
 from scipy import interpolate
 
-from PySide2 import QtGui, QtCore, QtWidgets
+import meshio
+
+from PySide6 import QtGui, QtCore, QtWidgets
 
 import PyAero
 import GraphicsItemsCollection as gic
@@ -389,7 +391,7 @@ class Windtunnel:
         vertices, connectivity, progdialog = \
             connect.connectAllBlocks(self.blocks)
 
-        # add mesh to Windtunnel instance
+        # add mesh to Wind-tunnel instance
         self.mesh = vertices, connectivity
 
         # generate cell to vertex connectivity from mesh
@@ -431,7 +433,7 @@ class Windtunnel:
         self.edges = list()
 
         for i, cell in enumerate(connectivity):
-            # example for Qudrilateral:
+            # example for Quadrilateral:
             # cell: [0, 1, 5, 4]
             # local_edges: [(0,1), (1,5), (5,4), (4,0)]
             local_edges = [(cell[j], cell[(j + 1) % len(cell)])
@@ -509,6 +511,13 @@ class Windtunnel:
         # new_loops[1] is complete outer boundary
         # split outer boundary into inlet and outlet
         self.is_outlet = list()
+
+        # FIXME
+        # FIXME
+        # FIXME this is not finished here, but only intermediate
+        # FIXME
+        # FIXME
+        return new_loops
 
         # edge is e.g.: (27, 53)
         for i, edge in enumerate(new_loops[1]):
@@ -1107,106 +1116,75 @@ class BlockMesh:
                         format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
-    def writeSU2(wind_tunnel, name=''):
-
-        basename = os.path.basename(name)
-        nameroot, extension = os.path.splitext(basename)
+    def writeVTK(wind_tunnel, name=''):
 
         mesh = wind_tunnel.mesh
-        blocks = wind_tunnel.blocks
-        boundary_loops = wind_tunnel.boundary_loops
-
         vertices, connectivity = mesh
-        airfoil_subdivisions, v = blocks[0].getDivUV()
-        trailing_edge_subdivisions, _ = blocks[1].getDivUV()
+        cells = [('quad', [cell]) for cell in connectivity]
+        vertices_3D = [v + (0.0,) for v in vertices]
 
-        # SU2 element types
-        element_type_quadrilateral = '9'
+        meshio.write_points_cells(name, vertices_3D, cells)
 
-        _date = date.today().strftime("%A %d. %B %Y")
+        basename = os.path.basename(name)
+        logger.info('SU2 type mesh saved as {}'.
+                    format(os.path.join(OUTPUTDATA, basename)))
 
-        with open(name, 'w') as f:
-            f.write('%\n')
-            f.write('% Airfoil contour: ' + nameroot + ' \n')
-            f.write('%\n')
-            f.write('% File created with ' + PyAero.__appname__ + '\n')
-            f.write('% Version: ' + PyAero.__version__ + '\n')
-            f.write('% Author: ' + PyAero.__author__ + '\n')
-            f.write('% Date: ' + _date + '\n')
-            # dimension of the problem
-            f.write('%\n')
-            f.write('% Problem dimension\n')
-            f.write('%\n')
-            f.write('NDIME= 2\n')
-            # element connectivity
-            f.write('%\n')
-            f.write('% Inner element connectivity\n')
-            f.write('%\n')
-            # number of elements
-            f.write('NELEM= %s\n' % (len(connectivity)))
+    @staticmethod
+    def writeSU2(wind_tunnel, name=''):
 
-            for cell_id, cell in enumerate(connectivity):
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        cells = [('quad', [cell]) for cell in connectivity]
 
-                cell_connect = element_type_quadrilateral + ' ' + \
-                    str(cell[0]) + ' ' + \
-                    str(cell[1]) + ' ' + \
-                    str(cell[2]) + ' ' + \
-                    str(cell[3]) + ' ' + str(cell_id) + '\n'
+        meshio.write_points_cells(name, vertices, cells)
 
-                f.write(cell_connect)
-
-            # comment for vertices
-            f.write('%\n')
-            f.write('% Node coordinates\n')
-            f.write('%\n')
-
-            f.write('NPOIN=%s\n' % (len(vertices)))
-
-            # x- and y-coordinates
-            for node, vertex in enumerate(vertices):
-                x, y = vertex[0], vertex[1]
-                f.write(' {:24.16e} {:24.16e} {}\n'.format(x, y, node))
-
-            # boundaries
-            f.write('%\n')
-            f.write('% Boundary elements\n')
-            f.write('%\n')
-
-            # number of vertices
-            # number of marks (Airfoil, Farfield, Symmetry)
-            # f.write('NMARK= 3\n')
-            f.write('NMARK= 2\n')
-
-            # boundary definition (tag) for the airfoil
-            f.write('MARKER_TAG= {}\n'.format(wind_tunnel.boundary_airfoil))
-            f.write('MARKER_ELEMS= {}\n'.format(len(boundary_loops[0])))
-            for edge in boundary_loops[0]:
-                f.write('3 {} {}\n'.format(edge[0], edge[1]))
-
-            # boundary definition (tag) for the farfield
-            # this loops the complete outer boundary
-            f.write('MARKER_TAG= {}\n'.format(wind_tunnel.boundary_inlet))
-            f.write('MARKER_ELEMS= {}\n'.format(len(boundary_loops[1])))
-            for edge in boundary_loops[1]:
-                f.write('3 {} {}\n'.format(edge[0], edge[1]))
-
-            # boundary definition (tag) for the symmetry
-            # f.write('MARKER_TAG= {}\n'.format(wind_tunnel.boundary_symmetry))
-            # f.write('MARKER_ELEMS= {}\n'.format(len(connectivity)))
-            # for cell_id, cell in enumerate(connectivity):
-
-            #     cell_connect = element_type_quadrilateral + ' ' + \
-            #         str(cell[0]) + ' ' + \
-            #         str(cell[1]) + ' ' + \
-            #         str(cell[2]) + ' ' + \
-            #         str(cell[3])
-            #     f.write('{}\n'.format(cell_connect))
-
-            logger.info('SU2 type mesh saved as {}'.
-                        format(name))
+        basename = os.path.basename(name)
+        logger.info('SU2 type mesh saved as {}'.
+                    format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
     def writeGMSH(wind_tunnel, name=''):
+
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        vertices_3D = [v + (0.0,) for v in vertices]
+        cells = [('quad', [cell]) for cell in connectivity]
+
+        meshio.write_points_cells(name, vertices_3D, cells)
+
+        basename = os.path.basename(name)
+        logger.info('GMSH type mesh saved as {}'.
+                    format(os.path.join(OUTPUTDATA, basename)))
+
+    @staticmethod
+    def writeCGNS(wind_tunnel, name=''):
+
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        vertices_3D = [v + (0.0,) for v in vertices]
+        cells = [('quad', [cell]) for cell in connectivity]
+
+        meshio.write_points_cells(name, vertices_3D, cells)
+
+        basename = os.path.basename(name)
+        logger.info('CGNS type mesh saved as {}'.
+                    format(os.path.join(OUTPUTDATA, basename)))
+
+    @staticmethod
+    def writeABAQUS(wind_tunnel, name=''):
+
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        vertices_3D = [v + (0.0,) for v in vertices]
+
+        meshio.write_points_cells(name, vertices_3D, connectivity)
+
+        basename = os.path.basename(name)
+        logger.info('ABAQUS type mesh saved as {}'.
+                    format(os.path.join(OUTPUTDATA, basename)))
+
+    @staticmethod
+    def writeGMSH_OLD(wind_tunnel, name=''):
         """export mesh in GMSH format 2
         http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format-version-2-_0028Legacy_0029
 

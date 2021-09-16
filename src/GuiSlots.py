@@ -2,8 +2,8 @@ import sys
 import copy
 import webbrowser
 
-import PySide2
-from PySide2 import QtGui, QtCore, QtWidgets
+import PySide6
+from PySide6 import QtGui, QtCore, QtWidgets
 
 import PyAero
 import Airfoil
@@ -194,9 +194,6 @@ class Slots:
     def toggleLogDock(self, _sender):
         """Switch message log window on/off"""
 
-        logger.debug('I am toggleLogDock')
-        logger.debug('This is _sender: {}'.format(_sender))
-
         visible = self.parent.messagedock.isVisible()
         self.parent.messagedock.setVisible(not visible)
 
@@ -252,7 +249,7 @@ class Slots:
         self.parent.messages.append(msg)
 
     def onExit(self):
-        sys.exit(QtWidgets.qApp.quit())
+        sys.exit(QtWidgets.QApplication.quit())
 
     def onCalculator(self):
         pass
@@ -306,6 +303,9 @@ class Slots:
     def onHelpOnline(self):
         webbrowser.open('http://pyaero.readthedocs.io/en/latest/')
 
+    def onAboutQt(self):
+        QtWidgets.QApplication.aboutQt()
+
     def onAbout(self):
         QtWidgets.QMessageBox. \
             about(self.parent, "About " + PyAero.__appname__,
@@ -329,6 +329,6 @@ class Slots:
                   + PyAero.__appname__ + ": " + PyAero.__version__ +
                   "<br>"
                   + "Python: %s" % (sys.version.split()[0]) + "<br>"
-                  + "Qt for Python: %s" % (PySide2.__version__) + "<br>"
-                  + "Qt: %s" % (PySide2.QtCore.__version__)
+                  + "Qt for Python: %s" % (PySide6.__version__) + "<br>"
+                  + "Qt: %s" % (PySide6.QtCore.__version__)
                   )
