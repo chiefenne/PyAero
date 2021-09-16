@@ -199,9 +199,9 @@ class Connect:
 
         self.progdialog.setValue(90)
 
-        self.write_debug(unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean)
         # DEBUGGING HELP
-        self.draw_connectivity(vertices, deleted_nodes)
+        # self.write_debug(unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean)
+        # self.draw_connectivity(vertices, deleted_nodes)
 
         return (vertices_clean, connectivity_clean, self.progdialog)
 
