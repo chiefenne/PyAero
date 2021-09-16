@@ -121,19 +121,19 @@ After cloning from Git, or downloading and unzipping, set the environment variab
 ### Linux and Cygwin
 
 ```bash
-$ setenv PYAERO_PATH path_to_your_installation
+$ setenv PYAEROPATH path_to_your_installation
 ```
 
 Run PyAero using:
 
 ```bash
-$ python $PYAERO_PATH/src/PyAero.py
+$ python $PYAEROPATH/src/PyAero.py
 ```
 
 To simplify the command, set an *alias*.
 
 ```bash
-$ alias pyaero  "python $PYAERO_PATH/src/PyAero.py"
+$ alias pyaero  "python $PYAEROPATH/src/PyAero.py"
 ```
 
 Then start PyAero using simply:
@@ -142,7 +142,7 @@ Then start PyAero using simply:
 $ pyaero
 ```
 
-To keep everything stored across sessions, you might want to add PYAERO_PATH and the *alias* command to your *~.bashrc, ~/.profile* or similar depending on your environment.
+To keep everything stored across sessions, you might want to add PYAEROPATH and the *alias* command to your *~.bashrc, ~/.profile* or similar depending on your environment.
 
 
 ## Qt for Python version (PySide2)
