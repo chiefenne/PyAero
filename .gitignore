@@ -4,11 +4,13 @@ backup2Diskstation.sh
 debug/
 data/OUTPUT/
 data/LOGS/
+debug/
 docs/*.pptx
 howto_configure_readthedocs.txt
 howto_git.txt
 *.txt
 lib_AE/
+PyInstaller/
 setup.py
 .vscode/
 src/__pycache__/
