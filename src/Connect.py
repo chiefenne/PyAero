@@ -1,3 +1,4 @@
+import os
 import copy
 
 import numpy as np
@@ -191,6 +192,15 @@ class Connect:
         mapping_ar[k] = v
         connectivity_clean = mapping_ar[connected]
 
+        # debug
+        print('max id unconnected', unconnected.max())
+        print('max id connected', connected.max())
+        print('max id connected clean', connectivity_clean.max())
+        print('len vertices', len(vertices))
+        print('len vertices_clean', len(vertices_clean))
+
+        self.write_debug(unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean)
+
         self.progdialog.setValue(90)
 
         return (vertices_clean, connectivity_clean, self.progdialog)
@@ -216,3 +226,20 @@ class Connect:
         # add to the scene
         self.connections = self.mainwindow.scene. \
             createItemGroup(self.connections)
+
+    def write_debug(self, unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean):
+
+        dicts = locals()
+        # print('dicts keys', dicts.keys())
+        # print('type', type(dicts))
+        dicts.pop('self')
+
+        folder = 'debug'
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+
+        # write all data to individual files
+        for listname in dicts:
+            with open(os.path.join(folder, listname + '.txt'), 'w') as f:
+                for item in dicts[listname]:
+                    f.write(str(item) + '\n')
