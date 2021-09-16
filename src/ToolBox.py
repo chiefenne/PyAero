@@ -572,9 +572,15 @@ class Toolbox(QtWidgets.QToolBox):
         self.check_FIRE = QtWidgets.QCheckBox('AVL FIRE')
         self.check_SU2 = QtWidgets.QCheckBox('SU2')
         self.check_GMSH = QtWidgets.QCheckBox('GMSH')
+        self.check_VTK = QtWidgets.QCheckBox('VTK')
+        self.check_CGNS = QtWidgets.QCheckBox('CGNS')
+        self.check_ABAQUS = QtWidgets.QCheckBox('ABAQUS')
         self.check_FIRE.setChecked(True)
-        self.check_SU2.setChecked(False)
+        self.check_SU2.setChecked(True)
         self.check_GMSH.setChecked(False)
+        self.check_VTK.setChecked(True)
+        self.check_CGNS.setChecked(False)
+        self.check_ABAQUS.setChecked(False)
         label = QtWidgets.QLabel('Export format:')
         label.setToolTip('Check format to be exported (multiple allowed)')
         rdl.addWidget(label)
@@ -585,6 +591,14 @@ class Toolbox(QtWidgets.QToolBox):
         rdl.addStretch(1)
         rdl.addWidget(self.check_GMSH)
         rdl.addStretch(5)
+        rdl1 = QtWidgets.QHBoxLayout()
+        rdl1.addStretch(5)
+        rdl1.addWidget(self.check_VTK)
+        rdl1.addStretch(1)
+        rdl1.addWidget(self.check_CGNS)
+        rdl1.addStretch(1)
+        rdl1.addWidget(self.check_ABAQUS)
+        rdl1.addStretch(5)
 
         exportMeshButton = QtWidgets.QPushButton('Export Mesh')
         hbl = QtWidgets.QHBoxLayout()
@@ -595,6 +609,7 @@ class Toolbox(QtWidgets.QToolBox):
         vbl1 = QtWidgets.QVBoxLayout()
         vbl1.addLayout(self.form_bnd)
         vbl1.addLayout(rdl)
+        vbl1.addLayout(rdl1)
         vbl1.addLayout(hbl)
 
         self.box_meshexport = QtWidgets.QGroupBox('Mesh Export')
@@ -944,6 +959,18 @@ class Toolbox(QtWidgets.QToolBox):
         if self.check_GMSH.isChecked():
             name = filename + '.msh'
             Meshing.BlockMesh.writeGMSH(self.wind_tunnel,
+                                        name=name)
+        if self.check_VTK.isChecked():
+            name = filename + '.vtk'
+            Meshing.BlockMesh.writeVTK(self.wind_tunnel,
+                                        name=name)
+        if self.check_CGNS.isChecked():
+            name = filename + '.cgns'
+            Meshing.BlockMesh.writeCGNS(self.wind_tunnel,
+                                       name=name)
+        if self.check_ABAQUS.isChecked():
+            name = filename + '.inp'
+            Meshing.BlockMesh.writeABAQUS(self.wind_tunnel,
                                         name=name)
 
     def exportContour(self):
