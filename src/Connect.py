@@ -191,11 +191,11 @@ class Connect:
         connectivity_clean = mapping_ar[connected]
 
         # debug
-        print('min/max id unconnected', unconnected.min(), unconnected.max())
-        print('min/max id connected', connected.min(), connected.max())
-        print('min/max id connected clean', connectivity_clean.min(), connectivity_clean.max())
-        print('len vertices', len(vertices))
-        print('len vertices_clean', len(vertices_clean))
+        # print('min/max id unconnected', unconnected.min(), unconnected.max())
+        # print('min/max id connected', connected.min(), connected.max())
+        # print('min/max id connected clean', connectivity_clean.min(), connectivity_clean.max())
+        # print('len vertices', len(vertices))
+        # print('len vertices_clean', len(vertices_clean))
 
         self.progdialog.setValue(90)
 
