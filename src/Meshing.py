@@ -1126,7 +1126,7 @@ class BlockMesh:
         meshio.write_points_cells(name, vertices_3D, cells)
 
         basename = os.path.basename(name)
-        logger.info('SU2 type mesh saved as {}'.
+        logger.info('VTK type mesh saved as {}'.
                     format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
@@ -1176,8 +1176,9 @@ class BlockMesh:
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
         vertices_3D = [v + (0.0,) for v in vertices]
+        cells = [('quad', [cell]) for cell in connectivity]
 
-        meshio.write_points_cells(name, vertices_3D, connectivity)
+        meshio.write_points_cells(name, vertices_3D, cells)
 
         basename = os.path.basename(name)
         logger.info('ABAQUS type mesh saved as {}'.
