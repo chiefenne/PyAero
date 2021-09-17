@@ -1150,7 +1150,7 @@ class BlockMesh:
         vertices_3D = [v + (0.0,) for v in vertices]
         cells = [('quad', [cell]) for cell in connectivity]
 
-        meshio.write_points_cells(name, vertices_3D, cells)
+        meshio.write_points_cells(name, vertices_3D, cells, file_format="gmsh22")
 
         basename = os.path.basename(name)
         logger.info('GMSH type mesh saved as {}'.
