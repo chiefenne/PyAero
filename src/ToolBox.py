@@ -931,7 +931,7 @@ class Toolbox(QtWidgets.QToolBox):
     def exportMesh(self):
 
         file_dialog = FileDialog.Dialog()
-        file_dialog.setFilter('Mesh files (*.flma *.su2 *.msh)')
+        file_dialog.setFilter('Mesh files (*.flma *.su2 *.msh *.inp *.cgns *.vtk)')
         filename, extension = os.path.splitext(self.parent.airfoil.name)
         filename, _ = file_dialog.saveFilename(filename)
 
