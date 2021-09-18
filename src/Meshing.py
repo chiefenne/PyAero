@@ -341,6 +341,7 @@ class Windtunnel:
         progdialog.setMinimumDuration(0)
         progdialog.setWindowTitle('Generating the CFD mesh')
         progdialog.setWindowModality(QtCore.Qt.WindowModal)
+        progdialog.setCancelButtonText('Abort meshing ...')
         progdialog.show()
 
         progdialog.setValue(10)
