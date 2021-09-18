@@ -1,5 +1,5 @@
 
-# PyAero ![](docs/images/RAE2822.png)
+# PyAero ![](docs/images/RAE2822_new.png)
 
 [![readthedocs](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://pyaero.readthedocs.io/en/latest/?badge=latest)
 [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://en.wikipedia.org/wiki/MIT_License)
