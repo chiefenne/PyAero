@@ -336,11 +336,12 @@ class Windtunnel:
             del self.mainwindow.airfoil.mesh_blocks
 
         progdialog = QtWidgets.QProgressDialog(
-            "", "Cancel", 0, 100, self.mainwindow)
+            "Meshing in progress", "Cancel", 0, 100, self.mainwindow)
         progdialog.setFixedWidth(300)
         progdialog.setMinimumDuration(0)
         progdialog.setWindowTitle('Generating the CFD mesh')
         progdialog.setWindowModality(QtCore.Qt.WindowModal)
+        progdialog.setCancelButtonText('Abort meshing ...')
         progdialog.show()
 
         progdialog.setValue(10)

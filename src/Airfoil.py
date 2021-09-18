@@ -135,7 +135,7 @@ class Airfoil:
             marker.pen.setWidthF(1.6)
             # no pen thickness change when zoomed
             marker.pen.setCosmetic(True)
-            marker.brush.setColor(QtGui.QColor(217, 63, 122, 150))
+            marker.brush.setColor(QtGui.QColor(217, 63, 122, 255))
             # circle size doesn't do anything here
             # this is indirectly deactivated because we don't want to change
             # marker size during zoom
@@ -158,9 +158,9 @@ class Airfoil:
 
     def makeChord(self):
         line = gic.GraphicsCollection()
-        color = QtGui.QColor(70, 70, 70, 255)
+        color = QtGui.QColor(52, 235, 122, 255)
         line.pen.setColor(color)
-        line.pen.setWidthF(0.8)
+        line.pen.setWidthF(2.5)
         # no pen thickness change when zoomed
         line.pen.setCosmetic(True)
         # setting CustomDashLine not needed as it will be set
@@ -168,7 +168,7 @@ class Airfoil:
         # put it just for completness
         line.pen.setStyle(QtCore.Qt.CustomDashLine)
         stroke = 10
-        dot = 2
+        dot = 1
         space = 5
         line.pen.setDashPattern([stroke, space, dot, space])
         index_min = np.argmin(self.raw_coordinates[0])
@@ -247,7 +247,7 @@ class Airfoil:
             # put airfoil contour points as graphicsitem
             splinemarker = gic.GraphicsCollection()
             splinemarker.pen.setColor(QtGui.QColor(60, 60, 80, 255))
-            splinemarker.brush.setColor(QtGui.QColor(180, 180, 50, 230))
+            splinemarker.brush.setColor(QtGui.QColor(203, 250, 72, 255))
             splinemarker.pen.setWidthF(1.6)
             # no pen thickness change when zoomed
             splinemarker.pen.setCosmetic(True)

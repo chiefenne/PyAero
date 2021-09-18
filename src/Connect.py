@@ -174,9 +174,9 @@ class Connect:
         # deleted nodes
         deleted_nodes = np.unique(unconnected[np.where(connected != unconnected)])
 
-
         # delete unused vertices
-        vertices_clean = [v for i,v in enumerate(vertices) if i not in sorted(deleted_nodes.tolist())]
+        vertices_clean = [v for i,v in enumerate(vertices)
+                        if i not in sorted(deleted_nodes.tolist())]
 
         # find remaining node ids
         remaining_nodes = np.setdiff1d(np.unique(connected), deleted_nodes)
@@ -190,16 +190,9 @@ class Connect:
         mapping_ar[k] = v
         connectivity_clean = mapping_ar[connected]
 
-        # debug
-        # print('min/max id unconnected', unconnected.min(), unconnected.max())
-        # print('min/max id connected', connected.min(), connected.max())
-        # print('min/max id connected clean', connectivity_clean.min(), connectivity_clean.max())
-        # print('len vertices', len(vertices))
-        # print('len vertices_clean', len(vertices_clean))
-
         self.progdialog.setValue(90)
 
-        # DEBUGGING HELP
+        # DEBUGGING
         # self.write_debug(unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean)
         # self.draw_connectivity(vertices, deleted_nodes)
 

@@ -367,8 +367,8 @@ def runSVP(name, x, y, u_inf, alpha, npanel=40):
         panel.sigma = variables[i]
     gamma = variables[-1]
 
-    time = QtCore.QTime()
-    time.start()
+    # time = QtCore.QTime()
+    # time.start()
     # computes the tangential velocity at each panel center.
     get_tangential_velocity(panels, freestream, gamma)
 
@@ -385,4 +385,4 @@ def runSVP(name, x, y, u_inf, alpha, npanel=40):
 
     logger.info('Aerodynamic properties {}'.format(name))
     logger.info('Lift coefficient: Cl = {0:6.3f} [-]'.format(cl))
-    logger.info('Uinf = {0:6.3f} [m/s], AOA = {1:6.3f} [degree]'.format(u_inf, alpha))
+    logger.info('Uinf = {:6.3f} [m/s], AOA = {:6.3f} [degree]'.format(u_inf, alpha))
