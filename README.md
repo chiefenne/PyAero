@@ -12,26 +12,31 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
  - Load and display airfoil contour files
  - Airfoil splining and refining
    - Get a smooth contour and sufficient contour points
-   - Refine leading and trailing edge resolution
+   - Refine leading edge and trailing edge
    - Prepare contour for meshing
    - Automatic calculation of leading edge radius
-   - Point distribution on spline used as mesh distribution
+   - Point distribution on spline used as mesh distribution around airfoil
  - Automatic generation of block-strcuctured mesh
-   - Currently single element C-type mesh
-   - Strictly orthogonal mesh in the vicinity of the airfoil
+   - Single element C-type mesh
+   - **Strictly orthogonal** mesh in the vicinity of the airfoil
    - Mesh resolution control for airfoil, leading edge, trailing edge and windtunnel
  - Sharp or blunt trailing edges
  - Mesh smoothing (to be improved)
  - Mesh export
    - [AVL FIRE](https://www.avl.com/fire) (.flma)
-   - [SU2](https://su2code.github.io/) (.su2)
-   - [GMSH](http://gmsh.info) (.msh)
+   - Some other file formats are exported using the [meshio](https://github.com/nschloe/meshio) library (only listed formats)
+     - [SU2](https://su2code.github.io) (.su2)
+     - [GMSH](http://gmsh.info) (.msh)
+     - [VTK](https://vtk.org) (.vtk)
+     - [CGNS](https://cgns.github.io) (.cgns)
+     - [ABAQUS](https://www.3ds.com) (.inp)
    - Automatic definition of boundary elements (edges, faces)
      - Airfoil, inlet, outlet, symmetry
  - Simple aerodynamic analysis using [AeroPython](http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb)
  - Airfoil contour analysis (gradient, curvature and curvature circle)
- - NOT YET IMPLEMENTED: Advanced aerodynamic analysis
-   - Linking to open source CFD software (e.g. SU2)
+ - NOT YET IMPLEMENTED:
+   - Decent smoothing algorithm for the mesh regions outside the orthogonal blocks
+   - Advanced aerodynamic analysis (i.e. linking to open source CFD software, e.g. SU2)
 
 ## Sample screenshots
 
@@ -96,18 +101,24 @@ The documentation is automatically generated using the markdown files in the [do
 At the moment no binary is available for Windows.
 
 ## Download
+The $ symbol at the beginning the following command examples represents the prompt at command shell. It is not part of the command.
 
 ### Option 1: Download source version using Git:
-The $ symbol represents the prompt at command shell. It is not part of the command.
 
 ```bash
 $ cd anywhere_on_your_computer
 $ git clone https://github.com/chiefenne/PyAero.git
 ```
+or if you want a specific branch (e.g. develop):
+
+```bash
+$ git clone https://github.com/chiefenne/PyAero.git -b develop
+```
+
 
 ### Option 2: Download source version as a ZIP file:
 
-From the [PyAero GitHub repository](https://github.com/chiefenne/PyAero). There is on the upper right side a green pull down menu "Clone or download". Click on it and then click "Download ZIP". You get a file "PyAero-master.zip" which you store anywhere on your computer.
+From the [PyAero GitHub repository](https://github.com/chiefenne/PyAero). There is on the upper right side a green pull down menu ***Clone or download***. Click on it and then click ***Download ZIP***. You get a file ***PyAero-master.zip*** which you store anywhere on your computer.
 
 ```bash
 $ cd anywhere_on_your_computer
@@ -118,10 +129,27 @@ $ unzip PyAero-master.zip
 
 After cloning from Git, or downloading and unzipping, set the environment variable for the PyAero installation path.
 
-### Linux and Cygwin
+### Linux
 
+If your shell is **bash**:
+```bash
+$ export PYAEROPATH=path_to_your_installation
+```
+
+And if you want to set it permanently across sessions (one of the following):
+```bash
+$ echo 'export PYAEROPATH=path_to_your_installation' >> ~/.bashrc
+$ echo 'export PYAEROPATH=path_to_your_installation' >> ~/.bash_profile
+```
+
+For **csh** or **tcsh** use:
 ```bash
 $ setenv PYAEROPATH path_to_your_installation
+```
+
+And if you want to set it permanently across sessions:
+```bash
+$ echo 'setenv PYAEROPATH path_to_your_installation' >> ~/.csshrc
 ```
 
 Run PyAero using:
@@ -130,10 +158,11 @@ Run PyAero using:
 $ python $PYAEROPATH/src/PyAero.py
 ```
 
-To simplify the command, set an *alias*.
+To simplify the command, set an *alias* ()the upper beeing for bash and the lower for csh/tcsh.
 
 ```bash
-$ alias pyaero  "python $PYAEROPATH/src/PyAero.py"
+$ alias pyaero="python $PYAEROPATH/src/PyAero.py"
+$ alias pyaero "python $PYAEROPATH/src/PyAero.py"
 ```
 
 Then start PyAero using simply:
@@ -142,20 +171,15 @@ Then start PyAero using simply:
 $ pyaero
 ```
 
-To keep everything stored across sessions, you might want to add PYAEROPATH and the *alias* command to your *~.bashrc, ~/.profile* or similar depending on your environment.
+## Qt for Python version
 
+PyAero version based on the [Qt for Python](https://www.qt.io/qt-for-python) (alias PySide2 for QT5 or PySide6 for QT6) API.
 
-## Qt for Python version (PySide2)
-
-PyAero version based on the **Qt for Python (alias PySide2)** GUI API
-
-**Reasoning for going with Qt for Python**
-
-PyAero started based on the PyQt4 which for me was the API to go at the time when I started development. PyAero two years ago achieved an 80% state.
+PyAero started based on the PyQt4 framework which for me was the API to go at the time when I started development.
 
 After a small creative break I decided to upgrade to PyQt5 and continue development. I soon realized that the PyQt5 documentation lacks information, i.e. there were only links to the Qt C++ documentation and no Python related docs, I had the feelig that the PyQt5 development probably stagnates.
 
-Short online research revealed to me that meanwhile Qt themselves are developing now **Qt for Python (alias PySide2)** which is based on the legacy Pyside API. This made me think that it is possibly best to go with Qt for Python as it is tightly coupled to Qt.
+Short online research revealed to me that meanwhile Qt themselves are developing now **Qt for Python** which is based on the legacy Pyside API. This made me think that it is possibly best to go with Qt for Python as it is tightly coupled to Qt.
 
 ## For the brave
 
