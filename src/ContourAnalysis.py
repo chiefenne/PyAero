@@ -51,6 +51,7 @@ class ContourAnalysis(QtWidgets.QFrame):
 
         self.chartView = QtCharts.QChartView(self.chart)
         self.chartView.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.chartView.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
 
         vlayout = QtWidgets.QVBoxLayout()
         vlayout.addWidget(self.chartView)
