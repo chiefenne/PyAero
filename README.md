@@ -60,7 +60,7 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
 **Example mesh with a sharp Trailing Edge**
 <br><br>
 
-![](docs/images/MAKAROV_KPS_mesh.gif)
+![](docs/images/MAKAROV_KPS_mesh_MAC.png)
 **Example mesh around MAKAROV KPS airfoil as used in the CFD code AVL-FIRE.**
 <br><br>
 
