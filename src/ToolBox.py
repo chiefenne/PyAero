@@ -133,12 +133,12 @@ class Toolbox(QtWidgets.QToolBox):
         form = QtWidgets.QFormLayout()
 
         label1 = QtWidgets.QLabel(u'Angle of attack (°)')
-        self.aoa = QtWidgets.QDoubleSpinBox()
-        self.aoa.setSingleStep(0.1)
-        self.aoa.setDecimals(1)
-        self.aoa.setRange(-10.0, 10.0)
-        self.aoa.setValue(0.0)
-        form.addRow(label1, self.aoa)
+        self.aoaAP = QtWidgets.QDoubleSpinBox()
+        self.aoaAP.setSingleStep(0.1)
+        self.aoaAP.setDecimals(1)
+        self.aoaAP.setRange(-10.0, 10.0)
+        self.aoaAP.setValue(0.0)
+        form.addRow(label1, self.aoaAP)
 
         label2 = QtWidgets.QLabel('Freestream velocity (m/s)')
         self.freestream = QtWidgets.QDoubleSpinBox()
@@ -836,7 +836,7 @@ class Toolbox(QtWidgets.QToolBox):
         if self.parent.airfoil:
             x, y = self.parent.airfoil.raw_coordinates
             u_inf = self.freestream.value()
-            alpha = self.spin.value()
+            alpha = self.aoaAP.value()
             panels = self.panels.value()
             SvpMethod.runSVP(self.parent.airfoil.name,
                              x, y, u_inf, alpha, panels)
