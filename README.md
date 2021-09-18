@@ -44,7 +44,7 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
 **PyAero GUI at a glance**
 <br><br>
 
-![](docs/images/mesh_888x260_RAE2822.gif)
+![](docs/images/mesh_RAE2822_MAC.png)
 **Example mesh around RAE2822 airfoil**
 <br><br>
 
