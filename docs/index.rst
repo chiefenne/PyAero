@@ -88,7 +88,7 @@ Features
    - Wake region
    - Windtunnel
  
- - Mesh export
+ - Mesh export (most formats based on the `meshio <https://github.com/nschloe/meshio>` library)
  
    - `AVL FIRE <https://www.avl.com/fire>`_ (*.flma)
    - `SU2 <https://su2code.github.io/>`_ (*.su2)
