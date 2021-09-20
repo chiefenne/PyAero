@@ -3,7 +3,7 @@
    <br />
 
 .. important::
-   The documentation is not yet finished but almost up to date.
+   The documentation is not yet finished, but should be good enough to make meshes.
 
 ********************
 PyAero documentation
