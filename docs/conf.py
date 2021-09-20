@@ -23,13 +23,13 @@ sys.path.insert(0, os.path.abspath('.'))
 # -- Project information -----------------------------------------------------
 
 project = 'PyAero'
-copyright = '2019, Andreas Ennemoser'
+copyright = '2021, Andreas Ennemoser'
 author = 'Andreas Ennemoser'
 
 # The short X.Y version
-version = '1.2'
+version = '2.0'
 # The full version, including alpha/beta/rc tags
-release = 'v1.2.0'
+release = 'v2.0.1'
 
 
 # -- General configuration ---------------------------------------------------
