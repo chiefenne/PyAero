@@ -16,25 +16,25 @@ To reflect *real* shapes, an option for creating a trailing edge and blendig it 
 The following figures show an example mesh around the airfoil **RAE2822** in differently zoomed variants to be able to see detail at leading and trailing edge better.
 
 .. _figure_mesh_RAE2822:
-.. figure::  images/mesh_RAE2822_753x288.gif
+.. figure::  images/mesh_RAE2822_MAC.png
    :align:   center
-   :target:  _images/mesh_RAE2822_753x288.gif
+   :target:  _images/mesh_RAE2822_MAC.png
    :name: mesh_RAE2822_753x288
 
    Mesh around **RAE2822** airfoil
 
 .. _figure_LE_mesh_RAE2822:
-.. figure::  images/LE_mesh_RAE2822.gif
+.. figure::  images/LE_mesh_RAE2822_MAC.png
    :align:   center
-   :target:  _images/LE_mesh_RAE2822.gif
+   :target:  _images/LE_mesh_RAE2822_MAC.png
    :name: LE_mesh_RAE2822
 
    Leading edge mesh view of **RAE2822** airfoil
 
 .. _figure_TE_mesh_RAE2822:
-.. figure::  images/TE_mesh_RAE2822.gif
+.. figure::  images/TE_mesh_RAE2822_MAC.png
    :align:   center
-   :target:  _images/TE_mesh_RAE2822.gif
+   :target:  _images/TE_mesh_RAE2822_MAC.png
    :name: TE_mesh_RAE2822
 
    Trailing edge mesh view of **RAE2822** airfoil
