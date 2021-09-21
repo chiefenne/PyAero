@@ -37,7 +37,6 @@ The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in
    PyAero menu structure
 
 .. include:: ui_menu_file.inc
-.. include:: ui_menu_edit.inc
 .. include:: ui_menu_view.inc
 .. include:: ui_menu_tools.inc
 .. include:: ui_menu_help.inc
