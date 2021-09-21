@@ -91,8 +91,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
             # stop: 0.3 white, stop: 0.6 #4b73b4, stop: 1.0 #263a5a); } """)
         else:
             style = ("""
-            QtWidgets.QGraphicsView { border-style:solid; border-color: lightgrey; \
-            border-width: 1px; background-color: white } """)
+            border-style:solid; border-color: lightgrey; \
+            border-width: 1px; background-color: white;""")
 
         self.setStyleSheet(style)
 
