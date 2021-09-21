@@ -35,6 +35,9 @@ class MenusTools:
             pulldowns = self.getPullDownData(items)
             menudata.append((mname, [s for s in pulldowns]))
 
+        # attach available pulldowns to the mainwindow
+        # so it can be used elsewhere (e.g. Guislots)
+        self.parent.menudata = menudata
         return tuple(menudata)
 
     def getPullDownData(self, items):
@@ -50,6 +53,7 @@ class MenusTools:
             shortcut = sub.attrib['short']
             handler = sub.attrib['handler']
             pulldowns.append((sname, tip, shortcut, icon, handler))
+
 
         return pulldowns
 

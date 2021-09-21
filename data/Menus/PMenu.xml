@@ -1,6 +1,6 @@
 <!--
    The XML structure in this file allows for a dynamic menu population in PyAero
-   If new menus are added, there need to be written respective handlers (PyQt slots)
+   If new menus are added, there need to be written respective handlers (aka "slots")
 -->
 <PyAero>
     <Menubar name='File'>
@@ -26,8 +26,10 @@
         <Submenu name='Settings' tip='Customize PyAero' short='CTRL+e' icon='Settings.png' handler='onCalculator'></Submenu>
     </Menubar>
     <Menubar name='Help'>
-        <Submenu name='Manual (PDF)' tip='Open PyAero manual' short='CTRL+h' icon='Help book.png' handler='onHelp'></Submenu>
         <Submenu name='Manual (online)' tip='Open PyAero online documentation' short='CTRL+SHIFT+h' icon='Help book.png' handler='onHelpOnline'></Submenu>
+        <Submenu name='Manual (PDF)' tip='Open PyAero manual' short='CTRL+h' icon='Help book.png' handler='onHelpPDF'></Submenu>
+        <Submenu name='Separator' tip=' ' short=' ' icon=' ' handler=' '></Submenu>
+        <Submenu name='Keyboard shortcuts' tip='Show available keyboard shortcuts' short='CTRL+k' icon='Items.png' handler='onKeyBd'></Submenu>
         <Submenu name='Separator' tip=' ' short=' ' icon=' ' handler=' '></Submenu>
         <Submenu name='About Qt' tip='Show the Qt librarys about box' short='' icon='' handler='onAboutQt'></Submenu>
         <Submenu name='About PyAero' tip='Information about the PyAero and its licensing' short='' icon='About.png' handler='onAbout'></Submenu>

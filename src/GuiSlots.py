@@ -1,3 +1,4 @@
+from datetime import date
 import sys
 import copy
 import webbrowser
@@ -291,11 +292,49 @@ class Slots:
             information(self.parent, 'Information',
                         message, QtWidgets.QMessageBox.Ok)
 
-    def onHelp(self):
-        pass
+    def onKeyBd(self):
+        # automatically populate shortscuts from PMenu.xml
+        text = '<table> \
+                '
+        for eachMenu in self.parent.menudata:
+            for pulldown in eachMenu[1]:
+                if pulldown[2]:
+                    text += f' \
+                        <tr> \
+                            <td>{pulldown[2]}</td> \
+                            <hr> \
+                            <td colspan=5></td> \
+                            <td>{pulldown[1]}</td> \
+                            <hr> \
+                        </tr> \
+                        '
+        text += '</table>'
+ 
+        textedit = QtWidgets.QTextEdit()
+        textedit.setReadOnly(True)
+        # textedit.setStyleSheet('font-family: Courier; font-size: 14px; ')
+        textedit.setHtml(text)
+
+        # buttons = QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        buttons = QtWidgets.QDialogButtonBox.Ok
+        buttonBox = QtWidgets.QDialogButtonBox(buttons)
+        
+        # make a dialog to carry the textedit and button widget
+        dlg = QtWidgets.QDialog(self.parent)
+        dlg.setWindowTitle('Keyboard shortcuts')
+        dlg.setFixedSize(700, 800)
+        buttonBox.accepted.connect(dlg.accept)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(textedit)
+        layout.addWidget(buttonBox)
+        dlg.setLayout(layout)
+        dlg.exec_()
 
     def onHelpOnline(self):
         webbrowser.open('http://pyaero.readthedocs.io/en/latest/')
+
+    def onHelpPDF(self):
+        webbrowser.open('https://pyaero.readthedocs.io/_/downloads/en/latest/pdf/')
 
     def onAboutQt(self):
         QtWidgets.QApplication.aboutQt()
