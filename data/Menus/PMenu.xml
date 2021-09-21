@@ -13,10 +13,6 @@
         <Submenu name='Separator' tip=' ' short=' ' icon=' ' handler=' '></Submenu>
         <Submenu name='Exit' tip='Shut down PyAero' short='CTRL+x' icon='Exit.png' handler='onExit'></Submenu>
     </Menubar>
-    <Menubar name='Edit'>
-        <Submenu name='Undo' tip='Undo last action' short='CTRL+z' icon='Undo.png' handler='onUndo'></Submenu>
-        <Submenu name='Redo' tip='Redo last action' short='CTRL+y' icon='Redo.png' handler='onRedo'></Submenu>
-    </Menubar>
     <Menubar name='View'>
         <Submenu name='Fit airfoil in view' tip='Set view to selected airfoil' short='CTRL+f' icon='' handler='fitAirfoilInView'></Submenu>
         <Submenu name='Fit all in view' tip='Set view to all items visible' short='CTRL+SHIFT+f' icon='' handler='onViewAll'></Submenu>

@@ -262,9 +262,6 @@ class Slots:
 
         self.parent.view.setBackground(self.parent.view.viewstyle)
 
-    def onUndo(self):
-        pass
-
     def onLevelChanged(self):
         """Change size of message window when floating """
         if self.parent.messagedock.isFloating():
@@ -293,9 +290,6 @@ class Slots:
         QtWidgets.QMessageBox. \
             information(self.parent, 'Information',
                         message, QtWidgets.QMessageBox.Ok)
-
-    def onRedo(self):
-        pass
 
     def onHelp(self):
         pass
