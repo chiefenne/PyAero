@@ -81,11 +81,11 @@ class GraphicsView(QtWidgets.QGraphicsView):
         """
 
         if styletype == 'gradient':
-            style = ("""
-            QtWidgets.QGraphicsView {border-style:solid; border-color: lightgrey; \
-            border-width: 1px; background-color: QLinearGradient( \
-            x1: 0.0, y1: 0.0, x2: 0.0, y2: 1.0, \
-            stop: 0.3 white, stop: 1.0 #263a5a); } """)
+            style = """
+            border-style:solid; border-color: lightgrey;
+            border-width: 1px; background-color: QLinearGradient(x1: 0.0, y1: 0.0,
+            x2: 0.0, y2: 1.0, stop: 0.3 white, stop: 1.0 #263a5a);
+            """
 
             # if more stops are needed
             # stop: 0.3 white, stop: 0.6 #4b73b4, stop: 1.0 #263a5a); } """)
