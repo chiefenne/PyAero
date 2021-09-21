@@ -72,7 +72,7 @@ FILEFILTER = ['*.dat', '*.txt', '*.su2']
 ZOOMANCHOR = 'mouse'
 
 # background of graphicsview ('solid', 'gradient')
-VIEWSTYLE = 'gradient'
+VIEWSTYLE = 'solid'
 
 # set zoom limits so that scene is always in meaningful size
 MINZOOM = 10.0
