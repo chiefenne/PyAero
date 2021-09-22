@@ -53,7 +53,7 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
 <br><br>
 
 ![](docs/images/TE_mesh_RAE2822_MAC.png)
-**Example mesh around RAE2822 airfoil - Trailing Edge (with finite thickness)**
+**Example mesh around RAE2822 airfoil with a blunt Trailing Edge (with finite thickness)**
 <br><br>
 
 ![](docs/images/TE_mesh_sharp_MAC.png)
