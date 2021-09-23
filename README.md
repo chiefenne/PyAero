@@ -165,7 +165,7 @@ $ alias pyaero="python $PYAEROPATH/src/PyAero.py"
 $ alias pyaero "python $PYAEROPATH/src/PyAero.py"
 ```
 
-To keep this across sessions, again append the command to the respective *.bashrc*, *.cshrc*, etc.
+To keep this across sessions, again append the *alias* command to the respective *.bashrc*, *.cshrc*, etc.
 
 Then start PyAero using simply:
 
