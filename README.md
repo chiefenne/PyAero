@@ -185,6 +185,6 @@ Short online research revealed to me that meanwhile Qt themselves are developing
 
 <a href='https://ko-fi.com/G2G6143T6' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi4.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 
-Andreas Ennemoser – andreas.ennemoser@aon.at
+2021 Andreas Ennemoser – andreas.ennemoser@aon.at
 
 Distributed under the MIT license. See [LICENSE](https://raw.githubusercontent.com/chiefenne/PyAero/master/LICENSE) for more information.
