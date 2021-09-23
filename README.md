@@ -53,7 +53,7 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
 <br><br>
 
 ![](docs/images/TE_mesh_RAE2822_MAC.png)
-**Example mesh around RAE2822 airfoil - Trailing Edge (with finite thickness)**
+**Example mesh around RAE2822 airfoil with a blunt Trailing Edge (with finite thickness)**
 <br><br>
 
 ![](docs/images/TE_mesh_sharp_MAC.png)
@@ -149,7 +149,7 @@ $ setenv PYAEROPATH path_to_your_installation
 
 And if you want to set it permanently across sessions:
 ```bash
-$ echo 'setenv PYAEROPATH path_to_your_installation' >> ~/.csshrc
+$ echo 'setenv PYAEROPATH path_to_your_installation' >> ~/.cshrc
 ```
 
 Run PyAero using:
@@ -158,14 +158,16 @@ Run PyAero using:
 $ python $PYAEROPATH/src/PyAero.py
 ```
 
-To simplify the command, set an *alias* ()the upper beeing for bash and the lower for csh/tcsh.
+To simplify the command, set an *alias* (the upper beeing for bash and the lower for csh/tcsh).
 
 ```bash
 $ alias pyaero="python $PYAEROPATH/src/PyAero.py"
 $ alias pyaero "python $PYAEROPATH/src/PyAero.py"
 ```
 
-Then start PyAero using simply:
+To keep this across sessions, again append the *alias* command to the respective *.bashrc*, *.cshrc*, etc.
+
+Then start PyAero using:
 
 ```bash
 $ pyaero
@@ -173,7 +175,7 @@ $ pyaero
 
 ## Qt for Python version
 
-PyAero version based on the [Qt for Python](https://www.qt.io/qt-for-python) (alias PySide2 for QT5 or PySide6 for QT6) API.
+PyAero version based on the [Qt for Python](https://www.qt.io/qt-for-python) API (alias PySide2 for QT5 or PySide6 for QT6).
 
 PyAero started based on the PyQt4 framework which for me was the API to go at the time when I started development.
 
@@ -185,6 +187,6 @@ Short online research revealed to me that meanwhile Qt themselves are developing
 
 <a href='https://ko-fi.com/G2G6143T6' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi4.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 
-Andreas Ennemoser – andreas.ennemoser@aon.at
+2021 Andreas Ennemoser – andreas.ennemoser@aon.at
 
 Distributed under the MIT license. See [LICENSE](https://raw.githubusercontent.com/chiefenne/PyAero/master/LICENSE) for more information.

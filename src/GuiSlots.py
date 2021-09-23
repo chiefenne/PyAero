@@ -176,14 +176,14 @@ class Slots:
             f.write('This test worked for me ...')
 
     def onPrint(self):
-        dialog = QtGui.QPrintDialog()
+        dialog = QtWidgets.QPrintDialog()
         if dialog.exec_() == QtGui.QDialog.Accepted:
             self.parent.editor.document().print_(dialog.printer())
 
     def onPreview(self):
-        printer = QtGui.QPrinter(QtGui.QPrinter.HighResolution)
+        printer = QtWidgets.QPrinter(QtWidgets.QPrinter.HighResolution)
 
-        preview = QtGui.QPrintPreviewDialog(printer, self.parent)
+        preview = QtWidgets.QPrintPreviewDialog(printer, self.parent)
         preview.paintRequested.connect(self.handlePaintRequest)
         preview.exec_()
 
