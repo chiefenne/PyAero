@@ -175,7 +175,7 @@ $ pyaero
 
 ## Qt for Python version
 
-PyAero version based on the [Qt for Python](https://www.qt.io/qt-for-python) (alias PySide2 for QT5 or PySide6 for QT6) API.
+PyAero version based on the [Qt for Python](https://www.qt.io/qt-for-python) API (alias PySide2 for QT5 or PySide6 for QT6).
 
 PyAero started based on the PyQt4 framework which for me was the API to go at the time when I started development.
 
