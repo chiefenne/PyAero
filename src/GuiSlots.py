@@ -4,7 +4,7 @@ import copy
 import webbrowser
 
 import PySide6
-from PySide6 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets, QtPrintSupport
 
 import PyAero
 import Airfoil
@@ -181,15 +181,19 @@ class Slots:
             self.parent.editor.document().print_(dialog.printer())
 
     def onPreview(self):
-        printer = QtWidgets.QPrinter(QtWidgets.QPrinter.HighResolution)
+        printer = QtPrintSupport.QPrinter(QtPrintSupport.QPrinter.HighResolution)
+        layout = QtGui.QPageLayout()
+        layout.setOrientation(QtGui.QPageLayout.Landscape)
+        layout.setPageSize(QtGui.QPageSize.A3)
+        printer.setPageLayout(layout)
 
-        preview = QtWidgets.QPrintPreviewDialog(printer, self.parent)
+        preview = QtPrintSupport.QPrintPreviewDialog(printer, self.parent)
         preview.paintRequested.connect(self.handlePaintRequest)
-        preview.exec_()
+        preview.exec()
 
-    # setup printer for print preview
+    # handle paint request
     def handlePaintRequest(self, printer):
-        printer.setOrientation(QtGui.QPrinter.Landscape)
+        # render QGraphicsView
         self.parent.view.render(QtGui.QPainter(printer))
 
     def toggleLogDock(self, _sender):
