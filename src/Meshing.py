@@ -1078,21 +1078,28 @@ class BlockMesh:
             fetQuad = '3\n'
 
             # write FIRE selections to FLMA file
+            # number of selections
             f.write('6\n')
-            f.write('right\n')
+            # selection name
+            f.write('symmetry\n')
+            # FIRE element type
             f.write(fetQuad)
-            f.write(str(2 * len(connectivity)) + '\n')
+            # 2x number of faces in the selection
+            # her we take 4x because we put both symmetry selections together
+            f.write(str(4 * len(connectivity)) + '\n')
+            # cells of the face-selection and face direction (0-5)
             for i in range(len(connectivity)):
-                f.write(' %s 0' % (i))
-            f.write('\n')
-            f.write('\n')
-            f.write('left\n')
-            f.write(fetQuad)
-            f.write(str(2 * len(connectivity)) + '\n')
+                f.write(f' {i} 0')
             for i in range(len(connectivity)):
-                f.write(' %s 1' % (i))
+                f.write(f' {i} 1')
             f.write('\n')
             f.write('\n')
+            #
+            # FIXME
+            # FIXME find all cell around the airfoil, at the outlet and at the inlet
+            # FIXME
+            #
+            # selection name
             f.write('bottom\n')
             f.write(fetQuad)
             f.write('2\n')
