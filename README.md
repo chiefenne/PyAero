@@ -158,7 +158,7 @@ Run PyAero using:
 $ python $PYAEROPATH/src/PyAero.py
 ```
 
-To simplify the command, set an *alias* ()the upper beeing for bash and the lower for csh/tcsh.
+To simplify the command, set an *alias* (the upper beeing for bash and the lower for csh/tcsh).
 
 ```bash
 $ alias pyaero="python $PYAEROPATH/src/PyAero.py"
