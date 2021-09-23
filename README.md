@@ -149,7 +149,7 @@ $ setenv PYAEROPATH path_to_your_installation
 
 And if you want to set it permanently across sessions:
 ```bash
-$ echo 'setenv PYAEROPATH path_to_your_installation' >> ~/.csshrc
+$ echo 'setenv PYAEROPATH path_to_your_installation' >> ~/.cshrc
 ```
 
 Run PyAero using:
