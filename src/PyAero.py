@@ -14,13 +14,7 @@ accurate input to the subsequent meshing process.
 
 import os
 import sys
-import signal
-
-# to resolve macOS problem (beginning with Big Sur)
-# e.g.: https://stackoverflow.com/questions/64833558/apps-not-popping-up-on-macos-big-sur-11-0-1
-# not needed with PySide6 anymore
-# if 'darwin' in sys.platform:
-#     os.environ["QT_MAC_WANTS_LAYER"] = "1"
+import platform
 
 path_of_this_file = os.path.dirname(__file__)
 sys.path.append(path_of_this_file)
@@ -66,6 +60,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # helps to overcome nested usage of "parent"
         self.app = app
         self.app.mainwindow = self
+        # identify platform (one of Windows, Linux, or Darwin for macOS)
+        self.platform = platform.system()
 
         self.style = style
         # styles do not work anymore; need to come back

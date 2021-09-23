@@ -4,7 +4,7 @@ import copy
 import webbrowser
 
 import PySide6
-from PySide6 import QtGui, QtCore, QtWidgets
+from PySide6 import QtGui, QtCore, QtWidgets, QtPrintSupport
 
 import PyAero
 import Airfoil
@@ -181,15 +181,19 @@ class Slots:
             self.parent.editor.document().print_(dialog.printer())
 
     def onPreview(self):
-        printer = QtWidgets.QPrinter(QtWidgets.QPrinter.HighResolution)
+        printer = QtPrintSupport.QPrinter(QtPrintSupport.QPrinter.HighResolution)
+        layout = QtGui.QPageLayout()
+        layout.setOrientation(QtGui.QPageLayout.Landscape)
+        layout.setPageSize(QtGui.QPageSize.A3)
+        printer.setPageLayout(layout)
 
-        preview = QtWidgets.QPrintPreviewDialog(printer, self.parent)
+        preview = QtPrintSupport.QPrintPreviewDialog(printer, self.parent)
         preview.paintRequested.connect(self.handlePaintRequest)
-        preview.exec_()
+        preview.exec()
 
-    # setup printer for print preview
+    # handle paint request
     def handlePaintRequest(self, printer):
-        printer.setOrientation(QtGui.QPrinter.Landscape)
+        # render QGraphicsView
         self.parent.view.render(QtGui.QPainter(printer))
 
     def toggleLogDock(self, _sender):
@@ -293,15 +297,20 @@ class Slots:
                         message, QtWidgets.QMessageBox.Ok)
 
     def onKeyBd(self):
-        # automatically populate shortscuts from PMenu.xml
+        # automatically populate shortcuts from PMenu.xml
         text = '<table> \
                 '
         for eachMenu in self.parent.menudata:
             for pulldown in eachMenu[1]:
                 if pulldown[2]:
+                    if self.parent.platform == 'Darwin':
+                        shortcut = pulldown[2].replace('CTRL', 'CMD')
+                        print(pulldown[2], '...', shortcut)
+                    else:
+                        shortcut = pulldown[2]
                     text += f' \
                         <tr> \
-                            <td>{pulldown[2]}</td> \
+                            <td>{shortcut}</td> \
                             <hr> \
                             <td colspan=5></td> \
                             <td>{pulldown[1]}</td> \
@@ -322,7 +331,7 @@ class Slots:
         # make a dialog to carry the textedit and button widget
         dlg = QtWidgets.QDialog(self.parent)
         dlg.setWindowTitle('Keyboard shortcuts')
-        dlg.setFixedSize(700, 800)
+        dlg.setFixedSize(800, 900)
         buttonBox.accepted.connect(dlg.accept)
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(textedit)
