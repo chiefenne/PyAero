@@ -1,5 +1,6 @@
 import os
 import logging
+import datetime
 
 from Settings import LOGDATA
 
@@ -37,10 +38,8 @@ def log(mainwindow):
     # see https://stackoverflow.com/a/6459613/2264936
     stdout_handler = logging.getLogger('').handlers[0]
 
-    logfile = os.path.join(LOGDATA, 'PyAero.log')
-    # remove any existing logfile
-    if os.path.exists(logfile):
-        os.remove(logfile)
+    format = 'PyAero_%Y-%m-%d____h%H-m%M-s%S.log'
+    logfile = os.path.join(LOGDATA, datetime.datetime.now().strftime(format))
 
     # create a file handler
     file_handler = logging.FileHandler(logfile)
