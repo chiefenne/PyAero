@@ -1079,7 +1079,7 @@ class BlockMesh:
 
             # write FIRE selections to FLMA file
             # number of selections
-            f.write('5\n')
+            f.write('6\n')
             # selection name
             f.write('symmetry\n')
             # FIRE element type
@@ -1096,7 +1096,7 @@ class BlockMesh:
             f.write('\n')
             #
             # FIXME
-            # FIXME find all cells around the airfoil, at the outlet and at the inlet
+            # FIXME find all cell around the airfoil, at the outlet and at the inlet
             # FIXME
             #
             # selection name

@@ -16,12 +16,12 @@ The general steps for mesh generation in `PyAero <index.html>`_ can be explained
    - This is an important task, since the mesh around the airfoil is based on the point distribution which is generated right here
    - To apply this feature, click inside the toolbox (left pane in the GUI) on :guilabel:`Contour Splining and Refinement`
    - For first tests you can go with the default settings and just click the :guilabel:`Spline and Refine` button inside this toolbox section
-   - The contour will first be splined (constant distance between points) with the given number of points.
+   - The contour will first be splined (constant distance between points) with the given number of points
    - In the same step the contour will be refined mainly around the leading edge. The refinment criterion is a minimum angle between two consecutive line segments made of three adjacent points
 
 3. Make a trailing edge with finite thickness
 
-   - Since in real life the airfoil trailing edge has a finit thickness, this needs to be taken into account before meshing
+   - Since in real life the airfoil trailing edge has a finite thickness, this can to be taken into account before meshing
    - To create a finite thickness trailing edge click inside the same toolbox section on :guilabel:`Add Trailing Edge`
    - The default settings make a trailing edge with a thickness of 0.4% relative to the unity chord length
 
@@ -39,7 +39,7 @@ The general steps for mesh generation in `PyAero <index.html>`_ can be explained
 
 This is it.
 
-See below the :ref:`figure_quickstart_steps` on how this looks in the graphical user interface.
+Check the animation below, on how this looks in the graphical user interface.
 
 .. _figure_quickstart_steps:
 .. figure::  images/quickstart_steps.gif
