@@ -111,7 +111,7 @@ Follow the :ref:`quickstart` tutorial to get a first impression of the key funct
 Code repository
 ===============
 
-The code ist hosted on GitHub: `PyAero source code <https://github.com/chiefenne/PyAero-Qt-for-Python>`_
+The code ist hosted on GitHub: `PyAero source code <https://github.com/chiefenne/PyAero>`_
 
 .. toctree::
    :hidden:
