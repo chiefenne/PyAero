@@ -13,7 +13,7 @@ Therefore, in addition to the mesh generation module, some additional features h
 
 To reflect *real* shapes, an option for creating a trailing edge and blending it to the contour is implemented.
 
-The following figures show an example mesh around the airfoil **RAE2822** in differently zoomed variants to be able to see detail at leading and trailing edge better.
+The following figures show an example mesh for the airfoil **RAE2822** and a magnification of leading edge and trailing edge sections.
 
 .. _figure_mesh_RAE2822:
 .. figure::  images/mesh_RAE2822_MAC.png
