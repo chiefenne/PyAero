@@ -95,8 +95,6 @@ class SplineRefine:
         # maximum thickness
         max_thickness = np.max(thickness)
         pos_thickness = np.where(thickness == max_thickness)[1]
-        print('max_thickness', max_thickness)
-        print('pos_thickness', pos_thickness)
         # print('coo_upper[0]', coo_upper[0])
         max_thickness_pos = coo_upper[0][pos_thickness][0]
 
