@@ -258,10 +258,14 @@ class CentralWidget(QtWidgets.QWidget):
         self.cb8 = QtWidgets.QCheckBox('Mesh Blocks')
         self.cb8.setChecked(False)
         self.cb8.setEnabled(False)
+        self.cb9 = QtWidgets.QCheckBox('Airfoil Camber Line')
+        self.cb9.setChecked(False)
+        self.cb9.setEnabled(False)
         vbox1.addWidget(self.cb2)
         vbox1.addWidget(self.cb3)
         vbox1.addWidget(self.cb4)
         vbox1.addWidget(self.cb5)
+        vbox1.addWidget(self.cb9)
         vbox2.addWidget(self.cb1)
         vbox2.addWidget(self.cb6)
         vbox2.addWidget(self.cb8)
@@ -280,6 +284,7 @@ class CentralWidget(QtWidgets.QWidget):
         self.cb6.clicked.connect(self.toolbox.toggleMesh)
         self.cb7.clicked.connect(self.toolbox.toggleLeCircle)
         self.cb8.clicked.connect(self.toolbox.toggleMeshBlocks)
+        self.cb9.clicked.connect(self.toolbox.toggleCamberLine)
 
 
 def main():
