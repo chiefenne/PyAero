@@ -830,6 +830,12 @@ class Toolbox(QtWidgets.QToolBox):
             visible = self.parent.airfoil.mesh_blocks.isVisible()
             self.parent.airfoil.mesh_blocks.setVisible(not visible)
 
+    def toggleCamberLine(self):
+        """Toggle visibility of the airfoil camber line"""
+        if hasattr(self.parent.airfoil, 'camberline'):
+            visible = self.parent.airfoil.camberline.isVisible()
+            self.parent.airfoil.camberline.setVisible(not visible)
+
     def runPanelMethod(self):
         """Gui callback to run AeroPython panel method in module PSvpMethod"""
 

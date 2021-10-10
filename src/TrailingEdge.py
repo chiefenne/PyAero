@@ -76,6 +76,7 @@ class TrailingEdge:
         self.mainwindow.airfoil.contourSpline.brush.setColor(color)
         self.mainwindow.airfoil.polygonMarkersGroup.setZValue(100)
         self.mainwindow.airfoil.chord.setZValue(99)
+        self.mainwindow.airfoil.camberline.setZValue(99)
         # switch off raw contour and toogle corresponding checkbox
         if self.mainwindow.airfoil.polygonMarkersGroup.isVisible():
             self.mainwindow.centralwidget.cb2.cklick()

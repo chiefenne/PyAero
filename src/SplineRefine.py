@@ -63,8 +63,41 @@ class SplineRefine:
             ca.ContourAnalysis.getLeRadius(spline_data, curvature_data)
         self.makeLeCircle(rc, xc, yc, xle, yle)
 
+        # calculate thickness and camber
+        self.getThickness(spline_data, le_id)
+        camber = self.getCamber(spline_data, le_id)
+        # draw camber
+        self.mainwindow.airfoil.drawCamber(camber)
+
         logger.info('Leading edge radius: {:11.8f}'.format(rc))
         logger.info('Leading edge circle tangent at point: {}'.format(le_id))
+
+    def getCamber(self, spline_data, le_id):
+
+        # split airfoil spline at leading edge
+        # FIXME
+        # FIXME why do I need to substract -3 here to be at LE ????
+        # FIXME
+        u_le = spline_data[1][le_id-3]
+        upper = np.linspace(u_le, 0.0, 300)
+        lower = np.linspace(u_le, 1.0, 300)
+        tck = spline_data[5]
+        coo_upper = interpolate.splev(upper, tck, der=0)
+        coo_lower = interpolate.splev(lower, tck, der=0)
+
+        camber = 0.5 * (np.array(coo_upper) + np.array(coo_lower))
+
+        max_camber = np.max(coo_upper - camber)
+
+        logger.info('Maximum camber: {:11.8f}'.format(max_camber))
+        logger.info('Maximum camber position: {}'.format(le_id))
+
+        return camber
+
+    def getThickness(self, spline_data, le_id):
+
+        logger.info('Maximum thickness: {:11.8f}'.format(spline_data[1][le_id]))
+        logger.info('Maximum thickness position: {}'.format(le_id))
 
     def makeLeCircle(self, rc, xc, yc, xle, yle):
 
