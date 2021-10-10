@@ -82,7 +82,6 @@ class Airfoil:
         self.raw_coordinates[1] /= divisor
 
         self.offset = [np.min(y), np.max(y)]
-        self.chord = np.max(x) - np.min(x)
 
         return True
 
