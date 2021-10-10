@@ -63,8 +63,52 @@ class SplineRefine:
             ca.ContourAnalysis.getLeRadius(spline_data, curvature_data)
         self.makeLeCircle(rc, xc, yc, xle, yle)
 
+        # calculate thickness and camber
+        camber = self.getCamberThickness(spline_data, le_id)
+        # draw camber
+        self.mainwindow.airfoil.drawCamber(camber)
+
         logger.info('Leading edge radius: {:11.8f}'.format(rc))
         logger.info('Leading edge circle tangent at point: {}'.format(le_id))
+
+    def getCamberThickness(self, spline_data, le_id):
+
+        # split airfoil spline at leading edge
+        # FIXME
+        # FIXME why do I need to substract -3 here to be at LE ????
+        # FIXME
+        u_le = spline_data[1][le_id - 3]
+        upper = np.linspace(u_le, 0.0, 300)
+        lower = np.linspace(u_le, 1.0, 300)
+        tck = spline_data[5]
+        coo_upper = interpolate.splev(upper, tck, der=0)
+        coo_lower = interpolate.splev(lower, tck, der=0)
+
+        camber = 0.5 * (np.array(coo_upper) + np.array(coo_lower))
+        thickness = np.array(coo_upper) - np.array(coo_lower)
+
+        # maximum distance of y-coordinated to chord
+        max_camber = np.max(camber[1])
+        pos_camber = np.where(camber[1] == max_camber)
+        max_camber_pos = camber[0][pos_camber][0]
+
+        # maximum thickness
+        max_thickness = np.max(thickness)
+        pos_thickness = np.where(thickness == max_thickness)[1]
+        print('max_thickness', max_thickness)
+        print('pos_thickness', pos_thickness)
+        # print('coo_upper[0]', coo_upper[0])
+        max_thickness_pos = coo_upper[0][pos_thickness][0]
+
+        # since we work with unit chord, multiply with 100 for percent
+        logger.info('Maximum thickness: {:5.2f} % at {:5.2f} % chord'
+            .format(max_thickness*100.0, max_thickness_pos*100.0))
+
+        # since we work with unit chord, multiply with 100 for percent
+        logger.info('Maximum camber: {:5.2f} % at {:5.2f} % chord'
+            .format(max_camber*100.0, max_camber_pos*100.0))
+
+        return camber
 
     def makeLeCircle(self, rc, xc, yc, xle, yle):
 

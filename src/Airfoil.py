@@ -82,7 +82,6 @@ class Airfoil:
         self.raw_coordinates[1] /= divisor
 
         self.offset = [np.min(y), np.max(y)]
-        self.chord = np.max(x) - np.min(x)
 
         return True
 
@@ -199,7 +198,7 @@ class Airfoil:
         # no pen thickness change when zoomed
         splinecontour.pen.setCosmetic(True)
         splinecontour.brush.setColor(self.brushcolor)
-        # add the pline polygon without filling
+        # add the spline polygon without filling
         splinecontour.brush.setStyle(QtCore.Qt.NoBrush)
 
         # remove items from iterated uses of spline/refine and trailing edge
@@ -258,8 +257,34 @@ class Airfoil:
 
             self.splineMarkers.append(splineMarkerItem)
 
-    def camber(self):
-        pass
+    def drawCamber(self, camber):
+
+        self.pencolor = QtGui.QColor(220, 80, 80, 255)
+        self.penwidth = 3.5
+
+        # instantiate a graphics item
+        camberline = gic.GraphicsCollection()
+        # make it polygon type and populate its points
+        points = [QtCore.QPointF(x, y) for x, y in zip(*camber)]
+        camberline.Polyline(QtGui.QPolygonF(points))
+        # set its properties
+        camberline.pen.setColor(self.pencolor)
+        camberline.pen.setWidthF(self.penwidth)
+        # camberline.pen.setStyle(QtCore.Qt.DashLine)
+        camberline.pen.setStyle(QtCore.Qt.DotLine)
+        # no pen thickness change when zoomed
+        camberline.pen.setCosmetic(True)
+        camberline.brush.setColor(self.brushcolor)
+        # add the spline polygon without filling
+        camberline.brush.setStyle(QtCore.Qt.NoBrush)
+
+        # remove items from iterated uses of spline/refine and trailing edge
+        if hasattr(self, 'camberline'):
+            self.mainwindow.scene.removeItem(self.camberline)
+        self.camberline = GraphicsItem.GraphicsItem(camberline)
+        self.mainwindow.scene.addItem(self.camberline)
+        self.mainwindow.centralwidget.cb9.setChecked(True)
+        self.mainwindow.centralwidget.cb9.setEnabled(True)
 
     def setPenColor(self, r, g, b, a):
         self.pencolor = QtGui.QColor(r, g, b, a)
