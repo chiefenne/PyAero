@@ -300,10 +300,7 @@ def main():
     if not useGUI:
         app = QtCore.QCoreApplication(sys.argv)
 
-        #
-        app.mainwindow = 'batch_mode'
-
-        batchmode = BatchMode.Batch()
+        batchmode = BatchMode.Batch(app)
         batchmode.run()
 
         return

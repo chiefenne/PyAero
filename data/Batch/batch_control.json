@@ -1,10 +1,9 @@
 {
     "Airfoils": [
-      "clarky.dat",
-      "rg14.txt",
-      "aquila.dat",
-      "sd7037.dat",
-      "rae2822.txt"
+      "data/Airfoils/RC_Glider/clarky.dat",
+      "data/Airfoils/RC_Glider/rg15.dat",
+      "data/Airfoils/RC_Glider/aquilasm.dat",
+      "data/Airfoils/RC_Glider/sd7037.dat"
     ],
     "Output": [
       "GMSH",

@@ -10,7 +10,9 @@ from Settings import DATAPATH
 
 class Batch:
 
-    def __init__(self) -> None:
+    def __init__(self, app):
+        self.app = app
+        self.app.mainwindow = self
         self.load_batch_control()
         self.run_batch()
 
@@ -30,8 +32,8 @@ class Batch:
 
             # load airfoil
             basename = os.path.splitext(name)[0]
-            airfoil = Airfoil.Airfoil(basename)
-            loaded = airfoil.readContour(name, '#')
+            self.airfoil = Airfoil.Airfoil(basename)
+            loaded = self.airfoil.readContour(name, '#')
 
             # spline and refine
             refinement = self.batch_control['Airfoil contour refinement']
@@ -56,6 +58,7 @@ class Batch:
             
             # make mesh
             wind_tunnel = Meshing.Windtunnel()
+            contour = self.app.mainwindow.airfoil.spline_data
 
             # mesh around airfoil
             acm = self.batch_control['Airfoil contour mesh']
@@ -79,7 +82,7 @@ class Batch:
                                    tunnel_height=tam['Windtunnel height'],
                                    divisions_height=tam['Divisions of tunnel height'],
                                    ratio_height=tam['Cell thickness ratio'],
-                                   dist=tam['Distribution biasing']
+                                   dist=tam['Distribution biasing'])
 
             # mesh tunnel wake
             twm = self.batch_control['Windtunnel mesh wake']
