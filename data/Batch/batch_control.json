@@ -6,6 +6,11 @@
       "sd7037.dat",
       "rae2822.txt"
     ],
+    "Output": [
+      "GMSH",
+      "VTK",
+      "SU2"
+    ],
     "Airfoil contour refinement": {
       "Refinement tolerance": 172.0,
       "Refine trailing edge old": 3,

@@ -1,4 +1,7 @@
+import os
 import json
+
+from Settings import DATAPATH
 
 
 class Batch:
@@ -11,5 +14,8 @@ class Batch:
         pass
 
     def load_batch_control(self):
-        with open('batch_commands.json', 'r') as f:
+        batch_controlfile = os.path.join(DATAPATH, 'Batch', 'batch_control.json')
+        with open(batch_controlfile, 'r') as f:
             self.batch_control = json.load(f)
+
+        print(self.batch_control)
