@@ -1,0 +1,50 @@
+{
+    "airfoils": [
+      "clarky.dat",
+      "rg14.txt",
+      "aquila.dat",
+      "sd7037.dat",
+      "rae2822.txt"
+    ],
+    "Airfoil contour refinement": {
+      "Refinement tolerance": 172.0,
+      "Refine trailing edge old": 3,
+      "Refine trailing edge new": 6,
+      "Refine trailing edge ratio" : 3,
+      "Number of points on spline" : 200
+    }
+    "Airfoil trailing Edge": {
+      "Upper side blending length": 30.0,
+      "Lower side blending length": 30.0,
+      "Upper blending polynomial exponent": 6,
+      "Lower blending polynomial exponent" : 3,
+      "Trailing edge thickness relative to chord" : 200
+    }
+    "Airfoil contour mesh": {
+      "Divisions normal to airfoil": 15,
+      "Divisions downstream": 6,
+      "1st cell layer thickness": 0.004,
+      "Lower blending polynomial exponent" : 3,
+      "1st cell layer thickness": 0.004
+    }
+    "Airfoil trailing Edge": {
+      "Divisions at trailing edge": 3,
+      "Divisions downstream": 15,
+      "1st cell layer thickness": 0.004,
+      "Cell growth rate" : 1.05
+    }
+    "Airfoil trailing Edge": {
+      "Upper side blending length": 30.0,
+      "Lower side blending length": 30.0,
+      "Upper blending polynomial exponent": 6,
+      "Lower blending polynomial exponent" : 3,
+      "Trailing edge thickness relative to chord" : 200
+    }
+    "Airfoil trailing Edge": {
+      "Upper side blending length": 30.0,
+      "Lower side blending length": 30.0,
+      "Upper blending polynomial exponent": 6,
+      "Lower blending polynomial exponent" : 3,
+      "Trailing edge thickness relative to chord" : 200
+    }
+  }

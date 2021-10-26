@@ -296,13 +296,16 @@ def main():
     noGUIargs = ['-no-gui', '--no-gui', '-no-GUI', '--no-GUI']
     useGUI = not set(noGUIargs).intersection(set(sys.argv))
 
-    # main application (contains the main event loop)
+    # run PyAero in batch mode
     if not useGUI:
-        # run PyAero in batch mode
         app = QtCore.QCoreApplication(sys.argv)
+
+        batchmode = BatchMode.Batch()
+        batchmode.run()
 
         return
 
+    # main application (contains the main event loop)
     # run PyAero in GUI mode
     app = QtWidgets.QApplication(sys.argv)
 
