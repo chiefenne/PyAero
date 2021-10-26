@@ -4,12 +4,12 @@ import json
 class Batch:
 
     def __init__(self) -> None:
-        self.batch_commands()
+        self.load_batch_control()
         self.run()
 
     def run(self):
         pass
 
-    def batch_commands(self):
+    def load_batch_control(self):
         with open('batch_commands.json', 'r') as f:
-            self.commands = json.load(f)
+            self.batch_control = json.load(f)
