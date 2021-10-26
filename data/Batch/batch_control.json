@@ -27,8 +27,8 @@
     },
     "Airfoil contour mesh": {
       "Divisions normal to airfoil": 15,
-      "Divisions downstream": 6,
-      "1st cell layer thickness": 0.004
+      "1st cell layer thickness": 0.004,
+      "Cell growth rate": 1.05
     },
     "Airfoil trailing edge mesh": {
       "Divisions at trailing edge": 3,
