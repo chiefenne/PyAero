@@ -1,15 +1,18 @@
 {
-    "Airfoils": [
-      "data/Airfoils/RC_Glider/clarky.dat",
-      "data/Airfoils/RC_Glider/rg15.dat",
-      "data/Airfoils/RC_Glider/aquilasm.dat",
-      "data/Airfoils/RC_Glider/sd7037.dat"
-    ],
-    "Output": [
-      "GMSH",
-      "VTK",
-      "SU2"
-    ],
+    "Airfoils": {
+        "path": "data/Airfoils/RC_Glider",
+        "names": [
+          "clarky.dat",
+          "rg15.dat"
+        ]
+    },
+    "Output formats": {
+        "path": "data/OUTPUT",
+        "formats": [
+          "SU2",
+          "VTK"
+        ]
+    },
     "Airfoil contour refinement": {
       "Refinement tolerance": 172.0,
       "Refine trailing edge old": 3,

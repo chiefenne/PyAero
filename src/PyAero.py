@@ -293,15 +293,22 @@ def main():
     # FIXME
     # FIXME this is a preparation for a batch version of PyAero
     # FIXME
-    noGUIargs = ['-no-gui', '--no-gui', '-no-GUI', '--no-GUI']
-    useGUI = not set(noGUIargs).intersection(set(sys.argv))
+    useGUI = '-no-gui' not in sys.argv
 
     # run PyAero in batch mode
     if not useGUI:
         app = QtCore.QCoreApplication(sys.argv)
 
-        batchmode = BatchMode.Batch(app)
-        batchmode.run()
+        # FIXME
+        # FIXME check for proper batch control file
+        # FIXME
+        if sys.argv[-1] == '-no-gui':
+            print('No batch control file specified.')
+            sys.exit()
+        batch_controlfile = sys.argv[-1]
+
+        batchmode = BatchMode.Batch(app, batch_controlfile)
+        batchmode.run_batch()
 
         return
 

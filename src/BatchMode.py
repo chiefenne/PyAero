@@ -5,35 +5,45 @@ import Airfoil
 import SplineRefine
 import TrailingEdge
 import Meshing
+import Connect
 from Settings import DATAPATH
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Batch:
 
-    def __init__(self, app):
+    def __init__(self, app, batch_controlfile):
         self.app = app
         self.app.mainwindow = self
-        self.load_batch_control()
-        self.run_batch()
+        self.load_batch_control(batch_controlfile)
 
-    def load_batch_control(self):
-        batch_controlfile = os.path.join(DATAPATH, 'Batch', 'batch_control.json')
+    def load_batch_control(self, batch_controlfile):
         with open(batch_controlfile, 'r') as f:
             self.batch_control = json.load(f)
-
-        print(self.batch_control.keys())
 
     def run_batch(self):
         
         # loop all airfoils
-        airfoils = self.batch_control['Airfoils']
-        for name in airfoils:
-            print(name)
+        airfoil_path = self.batch_control['Airfoils']['path']
+        print('Airfoil path is', airfoil_path)
+        airfoils = self.batch_control['Airfoils']['names']
+
+        message = f'Airfoils to mesh {[airfoils]}'
+        print(message)
+        logger.info(message)
+
+        for airfoil in airfoils:
+
+            message = f'Starting batch meshing for airfoil {airfoil}'
+            print(message)
+            logger.info(message)
 
             # load airfoil
-            basename = os.path.splitext(name)[0]
+            basename = os.path.splitext(airfoil)[0]
             self.airfoil = Airfoil.Airfoil(basename)
-            loaded = self.airfoil.readContour(name, '#')
+            self.airfoil.readContour(os.path.join(airfoil_path, airfoil), '#')
 
             # spline and refine
             refinement = self.batch_control['Airfoil contour refinement']
@@ -58,7 +68,7 @@ class Batch:
             
             # make mesh
             wind_tunnel = Meshing.Windtunnel()
-            contour = self.app.mainwindow.airfoil.spline_data
+            contour = self.app.mainwindow.airfoil.spline_data[0]
 
             # mesh around airfoil
             acm = self.batch_control['Airfoil contour mesh']
@@ -91,4 +101,35 @@ class Batch:
                                        divisions=twm['Divisions in the wake'],
                                        ratio=twm['Cell thickness ratio'],
                                        spread=twm['Equalize vertical wake line at'] / 100.0)
- 
+            
+            # connect mesh blocks
+            connect = Connect.Connect(None)
+            vertices, connectivity, _ = \
+                connect.connectAllBlocks(wind_tunnel.blocks)
+
+            # add mesh to Wind-tunnel instance
+            wind_tunnel.mesh = vertices, connectivity
+
+            message = f'Finished batch meshing for airfoil {airfoil}'
+            print(message)
+            logger.info(message)
+
+            # export mesh
+            message = f'Starting mesh export for airfoil {airfoil}'
+            print(message)
+            logger.info(message)
+            mesh_path = self.batch_control['Output formats']['path']
+            output_formats = self.batch_control['Output formats']['formats']
+            for output_format in output_formats:
+                extension = {'FLMA': '.flma',
+                             'SU2': '.su2',
+                             'GMSH': '.msh',
+                             'VTK': '.vtk',
+                             'CGNS': '.cgns',
+                             'ABAQUS': '.inp'}
+                mesh_name = os.path.join(mesh_path, basename + extension[output_format])
+                getattr(Meshing.BlockMesh, 'write'+output_format)(wind_tunnel, name=mesh_name)
+
+                message = f'Finished mesh export for airfoil {airfoil} to {mesh_name}'
+                print(message)
+                logger.info(message)
