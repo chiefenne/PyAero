@@ -13,6 +13,7 @@ import SvpMethod
 import SplineRefine
 import TrailingEdge
 import Meshing
+import ContourAnalysis as ca
 from Settings import ICONS_L
 
 import logging
@@ -863,6 +864,26 @@ class Toolbox(QtWidgets.QToolBox):
                                   ref_te=self.ref_te.value(),
                                   ref_te_n=self.ref_te_n.value(),
                                   ref_te_ratio=self.ref_te_ratio.value())
+
+            # add splined and refined contour to the airfoil contourGroup
+            # makeSplineMarkers call within makeContourSpline
+            self.parent.airfoil.makeContourSpline()
+
+            # get LE radius, etc.
+            spline_data = self.parent.airfoil.spline_data
+            curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
+            rc, xc, yc, xle, yle, le_id = \
+                ca.ContourAnalysis.getLeRadius(spline_data, curvature_data)
+            refine.makeLeCircle(rc, xc, yc, xle, yle)
+
+            # calculate thickness and camber
+            camber = refine.getCamberThickness(spline_data, le_id)
+            # draw camber
+            self.parent.airfoil.drawCamber(camber)
+
+            logger.info('Leading edge radius: {:11.8f}'.format(rc))
+            logger.info('Leading edge circle tangent at point: {}'.format(le_id))
+
         else:
             self.parent.slots.messageBox('No airfoil loaded.')
             return
@@ -883,13 +904,35 @@ class Toolbox(QtWidgets.QToolBox):
                                   ex=self.exponent_u.value(),
                                   thickness=self.thickness.value(),
                                   side='upper')
+            self.addTEtoScene()
+
             trailing.trailingEdge(blend=self.blend_l.value() / 100.0,
                                   ex=self.exponent_l.value(),
                                   thickness=self.thickness.value(),
                                   side='lower')
+            self.addTEtoScene()
         else:
             self.parent.slots.messageBox('No airfoil loaded.')
             return
+
+    def addTEtoScene(self):
+            
+        # add modified spline contour to the airfoil contourGroup
+        # makeSplineMarkers call within makeContourSpline
+        self.parent.airfoil.makeContourSpline()
+        self.parent.airfoil.contourSpline.brush.setStyle(QtCore.Qt.SolidPattern)
+        color = QtGui.QColor()
+        color.setNamedColor('#7c8696')
+        self.parent.airfoil.contourSpline.brush.setColor(color)
+        self.parent.airfoil.polygonMarkersGroup.setZValue(100)
+        self.parent.airfoil.chord.setZValue(99)
+        self.parent.airfoil.camberline.setZValue(99)
+        # switch off raw contour and toogle corresponding checkbox
+        if self.parent.airfoil.polygonMarkersGroup.isVisible():
+            self.parent.centralwidget.cb2.cklick()
+        self.parent.airfoil.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
+        self.parent.airfoil.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
+        self.parent.view.adjustMarkerSize()
 
     def generateMesh(self):
         self.wind_tunnel = Meshing.Windtunnel()
