@@ -14,10 +14,21 @@ logger = logging.getLogger(__name__)
 
 class Batch:
 
-    def __init__(self, app, batch_controlfile):
+    def __init__(self, app, batch_controlfile, __version__):
         self.app = app
         self.app.mainwindow = self
         self.load_batch_control(batch_controlfile)
+
+        stars = 50
+        message_stars = stars*'*'
+        print('\n' + message_stars)
+        message = '{:*^{stars}}'.format(' PYAERO batch meshing ', stars=stars)
+        print(message)
+        message = '{:*^{stars}}'.format('  v' + __version__ + '  ', stars=stars)
+        print(message)
+        logger.info(message)
+        print(message_stars + '\n')
+
 
     def load_batch_control(self, batch_controlfile):
         with open(batch_controlfile, 'r') as f:
@@ -27,12 +38,22 @@ class Batch:
         
         # loop all airfoils
         airfoil_path = self.batch_control['Airfoils']['path']
-        print('Airfoil path is', airfoil_path)
-        airfoils = self.batch_control['Airfoils']['names']
+        mesh_path = self.batch_control['Output formats']['path']
+        output_formats = self.batch_control['Output formats']['formats']
 
-        message = f'Airfoils to mesh {[airfoils]}'
+        print('Airfoil path is', airfoil_path)
+        print('Mesh output path is', mesh_path, '\n')
+
+        airfoils = self.batch_control['Airfoils']['names']
+        message = 'Airfoils to mesh:'
         print(message)
         logger.info(message)
+        for airfoil in airfoils:
+            message = f'     --> {airfoil}'
+            print(message)
+            logger.info(message)
+        
+        print('\n')
 
         for airfoil in airfoils:
 
@@ -118,8 +139,7 @@ class Batch:
             message = f'Starting mesh export for airfoil {airfoil}'
             print(message)
             logger.info(message)
-            mesh_path = self.batch_control['Output formats']['path']
-            output_formats = self.batch_control['Output formats']['formats']
+
             for output_format in output_formats:
                 extension = {'FLMA': '.flma',
                              'SU2': '.su2',

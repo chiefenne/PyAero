@@ -307,7 +307,7 @@ def main():
             sys.exit()
         batch_controlfile = sys.argv[-1]
 
-        batchmode = BatchMode.Batch(app, batch_controlfile)
+        batchmode = BatchMode.Batch(app, batch_controlfile, __version__)
         batchmode.run_batch()
 
         return
