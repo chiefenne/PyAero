@@ -33,6 +33,7 @@ from Settings import ICONS, LOCALE, STYLE, EXITONESCAPE, \
                       OUTPUTDATA, MENUDATA, VIEWSTYLE, LOGDATA
 import Logger
 import ShortCuts
+import BatchMode
 
 
 __appname__ = 'PyAero'
@@ -41,7 +42,7 @@ __credits__ = 'Internet and open source'
 __copyright__ = '2014-' + str(datetime.date.today().strftime("%Y")) + \
                 ' ' + __author__
 __license__ = 'MIT'
-__version__ = '2.0.3'
+__version__ = '2.1.0'
 __email__ = 'andreas.ennemoser@aon.at'
 __status__ = 'Release'
 
@@ -294,13 +295,26 @@ def main():
     # FIXME
     useGUI = '-no-gui' not in sys.argv
 
-    # main application (contains the main event loop)
-    if useGUI:
-        # run PyAero in GUI mode
-        app = QtWidgets.QApplication(sys.argv)
-    else:
-        # run PyAero in batch mode
+    # run PyAero in batch mode
+    if not useGUI:
         app = QtCore.QCoreApplication(sys.argv)
+
+        # FIXME
+        # FIXME check for proper batch control file
+        # FIXME
+        if sys.argv[-1] == '-no-gui':
+            print('No batch control file specified.')
+            sys.exit()
+        batch_controlfile = sys.argv[-1]
+
+        batchmode = BatchMode.Batch(app, batch_controlfile, __version__)
+        batchmode.run_batch()
+
+        return
+
+    # main application (contains the main event loop)
+    # run PyAero in GUI mode
+    app = QtWidgets.QApplication(sys.argv)
 
     # set icon for the application ( upper left window icon and taskbar icon)
     # and add specialization icons per size

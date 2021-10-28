@@ -34,8 +34,8 @@ class TrailingEdge:
         return upper, lower
 
     def trailingEdge(self, blend=0.3, ex=3.0, thickness=0.6, side='both'):
-        """Implement a finite trailing edge thicknes into the original
-        contour
+        """Implement a finite trailing edge thickness into the original
+        contour (i.e. a blunt trailing edge)
 
         Args:
             blend (float, optional): Length to blend the TE
@@ -66,23 +66,6 @@ class TrailingEdge:
         xt = np.concatenate([xnu, xnl[1:]])
         yt = np.concatenate([ynu, ynl[1:]])
         self.mainwindow.airfoil.spline_data[0] = (xt, yt)
-
-        # add modified splined contour to the airfoil contourGroup
-        # makeSplineMarkers call within makeContourSpline
-        self.mainwindow.airfoil.makeContourSpline()
-        self.mainwindow.airfoil.contourSpline.brush.setStyle(QtCore.Qt.SolidPattern)
-        color = QtGui.QColor()
-        color.setNamedColor('#7c8696')
-        self.mainwindow.airfoil.contourSpline.brush.setColor(color)
-        self.mainwindow.airfoil.polygonMarkersGroup.setZValue(100)
-        self.mainwindow.airfoil.chord.setZValue(99)
-        self.mainwindow.airfoil.camberline.setZValue(99)
-        # switch off raw contour and toogle corresponding checkbox
-        if self.mainwindow.airfoil.polygonMarkersGroup.isVisible():
-            self.mainwindow.centralwidget.cb2.cklick()
-        self.mainwindow.airfoil.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
-        self.mainwindow.airfoil.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
-        self.mainwindow.view.adjustMarkerSize()
 
     def trailing(self, xx, yy, blend, ex, thickness, side='upper'):
         xmin = np.min(xx)
