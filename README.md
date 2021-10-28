@@ -3,7 +3,6 @@
 
 [![readthedocs](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://pyaero.readthedocs.io/en/latest/?badge=latest)
 [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://en.wikipedia.org/wiki/MIT_License)
-# ![GitHub all releases](https://img.shields.io/github/downloads/chiefenne/PyAero/total?style=plastic)
 
 
 PyAero is an open-source airfoil contour analysis and CFD meshing tool written in Python. The graphical user interface is written in [Qt for Python](https://www.qt.io/qt-for-python).
@@ -34,8 +33,9 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
    - Automatic definition of boundary elements (edges, faces)
      - Airfoil, inlet, outlet, symmetry
  - Run in batch mode (i.e. run PyAero from the command line)
-   - Using the *-no-gui* option and a control file (json format)
+   - Using the ``-no-gui`` option and a [control file](data/Batch/batch_control.json) in json format
    - Mesh multiple airfoils and export the meshes in multiple formats in one run without user interaction
+   - Example command: ``python src/PyAero.py -no-gui data/Batch/batch_control.json``
  - Simple aerodynamic analysis using [AeroPython](http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb)
  - Airfoil contour analysis (gradient, curvature and curvature circle)
  - NOT YET IMPLEMENTED:
