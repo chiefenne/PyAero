@@ -32,6 +32,8 @@ class GuiHandler(logging.Handler):
 
 def log(mainwindow):
 
+    useGUI = True
+
     if mainwindow == 'file_only':
         useGUI = False
 
