@@ -5,7 +5,7 @@
 [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://en.wikipedia.org/wiki/MIT_License)
 
 
-PyAero is an open-source airfoil contour analysis and CFD meshing tool written in Python. The graphical user interface is written in [Qt for Python](https://www.qt.io/qt-for-python).
+PyAero is an open-source airfoil contour analysis and CFD meshing tool written in Python. The graphical user interface is based on [Qt for Python](https://www.qt.io/qt-for-python) (Pyside6).
 
 ## Features
 
