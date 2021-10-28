@@ -8,7 +8,6 @@ from PySide6 import QtGui, QtCore
 from Utils import Utils
 import GraphicsItemsCollection as gic
 import GraphicsItem
-import ContourAnalysis as ca
 
 import logging
 logger = logging.getLogger(__name__)
@@ -52,25 +51,6 @@ class SplineRefine:
         # add spline data to airfoil object
         self.mainwindow.airfoil.spline_data = self.spline_data
 
-        # add splined and refined contour to the airfoil contourGroup
-        # makeSplineMarkers call within makeContourSpline
-        self.mainwindow.airfoil.makeContourSpline()
-
-        # get LE radius, etc.
-        spline_data = self.mainwindow.airfoil.spline_data
-        curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
-        rc, xc, yc, xle, yle, le_id = \
-            ca.ContourAnalysis.getLeRadius(spline_data, curvature_data)
-        self.makeLeCircle(rc, xc, yc, xle, yle)
-
-        # calculate thickness and camber
-        camber = self.getCamberThickness(spline_data, le_id)
-        # draw camber
-        self.mainwindow.airfoil.drawCamber(camber)
-
-        logger.info('Leading edge radius: {:11.8f}'.format(rc))
-        logger.info('Leading edge circle tangent at point: {}'.format(le_id))
-
     def getCamberThickness(self, spline_data, le_id):
 
         # split airfoil spline at leading edge
@@ -95,8 +75,6 @@ class SplineRefine:
         # maximum thickness
         max_thickness = np.max(thickness)
         pos_thickness = np.where(thickness == max_thickness)[1]
-        print('max_thickness', max_thickness)
-        print('pos_thickness', pos_thickness)
         # print('coo_upper[0]', coo_upper[0])
         max_thickness_pos = coo_upper[0][pos_thickness][0]
 

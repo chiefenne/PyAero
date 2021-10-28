@@ -1,0 +1,53 @@
+{
+    "Airfoils": {
+        "path": "data/Airfoils/RC_Glider",
+        "names": [
+          "clarky.dat",
+          "rg15.dat"
+        ]
+    },
+    "Output formats": {
+        "path": "data/OUTPUT",
+        "formats": [
+          "SU2",
+          "VTK"
+        ]
+    },
+    "Airfoil contour refinement": {
+      "Refinement tolerance": 172.0,
+      "Refine trailing edge old": 3,
+      "Refine trailing edge new": 6,
+      "Refine trailing edge ratio" : 3,
+      "Number of points on spline" : 200
+    },
+    "Airfoil trailing edge": {
+      "Upper side blending length": 30.0,
+      "Lower side blending length": 30.0,
+      "Upper blending polynomial exponent": 6,
+      "Lower blending polynomial exponent" : 3,
+      "Trailing edge thickness relative to chord" : 200
+    },
+    "Airfoil contour mesh": {
+      "Divisions normal to airfoil": 15,
+      "1st cell layer thickness": 0.004,
+      "Cell growth rate": 1.05
+    },
+    "Airfoil trailing edge mesh": {
+      "Divisions at trailing edge": 3,
+      "Divisions downstream": 15,
+      "1st cell layer thickness": 0.004,
+      "Cell growth rate" : 1.05
+    },
+    "Windtunnel mesh airfoil": {
+      "Windtunnel height": 3.5,
+      "Divisions of tunnel height": 100,
+      "Cell thickness ratio": 10.0,
+      "Distribution biasing" : "symmetric"
+    },
+    "Windtunnel mesh wake": {
+      "Windtunnel wake": 7.0,
+      "Divisions in the wake": 100,
+      "Cell thickness ratio": 15.0,
+      "Equalize vertical wake line at" : 30.0
+    }
+}

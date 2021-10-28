@@ -138,7 +138,8 @@ class Connect:
                 self.shiftConnectivity(self.getConnectivity(block), shift)
             connectivity += [tuple(cell) for cell in connectivity_block]
 
-        self.progdialog.setValue(80)
+        if self.progdialog:
+            self.progdialog.setValue(80)
 
         # FIXME
         # FIXME for some reason tuples need to be redefined
@@ -190,7 +191,8 @@ class Connect:
         mapping_ar[k] = v
         connectivity_clean = mapping_ar[connected]
 
-        self.progdialog.setValue(90)
+        if self.progdialog:
+            self.progdialog.setValue(90)
 
         # DEBUGGING
         # self.write_debug(unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean)
