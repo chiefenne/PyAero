@@ -147,7 +147,7 @@ class Connect:
         vertices = [(vertex[0], vertex[1]) for vertex in vertices]
 
         # search vertices of all blocks against themselves
-        # finds itself AND multiple connections very fast
+        # finds itself AND multiple connections (i.e. vertices from neighbour blocks)
         # uses Scipy kd-tree for quick nearest-neighbor lookup
         # the distance tolerance is specified via the radius variable
         vertex_and_neighbours = self.getNearestNeighbours(vertices,
