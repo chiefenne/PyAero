@@ -540,10 +540,10 @@ class Toolbox(QtWidgets.QToolBox):
         box_wake = QtWidgets.QGroupBox('Windtunnel mesh (wake)')
         box_wake.setLayout(vbox)
 
-        createMeshButton = QtWidgets.QPushButton('Create Mesh')
+        self.createMeshButton = QtWidgets.QPushButton('Create Mesh')
         hbl_cm = QtWidgets.QHBoxLayout()
         hbl_cm.addStretch(stretch=1)
-        hbl_cm.addWidget(createMeshButton, stretch=4)
+        hbl_cm.addWidget(self.createMeshButton, stretch=4)
         hbl_cm.addStretch(stretch=1)
 
         # export menu and boundary definitions
@@ -622,7 +622,7 @@ class Toolbox(QtWidgets.QToolBox):
         self.item_msh = QtWidgets.QWidget()
         self.item_msh.setLayout(vbl)
 
-        createMeshButton.clicked.connect(self.generateMesh)
+        self.createMeshButton.clicked.connect(self.generateMesh)
         exportMeshButton.clicked.connect(self.exportMesh)
 
     def itemSplineRefine(self):
@@ -666,10 +666,10 @@ class Toolbox(QtWidgets.QToolBox):
         self.points.setValue(200)
         form.addRow(label, self.points)
 
-        splineButton = QtWidgets.QPushButton('Spline and Refine')
+        self.splineButton = QtWidgets.QPushButton('Spline and Refine')
         hbl = QtWidgets.QHBoxLayout()
         hbl.addStretch(stretch=1)
-        hbl.addWidget(splineButton, stretch=4)
+        hbl.addWidget(self.splineButton, stretch=4)
         hbl.addStretch(stretch=1)
 
         vbox = QtWidgets.QVBoxLayout()
@@ -718,10 +718,10 @@ class Toolbox(QtWidgets.QToolBox):
         self.thickness.setValue(0.4)
         form1.addRow(label, self.thickness)
 
-        trailingButton = QtWidgets.QPushButton('Add Trailing Edge')
+        self.trailingButton = QtWidgets.QPushButton('Add Trailing Edge')
         hbl1 = QtWidgets.QHBoxLayout()
         hbl1.addStretch(stretch=1)
-        hbl1.addWidget(trailingButton, stretch=4)
+        hbl1.addWidget(self.trailingButton, stretch=4)
         hbl1.addStretch(stretch=1)
 
         vbox = QtWidgets.QVBoxLayout()
@@ -751,8 +751,8 @@ class Toolbox(QtWidgets.QToolBox):
         self.item_cm = QtWidgets.QWidget()
         self.item_cm.setLayout(vbl)
 
-        splineButton.clicked.connect(self.spline_and_refine)
-        trailingButton.clicked.connect(self.makeTrailingEdge)
+        self.splineButton.clicked.connect(self.spline_and_refine)
+        self.trailingButton.clicked.connect(self.makeTrailingEdge)
         exportContourButton.clicked.connect(self.exportContour)
 
     def makeToolbox(self):

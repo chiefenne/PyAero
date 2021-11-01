@@ -305,8 +305,11 @@ def main():
         if sys.argv[-1] == '-no-gui':
             print('No batch control file specified.')
             sys.exit()
-        batch_controlfile = sys.argv[-1]
 
+        # prepare logger
+        Logger.log('file_only')
+
+        batch_controlfile = sys.argv[-1]
         batchmode = BatchMode.Batch(app, batch_controlfile, __version__)
         batchmode.run_batch()
 

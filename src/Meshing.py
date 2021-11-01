@@ -95,7 +95,7 @@ class Windtunnel:
         block_te.distribute(direction='u', number=-1)
 
         # make a transfinite interpolation
-        # i.e. recreate pooints inside the block
+        # i.e. recreate points inside the block
         block_te.transfinite()
 
         self.block_te = block_te
@@ -402,10 +402,7 @@ class Windtunnel:
         self.makeLCE()
 
         # generate boundaries from mesh connectivity
-        unique, seen, doubles, boundary_edges = self.makeBoundaries()
-
-        # find loops inside boundary_edges
-        self.boundary_loops = self.findLoops(boundary_edges)
+        self.makeBoundaries()
 
         logger.info('Mesh around {} created'.
                     format(self.mainwindow.airfoil.name))
@@ -419,7 +416,7 @@ class Windtunnel:
 
         # enable mesh export and set filename and boundary definitions
         toolbox.box_meshexport.setEnabled(True)
-
+    
     def makeLCV(self):
         """Make cell to vertex connectivity for the mesh
            LCV is identical to connectivity
@@ -434,17 +431,17 @@ class Windtunnel:
         self.edges = list()
 
         for i, cell in enumerate(connectivity):
-            # example for Quadrilateral:
+            # example for quadrilateral:
             # cell: [0, 1, 5, 4]
-            # local_edges: [(0,1), (1,5), (5,4), (4,0)]
-            local_edges = [(cell[j], cell[(j + 1) % len(cell)])
+            # edges: [(0,1), (1,5), (5,4), (4,0)]
+            edges = [(cell[j], cell[(j + 1) % len(cell)])
                            for j in range(len(cell))]
 
             # all edges for cell i
-            self.LCE[i] = local_edges
+            self.LCE[i] = edges
 
             # all edges in one list
-            self.edges += [tuple(sorted(edge)) for edge in local_edges]
+            self.edges += [tuple(sorted(edge)) for edge in edges]
 
     def makeLCC(self):
         """Make cell to cell connectivity for the mesh"""
@@ -452,96 +449,41 @@ class Windtunnel:
 
     def makeBoundaries(self):
         """A boundary edge is an edge that belongs only to one cell"""
+
+        vertices, _ = self.mesh
+        vertices = np.array(vertices)
+
+        edges = self.edges
+
         seen = set()
         unique = list()
         doubles = set()
-        for edge in self.edges:
+        for edge in edges:
             if edge not in seen:
                 seen.add(edge)
                 unique.append(edge)
             else:
                 doubles.add(edge)
 
-        boundary_edges = [edge for edge in unique if edge not in doubles]
+        self.boundary_edges = [edge for edge in unique if edge not in doubles]
 
-        return unique, seen, doubles, boundary_edges
-
-    def findLoops(self, edges):
-        """Find loops in a list of edges which are stored in tuples
-        and return the "connected components", in the disjoint set.
-        In the case of boundary edges these are loops or
-        "cycles" in graph theory language
-
-        Args:
-            edges (list of tuples):
-
-        Returns:
-            TYPE: Description
-        """
-
-        vertices, connectivity = self.mesh
-
-        # make disjoint set object
-        djs = DisjointSet()
-
-        # add all edges to the disjoint set
-        for edge in edges:
-            djs.add(edge[0], edge[1])
-
-        # get the boundary loops (airfoil, outer boundary)
-        # djs.group returns a dictionary containing all loops
-        # the key is an arbitrary node of the loop
-        # the values per key are a list of unordered nodes
-        # belonging to the loop
-        boundary_loops = djs.group
-
-        # in order to order the returned nodes again, their corresponding edges
-        # have to be found first
-        new_loops = dict()
-        for i, loop in enumerate(boundary_loops):
-
-            l_edges = list()
-            for node in boundary_loops[loop]:
-                l_edges += [sorted(edge) for edge in edges if node in edge]
-
-            # remove duplicate list elements from l_edges
-            loop_edges = [k for k, _ in itertools.groupby(sorted(l_edges))]
-            new_loops[i] = loop_edges
-
-        # new_loops[0] is airfoil
-        # new_loops[1] is complete outer boundary
-        # split outer boundary into inlet and outlet
-        self.is_outlet = list()
-
+        # tag edges for boundary definitions
         # FIXME
+        # FIXME here it's done the dirty way
+        # FIXME at least try to make it faster later
         # FIXME
-        # FIXME this is not finished here, but only intermediate
-        # FIXME
-        # FIXME
-        return new_loops
+        self.boundary_tags = {'airfoil': [], 'inlet': [], 'outlet': []}
+        for edge in self.boundary_edges:
+            x = vertices[edge[0]][0]
+            y = vertices[edge[0]][1]
+            if x > -0.1 and x < 1.1 and y < 0.5 and y > -0.5:
+                self.boundary_tags['airfoil'].append(edge)
+            elif x == np.max(vertices[:,0]):
+                self.boundary_tags['outlet'].append(edge)
+            else:
+                self.boundary_tags['inlet'].append(edge)
 
-        # edge is e.g.: (27, 53)
-        for i, edge in enumerate(new_loops[1]):
-            self.is_outlet.append(0)
-
-            # vertices[edge[0]] is e.g.: (1.0453006577029285, 3.5)
-            vector = Utils.vector(vertices[edge[0]], vertices[edge[1]])
-            # check angle against y-axis
-            angle = Utils.angle_between(vector, (0., 1.), degree=True)
-
-            # FIXME
-            # FIXME find better criterions or at leat refactor
-            # FIXME
-            # angle tolerance
-            tol = 0.5
-            # check only for edges downstream the airfoil
-            tol_wake = 1.1
-            if ((angle > - tol) and (angle < tol)) or \
-                    ((angle > 180. - tol) and (angle < 180. + tol)) and \
-                    vertices[edge[0]][0] > tol_wake:
-                self.is_outlet[i] = 1
-
-        return new_loops
+        return
 
     def drawMesh(self, airfoil):
         """Add the mesh as ItemGroup to the scene
@@ -1140,11 +1082,35 @@ class BlockMesh:
     @staticmethod
     def writeSU2(wind_tunnel, name=''):
 
+        filename = 'square.su2'
+        mesh = meshio.read(
+        filename,  # string, os.PathLike, or a buffer/open file
+        file_format="su2"  # optional if filename is a path; inferred from extension
+        # see meshio-convert -h for all possible formats
+        )
+        # mesh.points, mesh.cells, mesh.cells_dict, ...
+        # mesh.vtk.read() is also possible
+
+        mesh.write('square_meshio.su2')
+
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
-        cells = [('quad', [cell]) for cell in connectivity]
+        tags = wind_tunnel.boundary_tags
 
-        meshio.write_points_cells(name, vertices, cells)
+        bnd = list()
+        num_airfoil_edges = len(tags['airfoil'])
+        num_inlet_edges = len(tags['inlet'])
+        num_outlet_edges = len(tags['outlet'])
+
+        # write to SU2 formazt using meshio
+        # NDIM is automatically derived from shape of vertices (x,y or x,y,z)
+        # so here NDIM will be 2
+        cells = [('quad', connectivity), ('line', tags['airfoil']+tags['inlet']+tags['outlet'])]
+        cell_data={'su2:tag': [np.zeros(len(connectivity), dtype=int),
+                               np.array(num_airfoil_edges*[1] +
+                                        num_inlet_edges*[2] +
+                                        num_outlet_edges*[3])]}
+        meshio.write_points_cells(name, vertices, cells, cell_data=cell_data)
 
         basename = os.path.basename(name)
         logger.info('SU2 type mesh saved as {}'.
@@ -1426,74 +1392,3 @@ class Smooth:
                 nodes.append((i, j))
 
         return nodes
-
-
-class DisjointSet:
-    """Summary
-
-    Attributes:
-        group (dict): Description
-        leader (dict): Description
-        oldgroup (dict): Description
-        oldleader (dict): Description
-
-    from: https://stackoverflow.com/a/3067672/2264936
-    """
-
-    def __init__(self, size=None):
-        if size is None:
-            # maps a member to the group's leader
-            self.leader = {}
-            # maps a group leader to the group (which is a set)
-            self.group = {}
-            self.oldgroup = {}
-            self.oldleader = {}
-        else:
-            self.group = {i: set([i]) for i in range(0, size)}
-            self.leader = {i: i for i in range(0, size)}
-            self.oldgroup = {i: set([i]) for i in range(0, size)}
-            self.oldleader = {i: i for i in range(0, size)}
-
-    def add(self, a, b):
-        self.oldgroup = self.group.copy()
-        self.oldleader = self.leader.copy()
-        leadera = self.leader.get(a)
-        leaderb = self.leader.get(b)
-        if leadera is not None:
-            if leaderb is not None:
-                if leadera == leaderb:
-                    return  # nothing to do
-                groupa = self.group[leadera]
-                groupb = self.group[leaderb]
-                if len(groupa) < len(groupb):
-                    a, leadera, groupa, b, leaderb, groupb = \
-                        b, leaderb, groupb, a, leadera, groupa
-                groupa |= groupb
-                del self.group[leaderb]
-                for k in groupb:
-                    self.leader[k] = leadera
-            else:
-                self.group[leadera].add(b)
-                self.leader[b] = leadera
-        else:
-            if leaderb is not None:
-                self.group[leaderb].add(a)
-                self.leader[a] = leaderb
-            else:
-                self.leader[a] = self.leader[b] = a
-                self.group[a] = set([a, b])
-
-    def connected(self, a, b):
-        leadera = self.leader.get(a)
-        leaderb = self.leader.get(b)
-        if leadera is not None:
-            if leaderb is not None:
-                return leadera == leaderb
-            else:
-                return False
-        else:
-            return False
-
-    def undo(self):
-        self.group = self.oldgroup.copy()
-        self.leader = self.oldleader.copy()

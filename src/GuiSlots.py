@@ -339,6 +339,25 @@ class Slots:
         dlg.setLayout(layout)
         dlg.exec_()
 
+    def runCommands(self):
+        '''Automate different actions by simulation button clicks
+        Call directly a function or
+        using click or animateClick on the respective widget
+        # self.parent.centralwidget.toolbox.splineButton.click
+        # self.parent.centralwidget.toolbox.splineButton.animateClick
+        
+        '''        
+        # load the predefined airfoil
+        self.onOpenPredefined()
+        # spline and refine the contour with defaults
+        self.parent.centralwidget.toolbox.spline_and_refine()
+        # add a blunt trailing edge with defaults
+        self.parent.centralwidget.toolbox.makeTrailingEdge()
+        # generate a mesh using defaults
+        self.parent.centralwidget.toolbox.generateMesh()
+        # export the mesh
+        self.parent.centralwidget.toolbox.exportMesh()
+
     def onHelpOnline(self):
         webbrowser.open('http://pyaero.readthedocs.io/en/latest/')
 

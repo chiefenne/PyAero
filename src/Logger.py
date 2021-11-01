@@ -32,6 +32,11 @@ class GuiHandler(logging.Handler):
 
 def log(mainwindow):
 
+    useGUI = True
+
+    if mainwindow == 'file_only':
+        useGUI = False
+
     logging.basicConfig(level=logging.INFO)
     # logging.getLogger('') gets the 'root' logger
     # stdout is the only handler initially
@@ -50,23 +55,27 @@ def log(mainwindow):
     console_handler.setLevel(logging.ERROR)
 
     # create a gui handler (for writing to the message dock window)
-    gui_handler = GuiHandler(parent=mainwindow)
-    gui_handler.setLevel(logging.INFO)
+    if useGUI:
+        gui_handler = GuiHandler(parent=mainwindow)
+        gui_handler.setLevel(logging.INFO)
 
     # create specific logging formats
     file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     console_formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-    gui_formatter = logging.Formatter('%(levelname)s - %(message)s')
+    if useGUI:
+        gui_formatter = logging.Formatter('%(levelname)s - %(message)s')
 
     # apply formats to handlers
     file_handler.setFormatter(file_formatter)
     console_handler.setFormatter(console_formatter)
-    gui_handler.setFormatter(gui_formatter)
+    if useGUI:
+        gui_handler.setFormatter(gui_formatter)
 
     # add the handlers to the root logger
     logging.getLogger('').addHandler(file_handler)
     logging.getLogger('').addHandler(console_handler)
-    logging.getLogger('').addHandler(gui_handler)
+    if useGUI:
+        logging.getLogger('').addHandler(gui_handler)
 
     # remove the standard handler from the root logger
     # it would log everything to the console automatically
