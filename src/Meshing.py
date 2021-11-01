@@ -1082,17 +1082,6 @@ class BlockMesh:
     @staticmethod
     def writeSU2(wind_tunnel, name=''):
 
-        filename = 'square.su2'
-        mesh = meshio.read(
-        filename,  # string, os.PathLike, or a buffer/open file
-        file_format="su2"  # optional if filename is a path; inferred from extension
-        # see meshio-convert -h for all possible formats
-        )
-        # mesh.points, mesh.cells, mesh.cells_dict, ...
-        # mesh.vtk.read() is also possible
-
-        mesh.write('square_meshio.su2')
-
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
         tags = wind_tunnel.boundary_tags
