@@ -74,7 +74,7 @@ class GraphicsCollection:
         self.shape.addPolygon(polygon)
         self.method = 'drawPolygon'
         self.args = [polygon]
-        # in case of an airfoil its the airfoil name (PAirfoil.py)
+        # in case of an airfoil its the airfoil name (Airfoil.py)
         self.name = name
         self.tooltip = name
 
