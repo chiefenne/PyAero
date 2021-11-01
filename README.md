@@ -26,6 +26,7 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
    - [AVL FIRE](https://www.avl.com/fire) (.flma)
    - Some other file formats are exported using the [meshio](https://github.com/nschloe/meshio) library (only listed formats)
      - [SU2](https://su2code.github.io) (.su2)
+       - Including boundary markers
      - [GMSH](http://gmsh.info) (.msh)
      - [VTK](https://vtk.org) (.vtk)
      - [CGNS](https://cgns.github.io) (.cgns)
@@ -65,25 +66,29 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
 <br><br>
 
 ![](docs/images/MAKAROV_KPS_mesh_MAC.png)
-**Example mesh around MAKAROV KPS airfoil as used in the CFD code AVL-FIRE.**
+**Example mesh around MAKAROV KPS airfoil as used in the CFD code AVL-FIRE**
 <br><br>
 
 ![](docs/images/MAKAROV_KPS_Veloyity.gif)
-**Velocity field (RE=50000) around MAKAROV KPS airfoil using the CFD code AVL-FIRE.**
+**Velocity field (RE=50000) around MAKAROV KPS airfoil using the CFD code AVL-FIRE**
 <br><br>
 
 ![](docs/images/MAKAROV_KPS_TKE.gif)
-**Turbulence kinetic energy field (RE=50000) around MAKAROV KPS airfoil using the CFD code AVL-FIRE.**
+**Turbulence kinetic energy field (RE=50000) around MAKAROV KPS airfoil using the CFD code AVL-FIRE**
 <br><br>
 
 ![](docs/movies/RG14_3D_laminar_Iso-Q_pressure.gif)
-**Unsteady 3D calculation of the RG14 airfoil using the CFD code AVL-FIRE.**
+**Unsteady 3D calculation of the RG14 airfoil using the CFD code AVL-FIRE**
 <br>
 **RE=330000, AOA=2°, 20 million cells.**
 <br>
 **Laminar calculation: CD=0.0079, CL=0.371**
 <br>
 **LES calculation (subgrid scale model: Kobayashi CSM): CD=0.0078, CL=0.362**
+<br><br>
+
+![](docs/images/SD7003_CP_RE200000_AOA3.png)
+**Steady 2D calculation of the SD7003 airfoil using the CFD code SU2 (RE=200000, AOA=3), post-processing with ParaView**
 <br><br>
 
 ## Documentation
