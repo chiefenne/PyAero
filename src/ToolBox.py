@@ -262,11 +262,19 @@ class Toolbox(QtWidgets.QToolBox):
 
         self.textedit = QtWidgets.QTextEdit()
         self.textedit.setReadOnly(True)
-        self.textedit.copyAvailable.connect(self.copy_to_clipboard)
-        # update text box (computed from initial values)
+        self.textedit.selectionChanged.connect(self.copy_to_clipboard)
+        # update text box (so everything is computed from initial values)
         self.valuechange()
-        self.textedit.setHtml(self.te_text)
-        form.addRow(self.textedit)
+
+        copy_button = QtWidgets.QPushButton('Copy to clipboard')
+        copy_button.setGeometry(10, 10, 200, 50)
+        copy_button.clicked.connect(self.copy_all_to_clipboard)
+
+        text_and_button = QtWidgets.QHBoxLayout()
+        text_and_button.addWidget(self.textedit, stretch=10)
+        text_and_button.addWidget(copy_button)
+
+        form.addRow(text_and_button)
 
         self.item_abc = QtWidgets.QGroupBox(
             'Aerodynamic boundary conditions for CFD')
@@ -275,6 +283,18 @@ class Toolbox(QtWidgets.QToolBox):
     def copy_to_clipboard(self):
         """ Copy any selected text in the self.textedit to the clipboard """
         self.textedit.copy()
+
+    def copy_all_to_clipboard(self):
+        """ Copy any selected text in the self.textedit to the clipboard """
+        self.textedit.selectAll()
+        self.textedit.copy()
+        # weird way to unselect the text again
+        # https://stackoverflow.com/a/25348576/2264936
+        cursor = self.textedit.textCursor()
+        cursor.clearSelection()
+        self.textedit.setTextCursor(cursor)
+        vsb = self.textedit.verticalScrollBar()
+        vsb.setValue(QtWidgets.QAbstractSlider.SliderToMaximum)
 
     def valuechange(self):
         # checks that from and to do not overlap
@@ -285,7 +305,7 @@ class Toolbox(QtWidgets.QToolBox):
 
         gas_constant = 287.14
         temperature = self.temperature.value() + 273.15
-        density = self.pressure.value() / gas_constant / temperature
+        self.density = self.pressure.value() / gas_constant / temperature
         num = int((self.aoat.value() - self.aoaf.value()) / self.aoas.value() + 1)
         self.aoa = np.linspace(self.aoaf.value(), self.aoat.value(),
                                num=num, endpoint=True)
@@ -298,10 +318,10 @@ class Toolbox(QtWidgets.QToolBox):
             return vis
 
         # calculate results wrt given inputs
-        viscosity = dynamic_viscosity(temperature)
-        kinematic_viscosity = viscosity / density
+        self.dynamic_viscosity = dynamic_viscosity(temperature)
+        self.kinematic_viscosity = self.dynamic_viscosity / self.density
         velocity = self.reynolds.value() / self.chord.value() * \
-            kinematic_viscosity
+            self.kinematic_viscosity
         uprime = velocity * self.turbulence.value() / 100.0
         tke = 3.0 / 2.0 * uprime**2
         self.u_velocity = velocity * np.cos(self.aoa * np.pi / 180.0)
@@ -315,25 +335,35 @@ class Toolbox(QtWidgets.QToolBox):
             friction_coefficient = 0.455 / logRE
         else:
             friction_coefficient = 0.455 / logRE - 1700.0 / RE
-        wall_shear_stress = friction_coefficient * 0.5 * density * velocity**2
-        friction_velocity = np.sqrt(wall_shear_stress / density)
-        wall_distance = self.yplus.value() * viscosity / density / friction_velocity
+        wall_shear_stress = friction_coefficient * 0.5 * self.density * velocity**2
+        friction_velocity = np.sqrt(wall_shear_stress / self.density)
+        wall_distance = self.yplus.value() * self.dynamic_viscosity / self.density / friction_velocity
 
         # text for displaying the results
         newline = '<br>'
-        self.te_text = '<b>1st cell layer thickness (m)</b>' + newline
+        self.te_text = '<b>CFD Boundary Conditions</b>' + newline
+        self.te_text += f'Reynolds (-): {self.reynolds.value()}' + newline
+        self.te_text += f'Pressure (Pa): {self.pressure.value()}' + newline
+        self.te_text += f'Temperature (C): {self.temperature.value()}' + newline
+        self.te_text += f'Temperature (K): {self.temperature.value()+273.15}' + newline
+        self.te_text += f'Density (kg/(m<sup>3</sup>)): {self.density}' + newline
+        self.te_text += f'Dynamic viscosity (kg/(m.s)): {self.dynamic_viscosity}' + newline
+        self.te_text += f'Kinematic viscosity (m/s) {self.kinematic_viscosity}:' + newline
+        self.te_text += f'<b>1st cell layer thickness (m)</b>, for y<sup>+</sup>={self.yplus.value()}' + newline
         self.te_text += '{:16.8f}'.format(wall_distance) + newline
-        self.te_text += '<b>TKE  Length-scale (m2/s2)</b>' + newline
+        self.te_text += '<b>TKE (m<sup>2</sup>/s<sup>2</sup>), Length-scale (m)</b>' + newline
         self.te_text += '{:16.8f} {:16.8f}'.\
             format(tke, self.length_sc.value()) + newline
         self.te_text += '<b>AOA (°)   u-velocity (m/s)   v-velocity (m/s)</b>' + newline
-        for i, line in enumerate(self.u_velocity):
-            self.te_text += '{:5.2f} {:16.8f} {:16.8f}{}'.format(
+        for i, _ in enumerate(self.u_velocity):
+            self.te_text += '{: >5.2f} {: >16.8f} {: >16.8f}{}'.format(
                 self.aoa[i],
                 self.u_velocity[i],
                 self.v_velocity[i],
                 newline)
         self.textedit.setStyleSheet('font-family: Courier; font-size: 12px; ')
+
+        # update the text boxwith the current values
         self.textedit.setHtml(self.te_text)
 
     def itemContourAnalysis(self):
