@@ -172,10 +172,11 @@ class Airfoil:
         line.pen.setDashPattern([stroke, space, dot, space])
         index_min = np.argmin(self.raw_coordinates[0])
         index_max = np.argmax(self.raw_coordinates[0])
-        line.Line(self.raw_coordinates[0][index_min],
-                  self.raw_coordinates[1][index_min],
-                  self.raw_coordinates[0][index_max],
-                  self.raw_coordinates[1][index_max])
+        x1 = self.raw_coordinates[0][index_min]
+        y1 = self.raw_coordinates[1][index_min]
+        x2 = self.raw_coordinates[0][index_max]
+        y2 = self.raw_coordinates[1][index_max]
+        line.Line(x1, y1, x2, y2)
 
         self.chord = GraphicsItem.GraphicsItem(line)
         self.chord.setAcceptHoverEvents(False)
@@ -282,6 +283,7 @@ class Airfoil:
         if hasattr(self, 'camberline'):
             self.mainwindow.scene.removeItem(self.camberline)
         self.camberline = GraphicsItem.GraphicsItem(camberline)
+        self.camberline.setAcceptHoverEvents(False)
         self.mainwindow.scene.addItem(self.camberline)
         self.mainwindow.centralwidget.cb9.setChecked(True)
         self.mainwindow.centralwidget.cb9.setEnabled(True)
