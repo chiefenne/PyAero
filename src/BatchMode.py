@@ -131,6 +131,15 @@ class Batch:
             # add mesh to Wind-tunnel instance
             wind_tunnel.mesh = vertices, connectivity
 
+            # generate cell to edge connectivity from mesh
+            wind_tunnel.makeLCE()
+
+            # generate cell to edge connectivity from mesh
+            wind_tunnel.makeLCE()
+
+            # generate boundaries from mesh connectivity
+            wind_tunnel.makeBoundaries()
+
             message = f'Finished batch meshing for airfoil {airfoil}'
             print(message)
             logger.info(message)
