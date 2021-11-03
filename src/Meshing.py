@@ -1070,7 +1070,7 @@ class BlockMesh:
 
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
-        cells = [('quad', [cell]) for cell in connectivity]
+        cells = [('quad', connectivity)]
         vertices_3D = [v + (0.0,) for v in vertices]
 
         meshio.write_points_cells(name, vertices_3D, cells)
@@ -1086,7 +1086,6 @@ class BlockMesh:
         vertices, connectivity = mesh
         tags = wind_tunnel.boundary_tags
 
-        bnd = list()
         num_airfoil_edges = len(tags['airfoil'])
         num_inlet_edges = len(tags['inlet'])
         num_outlet_edges = len(tags['outlet'])
@@ -1111,7 +1110,7 @@ class BlockMesh:
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
         vertices_3D = [v + (0.0,) for v in vertices]
-        cells = [('quad', [cell]) for cell in connectivity]
+        cells = [('quad', connectivity)]
 
         meshio.write_points_cells(name, vertices_3D, cells, file_format="gmsh22")
 
@@ -1125,7 +1124,7 @@ class BlockMesh:
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
         vertices_3D = [v + (0.0,) for v in vertices]
-        cells = [('quad', [cell]) for cell in connectivity]
+        cells = [('quad', connectivity)]
 
         meshio.write_points_cells(name, vertices_3D, cells)
 
@@ -1139,7 +1138,7 @@ class BlockMesh:
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
         vertices_3D = [v + (0.0,) for v in vertices]
-        cells = [('quad', [cell]) for cell in connectivity]
+        cells = [('quad', connectivity)]
 
         meshio.write_points_cells(name, vertices_3D, cells)
 

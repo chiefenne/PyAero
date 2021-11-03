@@ -31,7 +31,7 @@ class Dialog:
             'Save File As',
             path,
             self.filter,
-            '')
+            selectedFilter='*')
 
         return filename, selected_filter
 
