@@ -42,7 +42,7 @@ __credits__ = 'Internet and open source'
 __copyright__ = '2014-' + str(datetime.date.today().strftime("%Y")) + \
                 ' ' + __author__
 __license__ = 'MIT'
-__version__ = '2.1.4'
+__version__ = '2.1.5'
 __email__ = 'andreas.ennemoser@aon.at'
 __status__ = 'Release'
 
