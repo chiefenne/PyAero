@@ -45,6 +45,8 @@ class Batch:
         print('Mesh output path is', mesh_path, '\n')
 
         airfoils = self.batch_control['Airfoils']['names']
+        trailing_edges = self.batch_control['Airfoils']['trailing_edges']
+
         message = 'Airfoils to mesh:'
         print(message)
         logger.info(message)
@@ -55,7 +57,7 @@ class Batch:
         
         print('\n')
 
-        for airfoil in airfoils:
+        for i, airfoil in enumerate(airfoils):
 
             message = f'Starting batch meshing for airfoil {airfoil}'
             print(message)
@@ -76,16 +78,22 @@ class Batch:
                                   ref_te_ratio=refinement['Refine trailing edge ratio'])
 
             # trailing edge
-            te = self.batch_control['Airfoil trailing edge']
-            trailing = TrailingEdge.TrailingEdge()
-            trailing.trailingEdge(blend=te['Upper side blending length'] / 100.0,
-                                  ex=te['Upper blending polynomial exponent'],
-                                  thickness=te['Trailing edge thickness relative to chord'],
-                                  side='upper')
-            trailing.trailingEdge(blend=te['Lower side blending length'] / 100.0,
-                                  ex=te['Upper blending polynomial exponent'],
-                                  thickness=te['Trailing edge thickness relative to chord'],
-                                  side='lower')
+            if trailing_edges[i] == 'yes':
+
+                self.app.mainwindow.airfoil.has_TE = True
+
+                te = self.batch_control['Airfoil trailing edge']
+                trailing = TrailingEdge.TrailingEdge()
+
+                trailing.trailingEdge(blend=te['Upper side blending length'] / 100.0,
+                                    ex=te['Upper blending polynomial exponent'],
+                                    thickness=te['Trailing edge thickness relative to chord'],
+                                    side='upper')
+
+                trailing.trailingEdge(blend=te['Lower side blending length'] / 100.0,
+                                    ex=te['Upper blending polynomial exponent'],
+                                    thickness=te['Trailing edge thickness relative to chord'],
+                                    side='lower')
             
             # make mesh
             wind_tunnel = Meshing.Windtunnel()

@@ -42,7 +42,7 @@ __credits__ = 'Internet and open source'
 __copyright__ = '2014-' + str(datetime.date.today().strftime("%Y")) + \
                 ' ' + __author__
 __license__ = 'MIT'
-__version__ = '2.1.3'
+__version__ = '2.1.4'
 __email__ = 'andreas.ennemoser@aon.at'
 __status__ = 'Release'
 
@@ -290,9 +290,7 @@ class CentralWidget(QtWidgets.QWidget):
 
 def main():
 
-    # FIXME
-    # FIXME this is a preparation for a batch version of PyAero
-    # FIXME
+    # check if the user is running the program in batch mode
     useGUI = '-no-gui' not in sys.argv
 
     # run PyAero in batch mode

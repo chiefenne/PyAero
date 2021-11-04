@@ -4,6 +4,10 @@
         "names": [
           "clarky.dat",
           "rg15.dat"
+        ],
+        "trailing_edges": [
+          "yes",
+          "no"
         ]
     },
     "Output formats": {
@@ -23,9 +27,9 @@
     "Airfoil trailing edge": {
       "Upper side blending length": 30.0,
       "Lower side blending length": 30.0,
-      "Upper blending polynomial exponent": 6,
+      "Upper blending polynomial exponent": 3,
       "Lower blending polynomial exponent" : 3,
-      "Trailing edge thickness relative to chord" : 200
+      "Trailing edge thickness relative to chord" : 0.4
     },
     "Airfoil contour mesh": {
       "Divisions normal to airfoil": 15,
