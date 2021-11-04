@@ -529,6 +529,9 @@ class Windtunnel:
         self.mainwindow.centralwidget.cb6.setChecked(True)
         self.mainwindow.centralwidget.cb6.setEnabled(True)
 
+    def drawMeshQuality(self):
+        pass
+
     def drawBlockOutline(self, airfoil):
         """Add the mesh block outlines to the scene
 
