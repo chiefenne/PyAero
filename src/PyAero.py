@@ -290,9 +290,7 @@ class CentralWidget(QtWidgets.QWidget):
 
 def main():
 
-    # FIXME
-    # FIXME this is a preparation for a batch version of PyAero
-    # FIXME
+    # check if the user is running the program in batch mode
     useGUI = '-no-gui' not in sys.argv
 
     # run PyAero in batch mode
