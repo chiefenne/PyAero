@@ -1,5 +1,7 @@
 
-# PyAero ![](docs/images/RAE2822_new.png)
+# PyAero
+![](docs/images/SD7003_velocity_AOA6.png)
+<br>
 
 [![readthedocs](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://pyaero.readthedocs.io/en/latest/?badge=latest)
 [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://en.wikipedia.org/wiki/MIT_License)
@@ -42,6 +44,12 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
  - NOT YET IMPLEMENTED:
    - Decent smoothing algorithm for the mesh regions outside the orthogonal blocks
    - Advanced aerodynamic analysis (i.e. linking to open source CFD software, e.g. SU2)
+
+## Header image
+ - Airfoil SD7003
+ - Meshing with PyAero
+ - Calculation with the CFD code SU2
+ - Post-processing done in ParaView
 
 ## Sample screenshots
 
