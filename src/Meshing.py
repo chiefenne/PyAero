@@ -3,7 +3,6 @@ import os
 import copy
 from datetime import date
 import locale
-import itertools
 import numpy as np
 from scipy import interpolate
 
@@ -412,6 +411,10 @@ class Windtunnel:
         self.drawMesh(self.mainwindow.airfoil)
         self.drawBlockOutline(self.mainwindow.airfoil)
 
+        # mesh quality
+        # quality = self.MeshQuality(crit='k2inf')
+        # self.drawMeshQuality(quality)
+
         progdialog.setValue(100)
 
         # enable mesh export and set filename and boundary definitions
@@ -529,8 +532,24 @@ class Windtunnel:
         self.mainwindow.centralwidget.cb6.setChecked(True)
         self.mainwindow.centralwidget.cb6.setEnabled(True)
 
-    def drawMeshQuality(self):
-        pass
+    def drawMeshQuality(self, quality):
+
+        vertices, connectivity = self.mesh
+        quads = list()
+        colors = [Utils.scalar_to_rgb(q, range='256') for q in quality]
+
+        for i, cell in enumerate(connectivity):
+            quad = gic.GraphicsCollection()
+            points = [QtCore.QPointF(*vertices[vertex]) for vertex in cell]
+            quad.Polygon(QtGui.QPolygonF(points), '')
+            quad.pen.setColor(QtGui.QColor(0, 0, 0, 255))
+            quad.brush.setColor(QtGui.QColor(*colors[i]))
+            quad.pen.setWidthF(0.8)
+            quad.pen.setCosmetic(True)
+            quaditem = GraphicsItem.GraphicsItem(quad)
+            quads.append(quaditem)
+        
+        self.mainwindow.scene.createItemGroup(quads)
 
     def drawBlockOutline(self, airfoil):
         """Add the mesh block outlines to the scene
@@ -594,6 +613,42 @@ class Windtunnel:
         # as blocks should not be shown as a default
         # now visibility of blocks fits to checkbox setting
         self.mainwindow.centralwidget.cb8.click()
+
+    def MeshQuality(self, crit='k2inf'):
+        vertices, connectivity = self.mesh
+
+        if crit == 'k2inf':
+            v12 = vertices[connectivity[:, 1]] - vertices[connectivity[:, 0]]
+            v23 = vertices[connectivity[:, 2]] - vertices[connectivity[:, 1]]
+            v34 = vertices[connectivity[:, 3]] - vertices[connectivity[:, 2]]
+            v41 = vertices[connectivity[:, 0]] - vertices[connectivity[:, 3]]
+            a = np.linalg.norm(v12)
+            b = np.linalg.norm(v23)
+            c = np.linalg.norm(v34)
+            d = np.linalg.norm(v41)
+            p = 0.5 * (a + b + c + d)
+            q2 = np.sqrt(a**2 + b**2 + c**2 + d**2)
+
+            alpha = Utils.angle_between(v12, -v41)
+            beta =  Utils.angle_between(v23, -v12)
+            gamma = Utils.angle_between(v34, -v23)
+            delta = Utils.angle_between(v41, -v12)
+            theta = 0.5 * (alpha + gamma)
+
+            # quad area using Bretschneider’s formula
+            A = np.sqrt((p -a)*(p-b)*(p-c)*(p-d) - a*b*c*d*np.cos(theta))
+
+            ka = (a**2 + d**2) / (a*d*np.sin(alpha))
+            kb = (a**2 + b**2) / (a*b*np.sin(beta))
+            kc = (b**2 + c**2) / (b*c*np.sin(gamma))
+            kd = (c**2 + d**2) / (c*d*np.sin(delta))
+            k = np.stack((ka, kb, kc, kd))
+
+            quality = np.max(k, axis=0) / 2.
+
+        self.mesh.quality = quality
+
+        return self.mesh.quality
 
 
 class BlockMesh:
