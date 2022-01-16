@@ -1,137 +1,96 @@
 
-from functools import partial
 import copy
 
 import numpy as np
-from scipy import optimize
 
-DEBUG = False
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Elliptic:
-    """Generate an orthogonal curvilinear grid by solving the inverse form of
-    two laplace equations.
-    Source: Basic Structured Grid Generation, M. Farrashkhalvat and J.P. Miles
-    """
+    def __init__(self, ulines):
 
-    def __init__(self, boundary):
-        """Summary
+        self.ulines = ulines
+        
+        self.nx = np.array(self.ulines).shape[1]
+        self.ny = np.array(self.ulines).shape[0]
 
-        Args:
-            boundary (dictionary): contains x,y-coordinates of all 4 boundaries
-        """
-        self.xw = boundary['west'][0]
-        self.yw = boundary['west'][1]
-        self.xe = boundary['east'][0]
-        self.ye = boundary['east'][1]
-        self.xn = boundary['north'][0]
-        self.yn = boundary['north'][1]
-        self.xs = boundary['south'][0]
-        self.ys = boundary['south'][1]
+        # initialize coordinate array
+        self.x = np.empty((self.nx, self.ny))
+        self.y = np.empty_like(self.x)
 
-    def solver(self, solver_type, iterations):
+        
+        # map coordinates from ulines to i,j index
+        self.mapUlines()
+ 
+    def mapUlines(self):
+        # FIXME try using np.stack
+        for j, uline in enumerate(self.ulines):
+            for i, u in enumerate(uline):
+                self.x[i, j] = u[0]
+                self.y[i, j] = u[1]
+    
+    def mapToUlines(self):
+        self.new_ulines = list()
+        for j, uline in enumerate(self.ulines):
+            new_uline = list()
+            for i, u in enumerate(uline):
+                new_uline.append((self.xn[i, j], self.yn[i, j]))
+            self.new_ulines.append(new_uline)
 
-        # knowns
-        f_o = copy.copy(self.f[:, 0])
-        u_o = copy.copy(self.u[:, 0])
+    def smooth(self, iterations=10, tolerance=1e-3, verbose=False):
 
-        # extra parameters for 'function'
-        # are later wrapped with partial
-        etamax = copy.copy(self.etamax)
+        self.mapUlines()
 
-        #
-        def F(unknowns, F_args=[etamax]):
-            """Summary
+        self.xn = copy.deepcopy(self.x)
+        self.yn = copy.deepcopy(self.y)
 
-            Args:
-                unknowns (np.array): x, y
+        for iteration in range(iterations):
 
-            Returns:
-                TYPE: Description
-            """
+            # loop internal nodes, index a[0, 0] refers to the first internal node
+            for i in range(1, self.nx - 1):
+                for j in range(1, self.ny - 1):
 
-            # unknowns
-            if DEBUG:
-                print('unknowns', unknowns)
+                    # g22
+                    alpha = 1./4. * ( (self.x[i, j+1] - self.x[i, j-1])**2 \
+                                  + (self.y[i, j+1] - self.y[i, j-1])**2 )
+                    # g11
+                    gamma = 1./4. * ( (self.x[i+1, j] - self.x[i-1, j])**2 \
+                                  + (self.y[i+1, j] - self.y[i-1, j])**2 )
+                    # g12
+                    beta = 1./16. * ( ( self.x[i+1, j] - self.x[i-1, j] ) \
+                                    * ( self.x[i, j+1] - self.x[i, j-1] ) \
+                                    + ( self.y[i+1, j] - self.y[i-1, j] ) \
+                                    * ( self.y[i, j+1] - self.y[i, j-1] ) )
+                    # calculate new x-coordinate
+                    self.xn[i,j] = -0.5 / (alpha + gamma + 1.e-9) \
+                        * (2. * beta * ( self.x[i+1, j+1] - self.x[i-1, j+1] \
+                        - self.x[i+1, j-1] + self.x[i-1, j-1] ) \
+                        - alpha * ( self.x[i+1, j] + self.x[i-1, j] ) \
+                        - gamma * ( self.x[i, j+1] + self.x[i, j-1] ) )
+                    # calculate new y-coordinate
+                    self.yn[i,j] = -0.5 / (alpha + gamma + 1.e-9) \
+                        * (2. * beta * ( self.y[i+1, j+1] - self.y[i-1, j+1] \
+                        - self.y[i+1, j-1] + self.y[i-1, j-1] ) \
+                        - alpha * ( self.y[i+1, j] + self.y[i-1, j] ) \
+                        - gamma * ( self.y[i, j+1] + self.y[i, j-1] ) )
 
-            # (x, y) = unknowns
-            x = unknowns[0: etamax]
-            y = unknowns[etamax:2 * etamax]
+            tol = np.max(np.abs(self.xn - self.x)) + np.max(np.abs(self.yn - self.y))
 
-            eq1 = np.zeros_like(x)
-            eq2 = np.zeros_like(x)
+            if verbose:
+                logger.info(f'Iteration={iteration+1:3d}, residual={tol:.3e}')
 
-            # boundary conditions
-            x[0] = 0.0
-            y[0] = 0.0
+            if tol < tolerance:
+                break
 
-            deta = 1.0
-            dgsi = 1.0
+            # Neumann boundary conditions
+            #self.xn[1:-1,0] = self.xn[1:-1,1]
 
-            # array slicing for index j
-            # [1:] means index j
-            # [:-1] means index j-1
+            # update coordinates for next iteration
+            self.x = copy.deepcopy(self.xn)
+            self.y = copy.deepcopy(self.yn)
+                    
+        # map coordinates back to uline data structure
+        self.mapToUlines()
 
-            dxdgsi = (x[1:, :] - x[:-1, :]) / (2 * dgsi)
-            dydgsi = (y[1:, :] - y[:-1, :]) / (2 * dgsi)
-            dxdeta = (x[1:, :] - x[:-1, :]) / (2 * deta)
-            dydeta = (y[1:, :] - y[:-1, :]) / (2 * deta)
-
-            # components of the covariant metric tensor
-            g11 = dxdgsi**2 + dydgsi**2
-            g22 = dxdeta**2 + dydeta**2
-            g12 = dxdgsi * dxdeta + dydgsi * dydeta
-
-            a = g22 / dgsi**2
-            b = 2 * g22 / dgsi**2 + 2 * g11 / deta**2
-            c = a
-            d = g11 / deta**2 * (x[:, :-1] + x[:, 1:]) - \
-                2 * g12 * (x[:-1, :-1] + x[1:, 1:] - x[1:, :-1] - x[:-1, 1:]) \
-                / (4 * dgsi * deta)
-            e = g11 / deta**2 * (y[:, :-1] + y[:, 1:]) - \
-                2 * g12 * (y[:-1, :-1] + y[1:, 1:] - y[1:, :-1] - y[:-1, 1:]) \
-                / (4 * dgsi * deta)
-
-            # Winslow x
-            eq1[1:] = -a * x[1:, :] + b * x[:, :] - c * x[:-1, :] - d
-
-            # Winslow y
-            eq2[1:] = -a * y[1:, :] + b * y[:, :] - c * y[:-1, :] - e
-
-            # boundary conditions make up another 2 equations
-            # put them on the 0-th element of all 2 equations
-            eq1[0] = x[0]
-            eq2[0] = y[0]
-
-            return np.array([eq1, eq2]).ravel()
-
-        # initial guess
-        guess = np.array([f_o, u_o]).ravel()
-
-        F_partial = partial(F,
-                            F_args=[etamax])
-
-        solution = optimize.fsolve(F_partial, guess,
-                                   full_output=True, xtol=1e-06)
-
-        solver_message = solution[3]
-        print('  Solver: {}'.format(solver_message))
-
-        return solution, solver_message
-
-    def shift_profiles(self):
-
-        self.x[:, 0] = copy.copy(self.solution[0][0 *
-                                 self.etamax:1 * self.etamax])
-        self.y[:, 0] = copy.copy(self.solution[0][1 *
-                                 self.etamax:2 * self.etamax])
-
-    def main(self, solver_type='fsolve', iterations=10):
-
-        # initial velocity profile
-        self.boundary_conditions()
-
-        for self.nx in range(1, self.gsimax):
-            self.solution, self.solver_message = \
-                self.solver(solver_type, iterations)
-            self.shift_profiles()
+        return self.new_ulines
