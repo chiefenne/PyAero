@@ -91,7 +91,7 @@ class Batch:
                                     side='upper')
 
                 trailing.trailingEdge(blend=te['Lower side blending length'] / 100.0,
-                                    ex=te['Upper blending polynomial exponent'],
+                                    ex=te['Lower blending polynomial exponent'],
                                     thickness=te['Trailing edge thickness relative to chord'],
                                     side='lower')
             
