@@ -530,21 +530,3 @@ class FoilApi:
         yle = yr[le_id]
 
         return rc, xc, yc, xle, yle, le_id
-
-# class TrailingEdge:
-
-#     def __init__(self, airfoil):
-
-#         # get MainWindow instance (overcomes handling parents)
-#         # self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
-#         self.airfoil = airfoil
-
-
-
-# x = FoilApi()
-# x.readContour('../data/Airfoils/F3B-F3F/hs179.dat', '#')
-# x.doSplineRefine()
-# xy = x.spline_data[0]
-
-# plt.plot(xy[0], xy[1])
-# plt.show()
