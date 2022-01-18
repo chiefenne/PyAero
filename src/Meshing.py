@@ -1206,6 +1206,7 @@ class BlockMesh:
     
     @staticmethod
     def writeFLUENT(wind_tunnel, name=''):
+        # boundary condition is farfield
         basename = os.path.basename(name)
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
