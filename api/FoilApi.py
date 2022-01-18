@@ -3,6 +3,9 @@ import logging
 import matplotlib.pyplot as plt
 from scipy import interpolate
 import copy
+import os, sys
+lib_path = os.path.abspath(os.path.join('.', 'src'))
+sys.path.append(lib_path)
 from Utils import Utils
 logger = logging.getLogger(__name__)
 
