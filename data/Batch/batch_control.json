@@ -1,6 +1,6 @@
 {
     "Airfoils": {
-        "path": "data/Airfoils/RC_Glider",
+        "path": "D:/projects/pyaero/PyAero/data/Airfoils/RC_Glider",
         "names": [
           "clarky.dat",
           "rg15.dat"
@@ -14,7 +14,7 @@
         "path": "data/OUTPUT",
         "formats": [
           "SU2",
-          "VTK"
+          "FLUENT"
         ]
     },
     "Airfoil contour refinement": {

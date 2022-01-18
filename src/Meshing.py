@@ -1203,6 +1203,132 @@ class BlockMesh:
         basename = os.path.basename(name)
         logger.info('ABAQUS type mesh saved as {}'.
                     format(os.path.join(OUTPUTDATA, basename)))
+    
+    @staticmethod
+    def writeFLUENT(wind_tunnel, name=''):
+        basename = os.path.basename(name)
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        LCE = wind_tunnel.LCE
+
+        with open(name, 'w') as f:
+            f.write('(0 " Created by : liziyu")\n')
+            f.write('(2 2)\n')
+            num_points = len(vertices)
+            first_node_index = 1
+            f.write('(10 (0 {:x} {:x} 0 2))\n'.format(first_node_index, num_points))
+            total_num_cells = len(connectivity)
+            f.write("(12 (0 1 {:x} 0))\n".format(total_num_cells))
+            # (10 (zone-id first-index last-index type ND)(x1 y1 z1  x2 y2 z2... ))
+            f.write('(10 (5 {:x} {:x} 1 2)\n'.format(first_node_index, num_points))
+            f.write('(\n')
+
+            r = []
+            x_list = []
+            y_list = []
+
+            for node, vertex in enumerate(vertices, start=1):
+                x, y = vertex[0], vertex[1]
+                x_list.append(x)
+                y_list.append(y)
+                r.append(abs(x) + abs(y))
+                f.write('{:.15f} {:.15f}\n'.format(x, y))
+
+            f.write('))\n')
+            f.write('(12 (0 1 {:x} 0 0))\n'.format(len(connectivity)))
+            f.write('(12 (6 1 {:x} 1 3))\n'.format(len(connectivity)))
+
+            line_set = []
+            # search_set
+            line_dict = {}
+
+            for i in range(len(connectivity)):
+                cell = LCE[i]
+                for line in cell:
+                    line = list(line)
+                    line_str = '{} {}'.format(line[0], line[1])
+                    if '{} {}'.format(line[1], line[0]) in line_set:
+                        line_dict['{} {}'.format(line[1], line[0])].append(i)
+                        line_set.remove('{} {}'.format(line[1], line[0]))
+                    else:
+                        line_set.append(line_str)
+                        line_dict[line_str] = [i]
+
+            interior_dict = {}
+            farfield_dict = {}
+            foil_dict = {}
+
+            line1cell_dict = {}
+
+
+            for i in line_dict.keys():
+                if len(line_dict[i]) == 1:
+                    line1cell_dict[i] = line_dict[i]
+                    index = i.split()
+                    if (r[int(index[0])] > 3) & (r[int(index[1])] > 3):
+                        farfield_dict[i] = line_dict[i]
+                    else:
+                        foil_dict[i] = line_dict[i]
+                else:
+                    interior_dict[i] = line_dict[i]
+            # print(line2cell_dict)
+
+            outlet_dict = {}
+            inlet_dict = {}
+
+            for i in farfield_dict.keys():
+                index = i.split()
+                x = vertices[int(index[0])][0]
+                y = vertices[int(index[0])][1]
+                if x == np.max(vertices[0]):
+                    outlet_dict[i] = farfield_dict[i]
+                else:
+                    inlet_dict[i] = farfield_dict[i]
+
+            f.write('(13 (0 1 {:x} 0 0))\n'.format(len(line_dict)))
+            f.write('(0 "Interior faces of zone FLUID")\n')
+            f.write('(13 (7 1 {:x} 2 2)(\n'.format(len(interior_dict)))
+            for i in interior_dict.keys():
+                line = i.split()
+                line[0] = int(line[0])
+                line[1] = int(line[1])
+                cell = interior_dict[i]
+                f.write('{:x} {:x} {:x} {:x}\n'.format(line[0]+1, line[1]+1, cell[0]+1, cell[1]+1))
+            f.write(')\n')
+            f.write(')\n')
+            f.write('(0 "Faces of zone FOIL")\n')
+            f.write('(13 (8 {:x} {:x} 3 2)(\n'.format(len(interior_dict)+1, len(interior_dict)+len(foil_dict)))
+            for i in foil_dict.keys():
+                line = i.split()
+                line[0] = int(line[0])
+                line[1] = int(line[1])
+                cell = foil_dict[i]
+                f.write('{:x} {:x} {:x} 0\n'.format(line[0]+1,line[1]+1, cell[0]+1))
+
+            f.write(')\n')
+            f.write(')\n')
+            f.write('(0 "Faces of zone FARFIELD")\n')
+            f.write('(13 (9 {:x} {:x} 3 2)(\n'.format(len(interior_dict)+len(foil_dict)+1,
+                                                      len(interior_dict)+len(foil_dict)+len(farfield_dict)))
+
+            for i in farfield_dict.keys():
+                line = i.split()
+                line[0] = int(line[0])
+                line[1] = int(line[1])
+                cell = farfield_dict[i]
+                f.write('{:x} {:x} {:x} 0\n'.format(line[0]+1, line[1]+1, cell[0]+1))
+            f.write(')\n')
+            f.write(')\n')
+            f.write('(0 "Zone Sections")\n')
+
+            f.write('(39 (6 fluid FLUID)())\n')
+            f.write('(39 (7 interior int_FLUID)())\n')
+            f.write('(39 (8 wall FOIL)())\n')
+            f.write('(39 (9 wall FARFIELD)())\n')
+
+            logger.info('FLUENT type mesh saved as {}'.
+                        format(os.path.join(OUTPUTDATA, basename)))
+
 
     @staticmethod
     def writeGMSH_OLD(wind_tunnel, name=''):

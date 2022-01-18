@@ -8,7 +8,7 @@
             "name": "PyAero",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/src/PyAero.py",
+            "program": "${workspaceFolder}/src/pyAero.py",
             "console": "integratedTerminal",
             "justMyCode": false
         }
