@@ -1,4 +1,4 @@
-Menu :kbd:`View`
+Menu ``View``
 ^^^^^^^^^^^
 
 The :guilabel:`View` menu is used to set dedicated zoom levels or to toggle parameters of the view.

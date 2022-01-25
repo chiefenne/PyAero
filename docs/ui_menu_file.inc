@@ -1,4 +1,4 @@
-Menu *File*
+Menu ``File``
 ^^^^^^^^^^^
 
 The menu :guilabel:`File` is, as pointed out before, a typical desktop software menu. 
