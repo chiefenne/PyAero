@@ -2,6 +2,7 @@ from datetime import date
 import sys
 import copy
 import webbrowser
+import numpy as np
 
 import PySide6
 from PySide6 import QtGui, QtCore, QtWidgets, QtPrintSupport
@@ -390,6 +391,8 @@ class Slots:
                   + PyAero.__appname__ + ": " + PyAero.__version__ +
                   "<br>"
                   + "Python: %s" % (sys.version.split()[0]) + "<br>"
+                  + "Numpy: %s" % (np.__version__) + "<br>"
+                  + "Scipy: %s" % (scipy.__version__) + "<br>"
                   + "Qt for Python: %s" % (PySide6.__version__) + "<br>"
                   + "Qt: %s" % (PySide6.QtCore.__version__)
                   )
