@@ -1,5 +1,5 @@
-Submenu **Open**
-""""""""""""""""
+Submenu :guilabel:`Open`
+""""""""""""""""""""""""
 
 The :menuselection:`File --> Open` submenu is used to load airfoil contour files or meshes.
 
