@@ -1,4 +1,4 @@
-Subenu *Print*
+Submenu *Print*
 """""""""""""""""
 
 The :menuselection:`File --> Print` submenu allows for printing the content of the graphics view. 
