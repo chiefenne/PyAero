@@ -1,4 +1,4 @@
-Menu **View**
+Menu :guilabel:`View`
 ^^^^^^^^^^^^^
 
 This menu is used to set dedicated zoom levels or to toggle parameters of the view.

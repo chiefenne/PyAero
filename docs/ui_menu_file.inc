@@ -1,5 +1,5 @@
-Menu **File**
-^^^^^^^^^^^^^
+Menu :guilabel:`File`
+^^^^^^^^^^^^^^^^^^^^^
 
 This menu is, as pointed out before, a typical desktop software menu. 
 It consists of a set of dialogs for file manipulation, printing and alike.
