@@ -17,7 +17,7 @@ PyAero is open-source and distributed under the MIT license, see `LICENSE <licen
    :target:  _images/SD7003_velocity_AOA6.png
    :name: GUI
 
-   PyAero generated mesh (Solver: SU2, Visualization: ParaView)
+   PyAero generated mesh (Solver: `SU2 <https://su2code.github.io/>`_, Visualization: `ParaView <https://www.paraview.org/>`_)
 
 
 .. figure::  images/gui_airfoil_MAC.png
