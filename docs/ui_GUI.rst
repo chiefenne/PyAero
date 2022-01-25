@@ -6,8 +6,19 @@ User Interface
 
 `PyAero <index.html>`_ comes with a graphical user interface (GUI) written in `Python <http://www.python.org/>`_ and `Qt for Python <https://www.qt.io/qt-for-python>`_.
 
-Main Screen
+Overview
 -----------
+
+The layout of the user interface can be seen below. Different functional areas are bordered with blue lines.
+
+The areas are:
+
+  - Menubar
+  - Toolbar
+  - Toolbox
+  - Graphics view
+  - Viewing options
+  - Message window
 
 .. _figure_main_screen_new:
 .. figure::  images/main_screen_new1.png
@@ -28,10 +39,6 @@ That is, all menus and toolbar items (and their respective handlers/callbacks) a
 The graphical user interface is automatically populated using the entries of those files.
 With this structure in place, menus and toolbar items can easily be extended and customized.
 When adding new menus and thus functionality, it is required to provide corresponding functions in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) to take care of the newly introduced functionality.
-
-.. note::
-   The undo/redo framewok is not implemented yet.
-
 
 .. _figure_menu_structure:
 .. figure::  images/menu_structure.png
