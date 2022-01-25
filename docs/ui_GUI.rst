@@ -63,7 +63,7 @@ in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) 
 Toolbar
 -------
 
-The toolbar in `PyAero <index.html>`_ (see also :ref:`figure_main_screen`) allows fast access to actions which are otherwise triggered by menus. Each of the toolbar buttons launch a specific action. The toolbar can be customized by editing the file :file:`$PYAEROPATH/data/PToolBar.xml`.
+The toolbar in `PyAero <index.html>`_  allows fast access to actions which are otherwise triggered by menus. Each of the toolbar buttons launch a specific action. The toolbar can be customized by editing the file :file:`$PYAEROPATH/data/PToolBar.xml`.
 
 .. figure::  images/toolbar_animated.gif
    :align:   center
@@ -75,7 +75,10 @@ The toolbar in `PyAero <index.html>`_ (see also :ref:`figure_main_screen`) allow
 Toolbox Functions
 -----------------
 
-The toolbox functions are arranged at the left border of the GUI (see also :ref:`figure_main_screen`) The toolbox is the main working area when generating meshes with `PyAero <index.html>`_. The complete functionality like splining, refining, contour analysis and meshing are operated there. See the animation below to get an overview on the options available in the toolbox.
+The toolbox functions are arranged at the left border of the GUI. 
+The toolbox is the main working area when generating meshes with `PyAero <index.html>`_. 
+The complete functionality like splining, refining, contour analysis and meshing are operated there. 
+See the animation below to get an overview on the options available in the toolbox.
 
 .. _toolbox_functions:
 .. figure::  images/toolbox_animated.gif
