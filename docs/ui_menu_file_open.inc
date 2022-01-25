@@ -3,10 +3,14 @@ Submenu **Open**
 
 The :menuselection:`File --> Open` submenu is used to load airfoil contour files or meshes.
 
-At the moment file formats as used in `XFOIL <http://web.mit.edu/drela/Public/web/xfoil>`_ are supported.
-See figure below for the layout/format for such a file. 
-Only the first few lines of the file are printed here. 
-Lines starting with a hash sign **"#"** at the beginning are interpreted as comment lines (i.e. not used inside PyAero).
+At the moment the standard file format as described on the 
+`UIUC airofil data site <https://m-selig.ae.illinois.edu/ads/coord_database.html>`_
+is supported.
+
+*"Coordinates in the standard format wrapping from upper surface trailing edge around 
+the leading edge to the lower surface trailing edge"*
+
+See figure below for the layout/format of such a file. Only the first few lines of the file are printed here. 
 
 .. _figure_airfoil_file:
 .. figure::  images/airfoil_file.png
@@ -16,6 +20,7 @@ Lines starting with a hash sign **"#"** at the beginning are interpreted as comm
 
    Typical format of an airfoil contour file
 
-The airfoil coordinates in those files are starting at the trailing edge, 
-proceeding on the upper side of the airfoil towards the leading edge and then
-are going back to the trailing edge on the lower side of the airfoil.
+This format is often used in software like `XFOIL <http://web.mit.edu/drela/Public/web/xfoil>`_ and similar.
+
+In addition, lines starting with a hash sign **"#"** at the beginning are interpreted as comment lines 
+(i.e. not used inside PyAero). This can be used for documentation or to add additional information.
