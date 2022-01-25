@@ -4,7 +4,7 @@ Submenu **Open**
 The :menuselection:`File --> Open` submenu is used to load airfoil contour files or meshes.
 
 At the moment file formats as used in `XFOIL <http://web.mit.edu/drela/Public/web/xfoil>`_ are supported.
-See figure :ref:`figure_airfoil_file` for the layout/format for such a file. 
+See figure below for the layout/format for such a file. 
 Only the first few lines of the file are printed here. 
 Lines starting with a hash sign **"#"** at the beginning are interpreted as comment lines (i.e. not used inside PyAero).
 
