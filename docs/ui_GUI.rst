@@ -20,9 +20,14 @@ Main Screen
 Menus
 -----
 
-Menus in `PyAero <index.html>`_ try to behave much the same as in typical desktop software. For standard menus as :guilabel:`File` or :guilabel:`Print` the documentation will be kept short. See above figure (:ref:`figure_main_screen_new`) for the location of the menubar in the GUI and below :ref:`figure_menu_structure` for an overview of the menu structure.
+Menus in `PyAero <index.html>`_ try to behave much the same as in typical desktop software. For standard menus as :guilabel:`File` or :guilabel:`Print` the documentation will be kept short.
+See figure above for the location of the menubar in the GUI and the figure below for an overview of the menu structure.
 
-The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in a dynamic way. That is, all menus and toolbar items (and their respective handlers/callbacks) are read from XML files (see ``PMenu.xml``, ``PToolbar.xml`` in the ``data/Menus`` folder of the installation). The graphical user interface is automatically populated using the entries of those files. With this structure in place, menus and toolbar items can easily be extended and customized. When adding new menus and thus functionality, it is required to provide corresponding handlers (in *Qt for Python* nomenclature so-called “slots”) to take care of the newly introduced functionality.
+The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in a dynamic way.
+That is, all menus and toolbar items (and their respective handlers/callbacks) are read from XML files (see ``PMenu.xml``, ``PToolbar.xml`` in the ``data/Menus`` folder of the installation).
+The graphical user interface is automatically populated using the entries of those files.
+With this structure in place, menus and toolbar items can easily be extended and customized.
+When adding new menus and thus functionality, it is required to provide corresponding functions in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) to take care of the newly introduced functionality.
 
 .. note::
    The undo/redo framewok is not implemented yet.
