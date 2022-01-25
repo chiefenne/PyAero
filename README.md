@@ -200,6 +200,7 @@ After a small creative break I decided to upgrade to PyQt5 and continue developm
 
 Short online research revealed to me that meanwhile Qt themselves are developing now **Qt for Python** which is based on the legacy Pyside API. This made me think that it is possibly best to go with Qt for Python as it is tightly coupled to Qt.
 
+##
 
 2022 Andreas Ennemoser – andreas.ennemoser@aon.at
 
