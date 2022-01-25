@@ -1,9 +1,7 @@
-Menu *Open*
+Submenu *Open*
 """"""""""""""""
 
-The :guilabel:`Open` submenu is used to load airfoil contour files or meshes.
-
-Test: :menuselection:`File --> Open`
+The :menuselection:`File --> Open` submenu is used to load airfoil contour files or meshes.
 
 At the moment file formats as used in `XFOIL <http://web.mit.edu/drela/Public/web/xfoil>`_ are supported.
 See figure :ref:`figure_airfoil_file` for the layout/format for such a file. 
