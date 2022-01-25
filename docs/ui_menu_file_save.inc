@@ -1,5 +1,5 @@
-Submenu *Save*
-""""""""""""""""
+Submenu :guilabel:`Save`
+""""""""""""""""""""""""
 
 The :menuselection:`File --> Save` submenu is used to save airfoil contour files or meshes. 
 The file is saved using the name from the currently active airfoil. 

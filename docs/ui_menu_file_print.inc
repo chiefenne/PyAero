@@ -1,5 +1,5 @@
-Submenu *Print*
-"""""""""""""""""
+Submenu :guilabel:`Print`
+"""""""""""""""""""""""""
 
 The :menuselection:`File --> Print` submenu allows for printing the content of the graphics view. 
 Only graphics items as airfoil, coordinate cross, etc. will be plotted. 

@@ -1,5 +1,5 @@
-Menu *Help*
-^^^^^^^^^^^
+Menu :guilabel:`Help`
+^^^^^^^^^^^^^^^^^^^^^
 
 The :guilabel:`Help` provides acces to help on `PyAero <index.html>`_. Help is available via a link to the online documentation or to a PDF file which should be shipped with the installation.
 
