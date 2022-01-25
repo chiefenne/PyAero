@@ -20,7 +20,7 @@ Different functional areas are bordered with blue lines. The areas are:
   - Message window
 
 Loading and saving geometry and meshes is done via the menus and the toolbar.
-Most operations during geometry preparation and meshing are done in the toolbox.
+Most operations during geometry preparation and meshing are done inside the toolbox.
 
 .. _figure_main_screen_new:
 .. figure::  images/main_screen_new1.png
@@ -40,7 +40,12 @@ The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in
 That is, all menus and toolbar items (and their respective handlers/callbacks) are read from XML files (see ``PMenu.xml``, ``PToolbar.xml`` in the ``data/Menus`` folder of the installation).
 The graphical user interface is automatically populated using the entries of those files.
 With this structure in place, menus and toolbar items can easily be extended and customized.
-When adding new menus and thus functionality, it is required to provide corresponding functions in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) to take care of the newly introduced functionality.
+When adding new menus and thus functionality, it is required to provide corresponding functions 
+in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) to take care of the newly introduced functionality.
+
+.. note::
+   Most probably, the XML files will be changed to JSON format sooner or later.
+   This will not change the functionality.
 
 .. _figure_menu_structure:
 .. figure::  images/menu_structure.png
