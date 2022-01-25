@@ -3,6 +3,7 @@ import sys
 import copy
 import webbrowser
 import numpy as np
+import scipy
 
 import PySide6
 from PySide6 import QtGui, QtCore, QtWidgets, QtPrintSupport
