@@ -43,10 +43,6 @@ With this structure in place, menus and toolbar items can easily be extended and
 When adding new menus and thus functionality, it is required to provide corresponding functions 
 in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) to take care of the newly introduced functionality.
 
-.. note::
-   Most probably, the XML files will be changed to JSON format sooner or later.
-   This will not change the functionality.
-
 .. _figure_menu_structure:
 .. figure::  images/menu_structure_NEW.png
    :align:   center
@@ -54,6 +50,10 @@ in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) 
    :name: menu_structure
 
    PyAero menu structure
+
+.. note::
+   Most probably, the XML files will be changed to JSON format sooner or later.
+   This will not change the functionality.
 
 .. include:: ui_menu_file.inc
 .. include:: ui_menu_view.inc
