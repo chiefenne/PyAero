@@ -200,10 +200,7 @@ After a small creative break I decided to upgrade to PyQt5 and continue developm
 
 Short online research revealed to me that meanwhile Qt themselves are developing now **Qt for Python** which is based on the legacy Pyside API. This made me think that it is possibly best to go with Qt for Python as it is tightly coupled to Qt.
 
-## For the brave
 
-<a href='https://ko-fi.com/G2G6143T6' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://az743702.vo.msecnd.net/cdn/kofi4.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-
-2021 Andreas Ennemoser – andreas.ennemoser@aon.at
+2022 Andreas Ennemoser – andreas.ennemoser@aon.at
 
 Distributed under the MIT license. See [LICENSE](https://raw.githubusercontent.com/chiefenne/PyAero/master/LICENSE) for more information.
