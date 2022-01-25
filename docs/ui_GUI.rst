@@ -48,9 +48,9 @@ in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) 
    This will not change the functionality.
 
 .. _figure_menu_structure:
-.. figure::  images/menu_structure.png
+.. figure::  images/menu_structure_NEW.png
    :align:   center
-   :target:  _images/menu_structure.png
+   :target:  _images/menu_structure_NEW.png
    :name: menu_structure
 
    PyAero menu structure
