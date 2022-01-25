@@ -9,9 +9,8 @@ User Interface
 Overview
 -----------
 
-The layout of the user interface can be seen below. Different functional areas are bordered with blue lines.
-
-The areas are:
+The layout of the user interface can be seen in the figure below.
+Different functional areas are bordered with blue lines. The areas are:
 
   - Menubar
   - Toolbar
@@ -19,6 +18,9 @@ The areas are:
   - Graphics view
   - Viewing options
   - Message window
+
+Loading and saving geometry and meshes is done via the menus and the toolbar.
+Most operations during geometry preparation and meshing are done in the toolbox.
 
 .. _figure_main_screen_new:
 .. figure::  images/main_screen_new1.png
