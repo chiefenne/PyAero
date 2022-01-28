@@ -4,7 +4,7 @@ Menu :guilabel:`View`
 This menu is used to set dedicated zoom levels or to toggle parameters of the view.
 
 All submenus of the :menuselection:`View` menu can be activated by respective shortcuts or by 
-using the right mouse button inside the graphics view (see also :ref:`figure_main_screen_new`).
+using the right mouse button inside the graphics view.
 
 Submenu :guilabel:`Fit airfoil in view`
 """""""""""""""""""""""""""""""""""""""
@@ -34,7 +34,7 @@ Submenu :guilabel:`Toggle message window`
 """"""""""""""""""""""""""""""""""""""""
 
 The :menuselection:`View --> Toggle message window` can be used to toggle the message window 
-which is located below the the graphics view (see also :ref:`figure_main_screen_new`).
+which is located below the the graphics view (see also :ref:`figure_main_screen`).
 Toggling hides the message window and after toggling once more it is brought back again. 
 The respective keyboard shortcut used is :kbd:`CTRL-m`.
 

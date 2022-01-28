@@ -22,7 +22,7 @@ Different functional areas are bordered with blue lines. The areas are:
 Loading and saving geometry and meshes is done via the menus and the toolbar.
 Most operations during geometry preparation and meshing are done inside the toolbox.
 
-.. _figure_main_screen_new:
+.. _figure_main_screen:
 .. figure::  images/main_screen_new1.png
    :align:   center
    :target:  _images/main_screen_new1.png
