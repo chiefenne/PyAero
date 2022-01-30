@@ -65,9 +65,9 @@ Toolbar
 
 The toolbar in `PyAero <index.html>`_  allows fast access to actions which are otherwise triggered by menus. Each of the toolbar buttons launch a specific action. The toolbar can be customized by editing the file :file:`$PYAEROPATH/data/PToolBar.xml`.
 
-.. figure::  images/toolbar_animated.gif
+.. figure::  images/toolbar_animated_NEW.gif
    :align:   center
-   :target:  _images/toolbar_animated.gif
+   :target:  _images/toolbar_animated_NEW.gif
    :name: toolbar_animated
 
    Overview on toolbar options
