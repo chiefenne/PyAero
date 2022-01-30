@@ -37,7 +37,8 @@ Menus in `PyAero <index.html>`_ try to behave much the same as in typical deskto
 See figure above for the location of the menubar in the GUI and the figure below for an overview of the menu structure.
 
 The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in a dynamic way.
-That is, all menus and toolbar items (and their respective handlers/callbacks) are read from XML files (see ``PMenu.xml``, ``PToolbar.xml`` in the ``data/Menus`` folder of the installation).
+That is, all menus and toolbar items (and their respective handlers/callbacks) are read from XML files 
+(see ``PMenu.xml``, ``PToolbar.xml`` in the ``data/Menus`` folder of the installation).
 The graphical user interface is automatically populated using the entries of those files.
 With this structure in place, menus and toolbar items can easily be extended and customized.
 When adding new menus and thus functionality, it is required to provide corresponding functions 
@@ -108,12 +109,14 @@ The latter contains graphs for curvature analysis.
 Zooming, Panning
 ----------------
 
-When an airfoil is loaded it is displayed with a size fitted into the graphics view leaving a small margin left and right. The contour can then be panned and zoomed in the following way:
+When an airfoil is loaded it is displayed with a size that fits into the graphics view 
+(leaving a small margin left and right). The contour can then be panned and zoomed in the following way:
 
 Panning
 ^^^^^^^
 
-In order to pan (drag) the contour or any other item press and hold :kbd:`CTRL` and then press and hold the left mouse button and move the mouse in order to drag the contour.
+In order to pan (drag) the contour or any other item press and hold :kbd:`CTRL` and then press and hold 
+the left mouse button and move the mouse in order to drag the contour.
 
 .. figure::  images/drag_view.gif
    :align:   center
@@ -125,7 +128,12 @@ In order to pan (drag) the contour or any other item press and hold :kbd:`CTRL` 
 Zooming
 ^^^^^^^
 
-Zooming is activated by pressing and holding the left mouse button. While dragging the mouse a rubberband rectangle is drawn. This rectangle indicates the area which will be zoomed into when releasing the left mouse button. In order to avoid accidential zooming, a minimum size rectangle has to show up. A valid zoom rectangle is indicated by changing its background to a transparent blueish color (the minimum allowed size can be set in ``Settings.py`` by changing the value of ``RUBBERBANDSIZE``). In order to zoom in deeper, the rubberband rectangle can be subsequently used.
+Zooming is activated by pressing and holding the left mouse button. While dragging the mouse, a rubberband 
+rectangle is drawn. This rectangle indicates the area which will be zoomed when releasing the 
+left mouse button. In order to avoid accidential zooming, a minimum size rectangle has to show up. 
+A valid zoom rectangle is indicated by changing its background to a transparent blueish color 
+(the minimum allowed size can be set in ``Settings.py`` by changing the value of ``RUBBERBANDSIZE``). 
+In order to zoom in deeper, the rubberband rectangle can be subsequently used.
 
 Zoom limits (``MINZOOM``, ``MAXZOOM``) are set in the file ``Settings.py``.
 
