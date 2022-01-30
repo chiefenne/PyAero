@@ -81,9 +81,9 @@ The complete functionality like splining, refining, contour analysis and meshing
 See the animation below to get an overview on the options available in the toolbox.
 
 .. _toolbox_functions:
-.. figure::  images/toolbox_animated.gif
+.. figure::  images/toolbox_animated_NEW.gif
    :align:   center
-   :target:  _images/toolbox_animated.gif
+   :target:  _images/toolbox_animated_NEW.gif
    :name: toolbox_animated
 
    Overview on toolbox options
