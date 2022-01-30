@@ -24,9 +24,7 @@ The general steps for mesh generation in `PyAero <index.html>`_ can be explained
    - Since in real life the airfoil trailing edge has a finite thickness, this can to be taken into account before meshing
    - To create a finite thickness trailing edge click inside the same toolbox section on :guilabel:`Add Trailing Edge`
    - The default settings make a trailing edge with a thickness of 0.4% relative to the unity chord length
-
-.. note::
-   Omit this step if you want a sharp trailing edge mesh.
+   - Omit this step if you want a sharp trailing edge mesh.
 
 4. Mesh the refined airfoil contour
 
