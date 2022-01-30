@@ -91,7 +91,9 @@ See the animation below to get an overview on the options available in the toolb
 Tabbed Views
 ------------
 
-The graphics view in `PyAero <index.html>`_ and a set of other views (see figure below) are arranged via a tab bar, e.g. for using tabbed views.
+The graphics view in `PyAero <index.html>`_ and a set of other views (see figure below) are arranged 
+via a tab bar. E.g., the views can be switched between the graphics view and the contour analysis view.
+The latter contains graphs for curvature analysis.
 
 .. figure::  images/tabbed_views_animated.gif
    :align:   center
@@ -101,8 +103,7 @@ The graphics view in `PyAero <index.html>`_ and a set of other views (see figure
    Overview on tabbed views
 
 .. note::
-   Currently there is only the *Airfoil* tab active, i.e. populated with content when working with PyAero.
-
+   The look and feel of the tabs might change over time.
 
 Zooming, Panning
 ----------------
