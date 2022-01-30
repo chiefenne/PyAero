@@ -132,10 +132,10 @@ Zooming is activated by pressing and holding the left mouse button. While draggi
 rectangle is drawn. This rectangle indicates the area which will be zoomed when releasing the 
 left mouse button. In order to avoid accidential zooming, a minimum size rectangle has to show up. 
 A valid zoom rectangle is indicated by changing its background to a transparent blueish color 
-(the minimum allowed size can be set in ``Settings.py`` by changing the value of ``RUBBERBANDSIZE``). 
+(the minimum allowed size can be set in ``Settings.py`` by changing the value of *RUBBERBANDSIZE*). 
 In order to zoom in deeper, the rubberband rectangle can be subsequently used.
 
-Zoom limits (``MINZOOM``, ``MAXZOOM``) are set in the file ``Settings.py``.
+Zoom limits (**MINZOOM**, **MAXZOOM**) are set in the file ``Settings.py``.
 
 .. figure::  images/zoom_view.gif
    :align:   center
@@ -143,6 +143,9 @@ Zoom limits (``MINZOOM``, ``MAXZOOM``) are set in the file ``Settings.py``.
    :name: zoom_view
 
    Zoom the items in the view. Select a rectangle using the left mouse button.
+
+Another natural possibility to zoom the view, is to use the scroll wheel. Thereby the geometry is zoomed with
+respect to the current mouse position. 
 
 Zooming can further be done using the :kbd:`Page-Up` and :kbd:`Page-Up` down keys.
 
