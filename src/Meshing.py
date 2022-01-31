@@ -266,7 +266,7 @@ class Windtunnel:
         elif sm == 2:
             # elliptic grid generation
             smoother = Elliptic.Elliptic(block_tunnel.getULines())
-            new_ulines = smoother.smooth(iterations=300, tolerance=1e-6, verbose=True)
+            new_ulines = smoother.smooth(iterations=20, tolerance=1e-6, verbose=True)
             block_tunnel.setUlines(new_ulines)
 
         elif sm == 3:
