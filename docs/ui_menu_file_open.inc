@@ -7,8 +7,8 @@ At the moment the standard file format as used in many applications is supported
 
 .. epigraph::
 
-   *"Coordinates in the standard format wrapping from upper surface trailing edge around 
-   the leading edge to the lower surface trailing edge"*
+   "Coordinates in the standard format wrapping from upper surface trailing edge around 
+   the leading edge to the lower surface trailing edge"
    
    -- `UIUC airofil data site <https://m-selig.ae.illinois.edu/ads/coord_database.html>`_
 
