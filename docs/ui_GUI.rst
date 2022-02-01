@@ -10,7 +10,7 @@ Overview
 -----------
 
 The layout of the user interface can be seen in the figure below.
-Different functional areas are bordered with blue lines. The areas are:
+Different functional areas are bordered with blue lines. These areas are:
 
   - Menubar
   - Toolbar

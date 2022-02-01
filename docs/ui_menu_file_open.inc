@@ -3,12 +3,13 @@ Submenu :guilabel:`Open`
 
 The :menuselection:`File --> Open` submenu is used to load airfoil contour files or meshes.
 
-At the moment the standard file format as described on the 
-`UIUC airofil data site <https://m-selig.ae.illinois.edu/ads/coord_database.html>`_
-is supported.
+At the moment the standard file format as used in many applications is supported.
+
+.. epigraph::
 
 *"Coordinates in the standard format wrapping from upper surface trailing edge around 
 the leading edge to the lower surface trailing edge"*
+--`UIUC airofil data site <https://m-selig.ae.illinois.edu/ads/coord_database.html>`_
 
 See figure below for the layout/format of such a file. Only the first few lines of the file are printed here. 
 

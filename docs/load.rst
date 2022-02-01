@@ -10,12 +10,15 @@ Loading Airfoils
 
 Loading airfoils can be done in different ways:
 
-Load via menu :menuselection:`File --> Open`
---------------------------------------------
+Load via menu :guilabel:`Open`
+------------------------------
 
-The :guilabel:`File` |right_medium_Arrow| :guilabel:`Open` menu is the standard way to load airfoil contour data. The shortcut assigned to this menu is :kbd:`CTRL-o`. Clicking :guilabel:`Open` or applying the respective shortcut provides a dialog that allow users to select files or browse directories.
+The :menuselection:`File --> Open` menu is the standard way to load airfoil contour data. 
+The shortcut assigned to this menu is :kbd:`CTRL-o`. Clicking :guilabel:`Open` or applying the 
+respective shortcut provides a dialog that allow users to select files or browse directories.
 
-.. note:: The keyboard shortcuts are rendered as uppercase letters in the GUI (see following figure). Nevertheless, always lowercase letters need to be pressed.
+.. note:: The keyboard shortcuts are rendered as uppercase letters in the GUI (see following figure). 
+Nevertheless, always lowercase letters need to be pressed.
 
 .. _figure_menu_open:
 .. figure::  images/menu_open.png
