@@ -17,7 +17,6 @@ The general steps for mesh generation in `PyAero <index.html>`_ can be explained
    - This is an important task, since the mesh around the airfoil is based on the point distribution 
      which is generated right here
    - To apply this feature, click inside the toolbox (left pane in the GUI) on the toolbox 
-     
      :guilabel:`Contour Splining and Refinement`
 
    - For first tests you can go with the default settings and just click the button:
