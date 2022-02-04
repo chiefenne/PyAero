@@ -342,11 +342,14 @@ class Slots:
         dlg.exec_()
 
     def runCommands(self):
-        '''Automate different actions by simulation button clicks
+        '''Automate different actions by simulation of button clicks
         Call directly a function or
         using click or animateClick on the respective widget
         # self.parent.centralwidget.toolbox.splineButton.click
         # self.parent.centralwidget.toolbox.splineButton.animateClick
+
+        This feature is mainly used during tesing, as it runs the whole workflow
+        automatically.
         
         '''        
         # load the predefined airfoil
