@@ -38,9 +38,9 @@ The file browser is located in the *toolbox* on the left side of the application
 the toolbox area.
 
 .. _figure_toolbox_area:
-.. figure::  images/toolbox_area_1.png
+.. figure::  images/toolbox_area_1_NEW.png
    :align:   center
-   :target:  _images/toolbox_area_1.png
+   :target:  _images/toolbox_area_1_NEW.png
    :name: Toolbar_Open
 
    File browser integrated in the *Toolbox*.
