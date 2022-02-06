@@ -76,7 +76,8 @@ The toolbar in `PyAero <index.html>`_  allows fast access to actions which are o
 Toolbox Functions
 -----------------
 
-The toolbox functions are arranged at the left border of the GUI. 
+The toolbox functions are arranged at the left border of the GUI. A *toolbox* is a GUI element that displays a 
+column of tabs one above the other, with the current item displayed below the current tab.
 The toolbox is the main working area when generating meshes with `PyAero <index.html>`_. 
 The complete functionality like splining, refining, contour analysis and meshing are operated there. 
 See the animation below to get an overview on the options available in the toolbox.
