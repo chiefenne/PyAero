@@ -307,7 +307,7 @@ class Slots:
                 if pulldown[2]:
                     if self.parent.platform == 'Darwin':
                         shortcut = pulldown[2].replace('CTRL', 'CMD')
-                        print(pulldown[2], '...', shortcut)
+                        # print(pulldown[2], '...', shortcut)
                     else:
                         shortcut = pulldown[2]
                     text += f' \
