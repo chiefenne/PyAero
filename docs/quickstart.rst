@@ -41,6 +41,6 @@ Check the animation below, on how this looks in the graphical user interface.
 
 .. raw:: html
 
-    <video width="500" controls="controls">
-        <source src="_static/video.mp4" type="video/mp4" />
+    <video width="800" controls="controls">
+        <source src="movies/PyAero_Toolbox.mov" type="video/mp4" />
     </video>
