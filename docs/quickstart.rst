@@ -24,7 +24,7 @@ The general steps for mesh generation in `PyAero <index.html>`_ can be explained
 
 This is it.
 
-Check the animation below, on how this looks in the graphical user interface.
+Check the animation below, on how this looks in the graphical user interface (version 2.1.5).
 
 .. _figure_quickstart_steps:
 .. figure::  images/quickstart.gif
