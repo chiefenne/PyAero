@@ -34,7 +34,8 @@ predefined root path are visible. The default root is the :file:`data/Airfoils` 
 standard installation. The root path for airfoils can be changed by the user in the file :file:`src/Settings.py` 
 by changing the value of the variable :code:`AIRFOILDATA`.
 
-The file browser is located in the *toolbox* area on the left side of the application. 
+The file browser is located in the *toolbox* on the left side of the application. It is the uppermost tab in 
+the toolbox area.
 
 .. _figure_toolbox_area:
 .. figure::  images/toolbox_area_1.png
