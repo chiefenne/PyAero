@@ -151,3 +151,9 @@ Zooming can further be done using the :kbd:`Page-Up` and :kbd:`Page-Up` down key
 
 A reset to the initial (home) position can either be achieved by pressing the :kbd:`HOME` key or by right clicking in the graphics view and selecting :guilabel:`Fit airfoil in view` from the pulldown menu.
 
+Keyboard shortcuts
+------------------
+
+To speed up some operations, a set of keyboard shortcuts are defined. In some of the menus the shortcuts for the
+respective actions are defined at the right side of the menu. Furthermore, the shortcut :kbd:`CTRL+k` on Windows 
+and :kbd:`CMD+k` on MacOS are used to access an overview of the keyboard shortcuts.
