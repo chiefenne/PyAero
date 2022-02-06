@@ -160,4 +160,5 @@ and :kbd:`CMD+k` on MacOS are used to access an overview of the keyboard shortcu
 
 .. note::
    The keyboard shortcuts are rendered as uppercase letters in the GUI.
-   Nevertheless, always lowercase letters need to be pressed.
+   Nevertheless, always lowercase letters need to be used, unless the :kbd:`SHIFT` key 
+   is a part of the shortcut.
