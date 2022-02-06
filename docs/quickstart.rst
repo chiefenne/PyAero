@@ -8,7 +8,7 @@ The general steps for mesh generation in `PyAero <index.html>`_ can be explained
 
 1. Load an airfoil contour file
 
-This is to get the raw data decribing the airfoil contour.
+    This is to get the raw data decribing the airfoil contour.
 
 2. Spline and refine the airfoil contour
 
