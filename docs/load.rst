@@ -52,7 +52,7 @@ Load via the *Toolbar*
 
 Another way to open the file dialog is to click on the :menuselection:`Open` icon in the toolbar. 
 The toolbar consists of a row of icons just below the menu bar. The toolbar and its icons can be customized by 
-editing the file :file:`$PYAEROPATH/data/PToolBar.xml`.
+editing the file :file:`data/PToolBar.xml`.
 
 .. _figure_toolbar_open:
 .. figure::  images/toolbar_open.png
@@ -82,7 +82,9 @@ For testing purposes a predefined airfoil can be loaded without the need of a fi
 Load via drag and drop
 ----------------------
 
-another convenient way to load one or more airfoil(s) is via drag and drop. Just drag a couple of files, e.g. from the Explorer in Windows, to the graphics window. All files will be loaded and the view will be zoomed in way that all contours fit into the screen.
+Last but not least, one or more airfoil(s) is via drag and drop. Just drag a couple of files, e.g. from the 
+Explorer (Windows) or Finder (MacOS), to the graphics window. All files will be loadedbut only one file will 
+be displayed. All the other files are shown (and can be activated by clicking on the name) in the toolbox area.
 
 .. _figure_drag_and_drop:
 .. figure::  images/load_drag_and_drop.png
