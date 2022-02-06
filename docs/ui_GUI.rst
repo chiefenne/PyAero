@@ -157,3 +157,6 @@ Keyboard shortcuts
 To speed up some operations, a set of keyboard shortcuts are defined. In some of the menus the shortcuts for the
 respective actions are defined at the right side of the menu. Furthermore, the shortcut :kbd:`CTRL+k` on Windows 
 and :kbd:`CMD+k` on MacOS are used to access an overview of the keyboard shortcuts.
+
+.. note:: The keyboard shortcuts are rendered as uppercase letters in the GUI (see following figure). 
+Nevertheless, always lowercase letters need to be pressed.
