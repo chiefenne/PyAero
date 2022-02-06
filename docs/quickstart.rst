@@ -7,10 +7,10 @@ Quickstart
 The general steps for mesh generation in `PyAero <index.html>`_ can be explained as follows:
 
 1. Load an airfoil contour file
-   This is to get the raw data decribing the airfoil contour.
+   | This is to get the raw data decribing the airfoil contour.
 
 2. Spline and refine the airfoil contour
-   This is to update/improve the contour and prepare the mesh resolution along the airfoil.
+|  This is to update/improve the contour and prepare the mesh resolution along the airfoil.
 
 3. Make a trailing edge with finite thickness
    This adds a so called blunt trailing edge to the contour. 
