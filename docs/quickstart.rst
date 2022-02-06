@@ -5,8 +5,8 @@
 .. make a label for this file
 .. _quickstart:
 
-Quickstart
-==========
+Quick start guide
+=================
 
 The general steps for mesh generation in `PyAero <index.html>`_ can be explained as follows:
 
@@ -17,7 +17,7 @@ The general steps for mesh generation in `PyAero <index.html>`_ can be explained
    This is to update/improve the contour and prepare the mesh resolution along the airfoil.
 
 3. Make a trailing edge with finite thickness |br|
-   This adds a so called blunt trailing edge to the contour. 
+   This adds a so called blunt trailing edge to the contour. |br|
    Skip this step if the trailing edge should be sharp.
 
 4. Mesh the refined airfoil contour |br|
