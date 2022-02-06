@@ -38,9 +38,3 @@ Check the animation below, on how this looks in the graphical user interface.
    :name: quickstart_steps
 
    Step by step mesh generation with predefined airfoil contour
-
-.. raw:: html
-
-    <video width="800" controls="controls">
-        <source src="movies/PyAero_Toolbox.mov" type="video/mp4" />
-    </video>
