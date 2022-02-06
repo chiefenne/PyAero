@@ -50,7 +50,9 @@ the toolbox area.
 Load via the *Toolbar*
 ----------------------
 
-Another fast way to open the file dialog is to click on the :menuselection:`Open` icon (see image below) in the toolbar. The toolbar consists of a row of icons just below the menu bar. The toolbar can be customized by editing the file :file:`$PYAEROPATH/data/PToolBar.xml`.
+Another way to open the file dialog is to click on the :menuselection:`Open` icon in the toolbar. 
+The toolbar consists of a row of icons just below the menu bar. The toolbar and its icons can be customized by 
+editing the file :file:`$PYAEROPATH/data/PToolBar.xml`.
 
 .. _figure_toolbar_open:
 .. figure::  images/toolbar_open.png
