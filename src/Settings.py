@@ -15,6 +15,10 @@ if os.getenv('PYAEROPATH'):
 # path to data
 DATAPATH = os.path.join(PYAEROPATH, 'data')
 
+# path to data (e.g. airfoil coordinate files)
+# path can be absolute or relative (to position where starting PyAero)
+AIRFOILDATA = os.path.join(PYAEROPATH, 'data/Airfoils')
+
 # modified contours and mesh folder
 OUTPUTDATA = os.path.join(DATAPATH, 'OUTPUT')
 
@@ -48,10 +52,6 @@ CHORDLENGTH = 1.
 ICONS = os.path.join(PYAEROPATH, 'data/Icons')
 ICONS_S = os.path.join(ICONS, '16x16')
 ICONS_L = os.path.join(ICONS, '24x24')
-
-# path to data (e.g. airfoil coordinate files)
-# path can be absolute or relative (to position where starting PyAero)
-AIRFOILDATA = os.path.join(PYAEROPATH, 'data/Airfoils')
 
 # size of airfoil coordinate markers in pixels
 MARKERSIZE = 3
