@@ -111,8 +111,8 @@ Features
    - `AeroPython <http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb>`_
 
 
-Quickstart
-==========
+Quick start guide
+=================
 
 Follow the :ref:`quickstart` tutorial to get a first impression of the key functionality.
 
@@ -133,8 +133,8 @@ The code ist hosted on GitHub: `PyAero source code <https://github.com/chiefenne
    :hidden:
 
    introduction
-   ui_GUI
    quickstart
+   ui_GUI
    load
    spline_refine
    trailing_edge
