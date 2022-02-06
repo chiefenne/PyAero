@@ -1,5 +1,5 @@
 .. make a label for this file
-.. tutorial_settings:
+.. _tutorial_settings:
 
 Settings (Customizing PyAero)
 =============================
