@@ -32,9 +32,9 @@ This is it.
 Check the animation below, on how this looks in the graphical user interface.
 
 .. _figure_quickstart_steps:
-.. figure::  images/quickstart_steps.gif
+.. figure::  images/quickstart.gif
    :align:   center
-   :target:  _images/quickstart_steps.gif
+   :target:  _images/quickstart.gif
    :name: quickstart_steps
 
    Step by step mesh generation with predefined airfoil contour
