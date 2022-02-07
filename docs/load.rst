@@ -82,7 +82,7 @@ For testing purposes a predefined airfoil can be loaded without the need of a fi
 Load via drag and drop
 ----------------------
 
-Last but not least, one or more airfoil(s) is via drag and drop. Just drag a couple of files, e.g. from the 
+Last but not least, one or more airfoil(s) can be loaded via drag and drop. Just drag a couple of files, e.g. from the 
 Explorer (Windows) or Finder (MacOS), to the graphics window. All files will be loadedbut only one file will 
 be displayed. All the other files are shown (and can be activated by clicking on the name) in the toolbox area.
 
