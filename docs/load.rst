@@ -84,7 +84,7 @@ Load via drag and drop
 
 Last but not least, one or more airfoil(s) can be loaded via drag and drop. Just drag a couple of files, e.g. from the 
 Explorer (Windows) or Finder (MacOS), to the graphics window. All files will be loaded, but only one file will 
-be displayed. All the other files are shown (and can be activated by clicking on the name) in the toolbox area.
+be displayed. All the other files are shown (and can be activated by double-clicking on the name) in the toolbox area.
 
 .. _figure_drag_and_drop:
 .. figure::  images/Drag_and_drop.gif
