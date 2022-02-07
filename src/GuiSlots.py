@@ -221,12 +221,26 @@ class Slots:
     def removeAirfoil(self, name=None):
         """Remove all selected airfoils from the scene"""
 
+        # look also at toolbox listwidget
+        centralwidget = self.parent.centralwidget
+        listwidget = centralwidget.toolbox.listwidget
+
         # the name parameter is only set when coming from listwidget
         # and the deleting is done via DEL key
         if name:
             airfoil = self.getAirfoilByName(name)
-        else:
+        # FIXME:
+        # FIXME: this does not work
+        # FIXME: needs to delete the selected airfoil from the listwidget
+        # FIXME:
+        elif len(listwidget.selectedItems()) > 0:
+            name = listwidget.selectedItems()[0].text()
+            airfoil = self.getAirfoilByName(name)
+        elif self.parent.airfoil:
             airfoil = self.parent.airfoil
+        else:
+            print('No airfoil selected for deletion')
+            return
 
         # remove airfoil from the list in the list widget
         self.parent.airfoils.remove(airfoil)
@@ -237,8 +251,6 @@ class Slots:
             self.parent.scene.clear()
 
         # remove also listwidget entry
-        centralwidget = self.parent.centralwidget
-        listwidget = centralwidget.toolbox.listwidget
         itms = listwidget.findItems(
             self.parent.airfoil.name, QtCore.Qt.MatchExactly)
         for itm in itms:
