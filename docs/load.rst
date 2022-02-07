@@ -87,15 +87,9 @@ Explorer (Windows) or Finder (MacOS), to the graphics window. All files will be 
 be displayed. All the other files are shown (and can be activated by clicking on the name) in the toolbox area.
 
 .. _figure_drag_and_drop:
-.. figure::  images/load_drag_and_drop.png
+.. figure::  images/Drag_and_drop.gif
    :align:   center
-   :target:  _images/load_drag_and_drop.png
-   :name: Load_drag_and_drop
-
-.. _figure_drag_and_drop:
-.. figure::  images/load_drag_and_drop_1.png
-   :align:   center
-   :target:  _images/load_drag_and_drop_1.png
+   :target:  _images/Drag_and_drop.gif
    :name: Load_drag_and_drop
 
    Load multiple contours via drag and drop
