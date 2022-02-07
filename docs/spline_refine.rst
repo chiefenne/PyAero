@@ -68,10 +68,9 @@ Obviously, at the leading and trailing edges some more care is necessary to prod
 At the leading edge it is required to resolve the big pressure gradients which are produced by the shape of 
 the airfoil nose.
 
-A recursive refinement algorithm is used to resolve the contour until a certain 
-criterion is met (see following figure). After the splining, 
-equidistant arc length segments are created on the spline with respect to the prescribed 
-number of points. During recursive refinement the algorithm checks each pair of adjacent line segments 
+A recursive refinement algorithm is used to resolve the contour until a certain criterion is met (see following figure). After the splining, 
+equidistant arc length segments are created on the spline with respect to the prescribed number of points. During 
+recursive refinement the algorithm checks each pair of adjacent line segments 
 if they match the criterion. The criterion is based on the angle included between adjacent segments. 
 If the angle is less than a threshold specified by the user via the `Refinement tolerance` input, 
 the algorithm adds two points. Each point is placed on a "background spline" with 500 points, half distance 
