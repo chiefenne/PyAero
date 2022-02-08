@@ -668,6 +668,7 @@ class Toolbox(QtWidgets.QToolBox):
         form.addRow(label, self.tolerance)
 
         label = QtWidgets.QLabel(u'Refine trailing edge (old segments)')
+        label.setToolTip('Specify the number of segments at the trailing edge which should be refined.')
         self.ref_te = QtWidgets.QSpinBox()
         self.ref_te.setSingleStep(1)
         self.ref_te.setRange(1, 50)
