@@ -144,6 +144,7 @@ The code ist hosted on GitHub: `PyAero source code <https://github.com/chiefenne
    trailing_edge
    meshing
    CFD_boundary_conditions
+   aerodynamics_panel
    contour_analysis
    settings
    GUI_modification
