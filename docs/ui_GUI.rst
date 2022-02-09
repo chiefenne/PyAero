@@ -36,13 +36,7 @@ Menus
 Menus in `PyAero <index.html>`_ try to behave much the same as in typical desktop software. For standard menus as :guilabel:`File` or :guilabel:`Print` the documentation will be kept short.
 See figure above for the location of the menubar in the GUI and the figure below for an overview of the menu structure.
 
-The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in a dynamic way.
-That is, all menus and toolbar items (and their respective handlers/callbacks) are read from XML files 
-(see ``PMenu.xml``, ``PToolbar.xml`` in the ``data/Menus`` folder of the installation).
-The graphical user interface is automatically populated using the entries of those files.
-With this structure in place, menus and toolbar items can easily be extended and customized.
-When adding new menus and thus functionality, it is required to provide corresponding functions 
-in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) to take care of the newly introduced functionality.
+The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in a dynamic way. That is, all menus and toolbar items (and their respective handlers/callbacks) are read from XML files (see ``PMenu.xml``, ``PToolbar.xml`` in the ``data/Menus`` folder of the installation). The graphical user interface is automatically populated using the entries of those files. With this structure in place, menus and toolbar items can easily be extended and customized. When adding new menus and thus functionality, it is required to provide corresponding functions in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) to take care of the newly introduced functionality.
 
 .. _figure_menu_structure:
 .. figure::  images/menu_structure_NEW.png
@@ -76,11 +70,7 @@ The toolbar in `PyAero <index.html>`_  allows fast access to actions which are o
 Toolbox Functions
 -----------------
 
-The toolbox functions are arranged at the left border of the GUI. A *toolbox* is a GUI element that displays a 
-column of tabs one above the other, with the current item displayed below the current tab.
-The toolbox is the main working area when generating meshes with `PyAero <index.html>`_. 
-The complete functionality like splining, refining, contour analysis and meshing are operated there. 
-See the animation below to get an overview on the options available in the toolbox.
+The toolbox functions are arranged at the left border of the GUI. A *toolbox* is a GUI element that displays a column of tabs one above the other, with the current item displayed below the current tab. The toolbox is the main working area when generating meshes with `PyAero <index.html>`_. The complete functionality like splining, refining, contour analysis and meshing are operated there. See the animation below to get an overview on the options available in the toolbox.
 
 .. _toolbox_functions:
 .. figure::  images/toolbox_animated_NEW.gif
@@ -93,9 +83,7 @@ See the animation below to get an overview on the options available in the toolb
 Tabbed Views
 ------------
 
-The graphics view in `PyAero <index.html>`_ and a set of other views (see figure below) are arranged 
-via a tab bar. E.g., the views can be switched between the graphics view and the contour analysis view.
-The latter contains graphs for curvature analysis.
+The graphics view in `PyAero <index.html>`_ and a set of other views (see figure below) are arranged via a tab bar. E.g., the views can be switched between the graphics view and the contour analysis view. The latter contains graphs for curvature analysis.
 
 .. figure::  images/tabbed_views_animated.gif
    :align:   center
@@ -110,14 +98,12 @@ The latter contains graphs for curvature analysis.
 Zooming, Panning
 ----------------
 
-When an airfoil is loaded it is displayed with a size that fits into the graphics view 
-(leaving a small margin left and right). The contour can then be panned and zoomed in the following way:
+When an airfoil is loaded it is displayed with a size that fits into the graphics view (leaving a small margin left and right). The contour can then be panned and zoomed in the following way:
 
 Panning
 ^^^^^^^
 
-In order to pan (drag) the contour or any other item press and hold :kbd:`CTRL` and then press and hold 
-the left mouse button and move the mouse in order to drag the contour.
+In order to pan (drag) the contour or any other item press and hold :kbd:`CTRL` (:kbd:`CMD` on MacOS) and then press and hold the left mouse button and move the mouse in order to drag the contour.
 
 .. figure::  images/drag_view.gif
    :align:   center
@@ -129,12 +115,7 @@ the left mouse button and move the mouse in order to drag the contour.
 Zooming
 ^^^^^^^
 
-Zooming is activated by pressing and holding the left mouse button. While dragging the mouse, a rubberband 
-rectangle is drawn. This rectangle indicates the area which will be zoomed when releasing the 
-left mouse button. In order to avoid accidential zooming too deep, a minimum size rectangle has to show up. 
-A valid zoom rectangle is indicated by changing its background to a transparent blueish color 
-(the minimum allowed size can be set in ``Settings.py`` by changing the value of **RUBBERBANDSIZE**). 
-In order to zoom in deeper, the rubberband rectangle can be subsequently used.
+Zooming is activated by pressing and holding the left mouse button. While dragging the mouse, a rubberband rectangle is drawn. This rectangle indicates the area which will be zoomed when releasing the left mouse button. In order to avoid accidential zooming too deep, a minimum size rectangle has to show up. A valid zoom rectangle is indicated by changing its background to a transparent blueish color (the minimum allowed size can be set in ``Settings.py`` by changing the value of **RUBBERBANDSIZE**). In order to zoom in deeper, the rubberband rectangle can be subsequently used.
 
 Zoom limits (**MINZOOM**, **MAXZOOM**) are set in the file ``Settings.py``.
 
@@ -145,8 +126,7 @@ Zoom limits (**MINZOOM**, **MAXZOOM**) are set in the file ``Settings.py``.
 
    Zoom the items in the view. Select a rectangle using the left mouse button.
 
-Another natural possibility to zoom the view, is to use the scroll wheel. Thereby the geometry is zoomed with
-respect to the current mouse position. 
+Another natural possibility to zoom the view, is to use the scroll wheel. Thereby the geometry is zoomed with respect to the current mouse position. 
 
 Zooming can further be done using the :kbd:`Page-Up` and :kbd:`Page-Up` down keys.
 
@@ -155,9 +135,7 @@ A reset to the initial (home) position can either be achieved by pressing the :k
 Keyboard shortcuts
 ------------------
 
-To speed up some operations, a set of keyboard shortcuts are defined. In some of the menus the shortcuts for the
-respective actions are defined at the right side of the menu. Furthermore, the shortcut :kbd:`CTRL+k` on Windows 
-and :kbd:`CMD+k` on MacOS are used to access an overview of the keyboard shortcuts.
+To speed up some operations, a set of keyboard shortcuts are defined. In some of the menus the shortcuts for the respective actions are defined at the right side of the menu. Furthermore, the shortcut :kbd:`CTRL+k` on Windows and :kbd:`CMD+k` on MacOS are used to access an overview of the keyboard shortcuts.
 
 .. note::
    The keyboard shortcuts are rendered as uppercase letters in the GUI.
