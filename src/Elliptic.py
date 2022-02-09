@@ -75,6 +75,16 @@ class Elliptic:
                         - alpha * ( self.y[i+1, j] + self.y[i-1, j] ) \
                         - gamma * ( self.y[i, j+1] + self.y[i, j-1] ) )
 
+                    # Neumann boundary conditions
+                    if i == 1:
+                        pass
+                    elif i == self.nx - 1:
+                        pass
+                    elif j == 1:
+                        pass
+                    elif j == self.ny - 1:
+                        pass
+
             tol = np.max(np.abs(self.xn - self.x)) + np.max(np.abs(self.yn - self.y))
 
             if verbose:
@@ -82,9 +92,6 @@ class Elliptic:
 
             if tol < tolerance:
                 break
-
-            # Neumann boundary conditions
-            #self.xn[1:-1,0] = self.xn[1:-1,1]
 
             # update coordinates for next iteration
             self.x = copy.deepcopy(self.xn)
