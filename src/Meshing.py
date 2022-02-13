@@ -103,7 +103,10 @@ class Windtunnel:
         self.blocks.append(block_te)
 
     def TunnelMesh(self, name='', tunnel_height=2.0, divisions_height=100,
-                   ratio_height=10.0, dist='symmetric'):
+                   ratio_height=10.0, dist='symmetric',
+                   smoothing_algorithm='simple',
+                   smoothing_iterations=10,
+                   smoothing_tolerance=1e-3):
         block_tunnel = BlockMesh(name=name)
 
         self.tunnel_height = tunnel_height
@@ -243,9 +246,11 @@ class Windtunnel:
         # FIXME: and refactor complete meshing functions
         # FIXME:
 
-        sm = 2
-
-        if sm == 1:
+        if smoothing_algorithm == 'simple':
+            # FIXME:
+            # FIXME: this can be improved
+            # FIXME: and at least documented
+            # FIXME:
             smooth = Smooth(block_tunnel)
 
             nodes = smooth.selectNodes(domain='interior')
@@ -263,16 +268,19 @@ class Windtunnel:
             block_tunnel = smooth.smooth(nodes, iterations=3,
                                          algorithm='laplace')
 
-        elif sm == 2:
+        elif smoothing_algorithm == 'elliptic':
             # elliptic grid generation
             smoother = Elliptic.Elliptic(block_tunnel.getULines())
-            new_ulines = smoother.smooth(iterations=20, tolerance=1e-6, verbose=True)
+            new_ulines = smoother.smooth(iterations=smoothing_iterations,
+                                         tolerance=smoothing_tolerance,
+                                         bnd_type=None, # can be 'Neumann'
+                                         verbose=True)
             block_tunnel.setUlines(new_ulines)
 
-        elif sm == 3:
+        elif smoothing_algorithm == 'angle_based':
             smoother = SmoothAngleBased(block_tunnel, data_source='block')
-            smoothed_vertices = smoother.smooth(iterations=20,
-                                                tolerance=1.e-4,
+            smoothed_vertices = smoother.smooth(iterations=smoothing_iterations,
+                                                tolerance=smoothing_tolerance,
                                                 verbose=True)
             new_ulines = smoother.mapToUlines(smoothed_vertices)
             block_tunnel.setUlines(new_ulines)
@@ -398,7 +406,10 @@ class Windtunnel:
                         tunnel_height=toolbox.tunnel_height.value(),
                         divisions_height=toolbox.divisions_height.value(),
                         ratio_height=toolbox.ratio_height.value(),
-                        dist=toolbox.dist.currentText())
+                        dist=toolbox.dist.currentText(),
+                        smoothing_algorithm=toolbox.smoothing_algorithm,
+                        smoothing_iterations=toolbox.smoother_iterations.value(),
+                        smoothing_tolerance=float(toolbox.smoother_tolerance.text()))
         progdialog.setValue(50)
 
         if progdialog.wasCanceled():

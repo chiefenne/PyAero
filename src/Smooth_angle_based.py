@@ -1,5 +1,6 @@
 
 import copy
+from distutils.debug import DEBUG
 from types import prepare_class
 
 import numpy as np
@@ -9,6 +10,8 @@ from PySide6 import QtGui, QtCore
 import GraphicsItemsCollection as gic
 import GraphicsItem
 import Connect
+import logging
+logger = logging.getLogger(__name__)
 
 class SmoothAngleBased:
     """Mesh smoothing based on the paper:
@@ -44,6 +47,8 @@ class SmoothAngleBased:
 
         lvc = self.makeLVC()
         self.stencils = self.make_stencil(lvc)
+
+        self.drawlines = None
 
     def makeLVC(self):
         _, connectivity = self.mesh
@@ -206,7 +211,8 @@ class SmoothAngleBased:
 
                 S, W, E, N, D, EE, F, G = cardinals[cardinal]
 
-                if ic == 143:
+                DEBUG = False
+                if DEBUG and ic == 143:
                     self.draw_cardinal(S, W, E, N, D, EE, F, G)
                     # print('ic, cardinal', ic, cardinal)
                     # print('Stencil', self.stencils[cardinal])
@@ -269,7 +275,7 @@ class SmoothAngleBased:
                 tol = np.linalg.norm((xnew[0] - x, ynew[0] - y))
 
             if verbose:
-                print(f'Iteration={iteration}, Residual={tol}')
+                logger.info(f'Iteration={iteration:3d}, residual={tol:.3e}')
 
             if tol < tolerance:
                 break
@@ -277,7 +283,8 @@ class SmoothAngleBased:
             # update current cardinals for next iteration
             cardinals = self.make_cardinals(smoothed_vertices)
 
-        self.mainwindow.scene.createItemGroup(self.drawlines)
+        if self.drawlines:
+            self.mainwindow.scene.createItemGroup(self.drawlines)
 
         return smoothed_vertices
     

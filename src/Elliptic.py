@@ -3,6 +3,8 @@ import copy
 
 import numpy as np
 
+from Utils import Utils
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -38,12 +40,44 @@ class Elliptic:
                 new_uline.append((self.xn[i, j], self.yn[i, j]))
             self.new_ulines.append(new_uline)
 
-    def smooth(self, iterations=10, tolerance=1e-3, verbose=False):
+    @staticmethod
+    def curveNormals(x, y, closed=False):
+        istart = 0
+        iend = 0
+        n = list()
+
+        for i, _ in enumerate(x):
+
+            if closed:
+                if i == len(x) - 1:
+                    iend = -i - 1
+            else:
+                if i == 0:
+                    istart = 1
+                if i == len(x) - 1:
+                    iend = -1
+
+            a = np.array([x[i + 1 + iend] - x[i - 1 + istart],
+                          y[i + 1 + iend] - y[i - 1 + istart]])
+            e = Utils.unit_vector(a)
+            n.append([e[1], -e[0]])
+            istart = 0
+            iend = 0
+        return np.array(n)
+
+    def smooth(self, iterations=10, tolerance=1e-3, bnd_type=None, verbose=False):
 
         self.mapUlines()
 
         self.xn = copy.deepcopy(self.x)
         self.yn = copy.deepcopy(self.y)
+
+        # calculate normals at boundaries
+        # used for Neumann boundary conditions
+        normals_left = self.curveNormals(self.xn[0, :], self.yn[0, :])
+        normals_right = self.curveNormals(self.xn[-1, :], self.yn[-1, :])
+        normals_top = self.curveNormals(self.xn[:, -1], self.yn[:, -1])
+        normals_bottom = self.curveNormals(self.xn[:, 0], self.yn[:, 0])
 
         for iteration in range(iterations):
 
@@ -75,15 +109,24 @@ class Elliptic:
                         - alpha * ( self.y[i+1, j] + self.y[i-1, j] ) \
                         - gamma * ( self.y[i, j+1] + self.y[i, j-1] ) )
 
-                    # Neumann boundary conditions
-                    if i == 1:
-                        pass
-                    elif i == self.nx - 1:
-                        pass
-                    elif j == 1:
-                        pass
-                    elif j == self.ny - 1:
-                        pass
+                    # Neumann boundary conditions (normal to boundary here)
+                    # project vector a (boundary node to internal node)
+                    # onto vector b (normal vector at boundary) and move 
+                    # internal node to this position
+                    if bnd_type == 'Neumann':
+                        if j == 1:
+                            a = [self.xn[i,1] - self.xn[i,0],
+                                 self.yn[i,1] - self.yn[i,0]]
+                            b = normals_bottom[i]
+                            projected = np.dot(a, b) / np.dot(b, b) * b
+                            self.xn[i,1] = self.xn[i,0] + projected[0]
+                            self.yn[i,1] = self.yn[i,0] + projected[1]
+                        elif i == self.nx - 1:
+                            pass
+                        elif j == 1:
+                            pass
+                        elif j == self.ny - 1:
+                            pass
 
             tol = np.max(np.abs(self.xn - self.x)) + np.max(np.abs(self.yn - self.y))
 

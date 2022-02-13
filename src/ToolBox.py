@@ -550,6 +550,47 @@ class Toolbox(QtWidgets.QToolBox):
         self.spread.setDecimals(1)
         self.form_mesh_wake.addRow(label, self.spread)
 
+        # smoothing parameters
+        label = QtWidgets.QLabel('Smoothing')
+        label.setToolTip('Specify algorithm and parameters for smoothing')
+        self.btn_smoother_1 = QtWidgets.QRadioButton('Simple (fast)')
+        self.btn_smoother_2 = QtWidgets.QRadioButton('Elliptic (medium)')
+        self.btn_smoother_3 = QtWidgets.QRadioButton('Angle based (slow)')
+        self.btn_smoother_1.setChecked(True)
+        self.btn_smoother_1.clicked.connect(self.smoother_btn_clicked)
+        self.btn_smoother_2.clicked.connect(self.smoother_btn_clicked)
+        self.btn_smoother_3.clicked.connect(self.smoother_btn_clicked)
+
+        smoother_settings = QtWidgets.QFormLayout()
+
+        label = QtWidgets.QLabel('Iterations')
+        self.smoother_iterations = QtWidgets.QSpinBox()
+        self.smoother_iterations.setValue(20)
+        self.smoother_iterations.setSingleStep(5)
+        self.smoother_iterations.setRange(0, 1000)
+        self.smoother_iterations.setEnabled(False)
+        smoother_settings.addRow(label, self.smoother_iterations)
+
+        label = QtWidgets.QLabel('Tolerance')
+        self.smoother_tolerance = QtWidgets.QLineEdit()
+        self.onlyFloat = QtGui.QDoubleValidator()
+        self.smoother_tolerance.setValidator(self.onlyFloat)
+        self.smoother_tolerance.setText('1.e-5')
+        self.onlyFloat.setRange(1.e-8, 1.0)
+        self.onlyFloat.setDecimals(8)
+        self.smoother_tolerance.setEnabled(False)
+        smoother_settings.addRow(label, self.smoother_tolerance)
+
+        hbox_smoothing = QtWidgets.QHBoxLayout()
+        vbox1 = QtWidgets.QVBoxLayout()
+        vbox2 = QtWidgets.QVBoxLayout()
+        vbox1.addWidget(self.btn_smoother_1)
+        vbox1.addWidget(self.btn_smoother_2)
+        vbox1.addWidget(self.btn_smoother_3)
+        vbox2.addLayout(smoother_settings)
+        hbox_smoothing.addLayout(vbox1)
+        hbox_smoothing.addLayout(vbox2)
+
         vbox = QtWidgets.QVBoxLayout()
         vbox.addLayout(self.form_mesh_airfoil)
         box_airfoil = QtWidgets.QGroupBox('Airfoil contour mesh')
@@ -569,6 +610,9 @@ class Toolbox(QtWidgets.QToolBox):
         vbox.addLayout(self.form_mesh_wake)
         box_wake = QtWidgets.QGroupBox('Windtunnel mesh (wake)')
         box_wake.setLayout(vbox)
+
+        box_smoothing = QtWidgets.QGroupBox('Smoothing')
+        box_smoothing.setLayout(hbox_smoothing)
 
         self.createMeshButton = QtWidgets.QPushButton('Create Mesh')
         hbl_cm = QtWidgets.QHBoxLayout()
@@ -644,6 +688,7 @@ class Toolbox(QtWidgets.QToolBox):
         vbl.addWidget(box_TE)
         vbl.addWidget(box_tunnel)
         vbl.addWidget(box_wake)
+        vbl.addWidget(box_smoothing)
         vbl.addLayout(hbl_cm)
         vbl.addStretch(1)
         vbl.addWidget(self.box_meshexport)
@@ -820,6 +865,20 @@ class Toolbox(QtWidgets.QToolBox):
 
         # preselect airfoil database box
         self.setCurrentIndex(self.tb1)
+
+    def smoother_btn_clicked(self):
+        if self.btn_smoother_1.isChecked():
+            self.smoothing_algorithm = 'simple'
+            self.smoother_iterations.setEnabled(False)
+            self.smoother_tolerance.setEnabled(False)
+        elif self.btn_smoother_2.isChecked():
+            self.smoothing_algorithm = 'elliptic'
+            self.smoother_iterations.setEnabled(True)
+            self.smoother_tolerance.setEnabled(True)
+        elif self.btn_smoother_3.isChecked():
+            self.smoothing_algorithm = 'angle_based'
+            self.smoother_iterations.setEnabled(True)
+            self.smoother_tolerance.setEnabled(True)
 
     def toggleRawPoints(self):
         """Toggle points of raw airfoil contour (on/off)"""
