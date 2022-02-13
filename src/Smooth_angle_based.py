@@ -4,8 +4,11 @@ from types import prepare_class
 
 import numpy as np
 
-import Connect
+from PySide6 import QtGui, QtCore
 
+import GraphicsItemsCollection as gic
+import GraphicsItem
+import Connect
 
 class SmoothAngleBased:
     """Mesh smoothing based on the paper:
@@ -25,6 +28,9 @@ class SmoothAngleBased:
     """
 
     def __init__(self, data, data_source='block'):
+        
+        # get MainWindow instance (overcomes handling parents)
+        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
 
         # data_source is one of 'block' or 'mesh'
         if data_source == 'block':
@@ -90,10 +96,10 @@ class SmoothAngleBased:
         for stencil in self.stencils:
             s = self.stencils[stencil]
 
-            D = [vertices[s[0][0]][0], vertices[s[0][0]][1]]
-            EE = [vertices[s[0][1]][0], vertices[s[0][1]][1]]
-            F = [vertices[s[2][1]][0], vertices[s[2][1]][1]]
-            G = [vertices[s[1][1]][0], vertices[s[1][1]][1]]
+            D = [vertices[s[2][0]][0], vertices[s[2][0]][1]]
+            EE = [vertices[s[0][0]][0], vertices[s[0][0]][1]]
+            F = [vertices[s[1][1]][0], vertices[s[1][1]][1]]
+            G = [vertices[s[0][1]][0], vertices[s[0][1]][1]]
 
             S = (0.5 * (D[0] + EE[0]), 0.5 * (D[1] + EE[1]))
             W = (0.5 * (D[0] + G[0]), 0.5 * (D[1] + G[1]))
@@ -102,7 +108,78 @@ class SmoothAngleBased:
             cardinals[stencil] = (S, W, E, N, D, EE, F, G)
         return cardinals
 
+    def draw_cardinal(self, S, W, E, N, D, EE, F, G):
+
+        self.drawlines = list()
+
+        gc = gic.GraphicsCollection()
+
+        points = [QtCore.QPointF(x, y) for x, y in [S, N]]
+        gc.Polyline(QtGui.QPolygonF(points), '')
+        gc.pen.setColor(QtGui.QColor(255, 0, 0, 255))
+        gc.pen.setWidthF(3.0)
+        gc.pen.setCosmetic(True)
+        gc.brush.setStyle(QtCore.Qt.NoBrush)
+        meshline = GraphicsItem.GraphicsItem(gc)
+        self.drawlines.append(meshline)
+
+        gc = gic.GraphicsCollection()
+        points = [QtCore.QPointF(x, y) for x, y in [E, W]]
+        gc.Polyline(QtGui.QPolygonF(points), '')
+        gc.pen.setColor(QtGui.QColor(0, 255, 0, 255))
+        gc.pen.setWidthF(3.0)
+        gc.pen.setCosmetic(True)
+        gc.brush.setStyle(QtCore.Qt.NoBrush)
+        meshline = GraphicsItem.GraphicsItem(gc)
+        self.drawlines.append(meshline)
+
+        gc = gic.GraphicsCollection()
+        points = [QtCore.QPointF(x, y) for x, y in [D, EE, F, G, D]]
+        gc.Polyline(QtGui.QPolygonF(points), '')
+        gc.pen.setColor(QtGui.QColor(0, 0, 255, 255))
+        gc.pen.setWidthF(5.0)
+        gc.pen.setCosmetic(True)
+        gc.brush.setStyle(QtCore.Qt.NoBrush)
+        meshline = GraphicsItem.GraphicsItem(gc)
+        self.drawlines.append(meshline)
+
+        '''
+        gc = gic.GraphicsCollection()
+        points = [QtCore.QPointF(x, y) for x, y in [EE, G]]
+        gc.Polyline(QtGui.QPolygonF(points), '')
+        gc.pen.setColor(QtGui.QColor(0, 255, 255, 255))
+        gc.pen.setWidthF(9.0)
+        gc.pen.setCosmetic(True)
+        gc.brush.setStyle(QtCore.Qt.NoBrush)
+        meshline = GraphicsItem.GraphicsItem(gc)
+        self.drawlines.append(meshline)
+
+        gc = gic.GraphicsCollection()
+        points = [QtCore.QPointF(x, y) for x, y in [D, G]]
+        gc.Polyline(QtGui.QPolygonF(points), '')
+        gc.pen.setColor(QtGui.QColor(255, 0, 255, 255))
+        gc.pen.setWidthF(9.0)
+        gc.pen.setCosmetic(True)
+        gc.brush.setStyle(QtCore.Qt.NoBrush)
+        meshline = GraphicsItem.GraphicsItem(gc)
+        self.drawlines.append(meshline)
+
+        gc = gic.GraphicsCollection()
+        points = [QtCore.QPointF(x, y) for x, y in [D, F]]
+        gc.Polyline(QtGui.QPolygonF(points), '')
+        gc.pen.setColor(QtGui.QColor(0, 0, 0, 255))
+        gc.pen.setWidthF(9.0)
+        gc.pen.setCosmetic(True)
+        gc.brush.setStyle(QtCore.Qt.NoBrush)
+        meshline = GraphicsItem.GraphicsItem(gc)
+        self.drawlines.append(meshline)
+        '''
+
+        # self.mainwindow.scene.createItemGroup(self.drawlines)
+
     def smooth(self, iterations=20, tolerance=1.e-4, verbose=False):
+
+        # iterations=1
 
         vertices, _ = self.mesh
     
@@ -128,6 +205,11 @@ class SmoothAngleBased:
                 (xold, yold) = smoothed_vertices_old[cardinal]
 
                 S, W, E, N, D, EE, F, G = cardinals[cardinal]
+
+                if ic == 143:
+                    self.draw_cardinal(S, W, E, N, D, EE, F, G)
+                    # print('ic, cardinal', ic, cardinal)
+                    # print('Stencil', self.stencils[cardinal])
 
                 # calculate position control
                 NS = np.linalg.norm( (S[0] - N[0], S[1] - N[1]) )
@@ -194,6 +276,8 @@ class SmoothAngleBased:
 
             # update current cardinals for next iteration
             cardinals = self.make_cardinals(smoothed_vertices)
+
+        self.mainwindow.scene.createItemGroup(self.drawlines)
 
         return smoothed_vertices
     
