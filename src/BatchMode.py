@@ -121,7 +121,10 @@ class Batch:
                                    tunnel_height=tam['Windtunnel height'],
                                    divisions_height=tam['Divisions of tunnel height'],
                                    ratio_height=tam['Cell thickness ratio'],
-                                   dist=tam['Distribution biasing'])
+                                   dist=tam['Distribution biasing'],
+                                   smoothing_algorithm=tam['Smoothing algorithm'],
+                                   smoothing_iterations=tam['Smoothing iterations'],
+                                   smoothing_tolerance=tam['Smoothing tolerance'])
 
             # mesh tunnel wake
             twm = self.batch_control['Windtunnel mesh wake']
