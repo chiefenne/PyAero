@@ -556,7 +556,10 @@ class Toolbox(QtWidgets.QToolBox):
         self.btn_smoother_1 = QtWidgets.QRadioButton('Simple (fast)')
         self.btn_smoother_2 = QtWidgets.QRadioButton('Elliptic (medium)')
         self.btn_smoother_3 = QtWidgets.QRadioButton('Angle based (slow)')
+        # initialize simple smoother
         self.btn_smoother_1.setChecked(True)
+        self.smoothing_algorithm = 'simple'
+        
         self.btn_smoother_1.clicked.connect(self.smoother_btn_clicked)
         self.btn_smoother_2.clicked.connect(self.smoother_btn_clicked)
         self.btn_smoother_3.clicked.connect(self.smoother_btn_clicked)
