@@ -57,9 +57,9 @@ PyAero is open-source and distributed under the MIT license, see `LICENSE <licen
 
 Above analysis result was obtained using the CFD code AVL-FIRE. It is an unsteady laminar 3D calculation of 
 the RG14 airfoil. The mesh was thickened with several layers in spanwise direction in order to allow for 
-turbulent fluctuations in all three dimensions. The calculation resulst shown is based on pure laminar 
+turbulent fluctuations in all three dimensions. The calculation result shown is based on pure laminar 
 settings (i.e. no turbulence model switched on). Later (result not shown) a LES calculation using the 
-Kobayashi SGS model was done. With the used mesh resolution both approaches lead to quite similar results.
+Kobayashi SGS model was done. With the applied mesh resolution both approaches lead to quite similar results.
 
 .. csv-table:: Aerodynamic coefficients, RG14 airfoil, RE=330000, AOA 2°, 20 million cells
    :header-rows: 1
