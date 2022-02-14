@@ -291,10 +291,10 @@ class CentralWidget(QtWidgets.QWidget):
 def main():
 
     # check if the user is running the program in batch mode
-    useGUI = '-no-gui' not in sys.argv
+    batchmode = '-no-gui' in sys.argv
 
     # run PyAero in batch mode
-    if not useGUI:
+    if batchmode:
         app = QtCore.QCoreApplication(sys.argv)
 
         # FIXME
