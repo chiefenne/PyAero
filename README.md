@@ -1,6 +1,7 @@
 
 # PyAero
 ![](docs/images/SD7003_velocity_AOA6.png)
+PyAero generated mesh (Solver: [SU2](https://su2code.github.io), Visualization: [ParaView](https://www.paraview.org/))
 <br>
 
 [![readthedocs](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://pyaero.readthedocs.io/en/latest/?badge=latest)
@@ -48,8 +49,8 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
 ## Header image
  - Airfoil SD7003
  - Meshing with PyAero
- - Calculation with the CFD code SU2
- - Post-processing done in ParaView
+ - Calculation with the CFD code [SU2](https://su2code.github.io)
+ - Post-processing done in [ParaView](https://www.paraview.org/)
 
 ## Sample screenshots
 
