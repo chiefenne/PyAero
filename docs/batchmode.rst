@@ -14,4 +14,4 @@ The command used to launch the batch processing is:
 
 :code:`python src/PyAero.py -no-gui data/Batch/batch_control.json`
 
-The batch control file can be in an arbitrary folder and have any name. It just has to have the same format as the example file of the installation (see :file:`data/Batch/batch_control.json`).
+The batch control file can be located in an arbitrary folder and have any name. It just has to have the same format as the example file of the installation (see :file:`data/Batch/batch_control.json`).
