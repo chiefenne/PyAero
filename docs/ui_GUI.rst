@@ -41,6 +41,7 @@ The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in
 .. _figure_menu_structure:
 .. figure::  images/menu_structure_NEW.png
    :align:   center
+   :scale: 70%
    :target:  _images/menu_structure_NEW.png
    :name: menu_structure
 
@@ -62,6 +63,7 @@ The toolbar in `PyAero <index.html>`_  allows fast access to actions which are o
 
 .. figure::  images/toolbar_animated_NEW.gif
    :align:   center
+   :scale: 70%
    :target:  _images/toolbar_animated_NEW.gif
    :name: toolbar_animated
 
@@ -75,6 +77,7 @@ The toolbox functions are arranged at the left border of the GUI. A *toolbox* is
 .. _toolbox_functions:
 .. figure::  images/toolbox_animated_NEW.gif
    :align:   center
+   :scale: 60%
    :target:  _images/toolbox_animated_NEW.gif
    :name: toolbox_animated
 

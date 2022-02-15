@@ -40,6 +40,7 @@ the toolbox area.
 .. _figure_toolbox_area:
 .. figure::  images/toolbox_area_1_NEW.png
    :align:   center
+   :scale: 60%
    :target:  _images/toolbox_area_1_NEW.png
    :name: Toolbar_Open
 
