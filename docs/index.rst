@@ -123,11 +123,6 @@ Follow the :ref:`quickstart` tutorial to get a first impression of the key funct
 The code ist hosted on GitHub: `PyAero source code <https://github.com/chiefenne/PyAero>`_
 
 .. toctree::
-   :hidden:
-
-   Home <self>
-
-.. toctree::
    :caption: Table of Contents
    :numbered:
    :maxdepth: 2
