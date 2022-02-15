@@ -16,6 +16,8 @@ For fast lift coefficient calculations a panel method has been implemented. The 
 
 Clicking on :guilabel:`Calulate lift coefficient` will calculate the lift coefficient for the current configuration. The code runs very fast and is not influenced much by the number of panels. The code using its own paneling method. Paneling is either based on the airfoil raw data or on the splined contour data (if available). 
 
+A typical result/output of the method is shown below (the information is displayed in the message window):
+
 :code:`INFO - Aerodynamic properties of Makarov KPS Long Root:`
 :code:`INFO - Cl =  1.268 [-] at Uinf =  5.000 [m/s], and AOA =  3.000 [degree]`
 
