@@ -9,12 +9,13 @@ For fast lift coefficient calculations a panel method has been implemented. The 
 .. _figure_aeropython:
 .. figure::  images/AeroPython_settings.png
    :align:   center
+   :scale: 50%
    :target:  _images/AeroPython_settings.png
    :name: AeroPython_settings
 
    Settings for the panel method.
 
-Clicking on :guilabel:`Calulate lift coefficient` will calculate the lift coefficient for the current configuration. The code runs very fast and is not influenced much by the number of panels. The code using its own paneling method. Paneling is either based on the airfoil raw data or on the splined contour data (if available). 
+Clicking on :guilabel:`Calulate lift coefficient` will calculate the lift coefficient for the current configuration. The code runs very fast and is not influenced much by the number of panels. The code is using its own paneling method. Paneling is either based on the airfoil raw data or on the splined contour data (if available). A too high number of panels may lead to convergence issues.
 
 A typical result/output of the method is shown below (the information is displayed in the message window):
 
