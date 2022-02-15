@@ -559,7 +559,7 @@ class Toolbox(QtWidgets.QToolBox):
         # initialize simple smoother
         self.btn_smoother_1.setChecked(True)
         self.smoothing_algorithm = 'simple'
-        
+
         self.btn_smoother_1.clicked.connect(self.smoother_btn_clicked)
         self.btn_smoother_2.clicked.connect(self.smoother_btn_clicked)
         self.btn_smoother_3.clicked.connect(self.smoother_btn_clicked)
@@ -934,7 +934,12 @@ class Toolbox(QtWidgets.QToolBox):
         """Gui callback to run AeroPython panel method in module PSvpMethod"""
 
         if self.parent.airfoil:
-            x, y = self.parent.airfoil.raw_coordinates
+            # get coordinates of airfoil (raw data or if available spline)
+            if self.parent.airfoil.spline_data:
+                x, y = self.parent.airfoil.spline_data[0]
+            else:
+                x, y = self.parent.airfoil.raw_coordinates
+
             u_inf = self.freestream.value()
             alpha = self.aoaAP.value()
             panels = self.panels.value()
