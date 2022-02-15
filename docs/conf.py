@@ -17,19 +17,31 @@ import sphinx_rtd_theme
 #
 import os
 import sys
+import datetime
+
+year = str(datetime.date.today().strftime("%Y"))
+
 sys.path.insert(0, os.path.abspath('.'))
 
 
 # -- Project information -----------------------------------------------------
 
 project = 'PyAero'
-copyright = '2022, Andreas Ennemoser'
+copyright = year + ', Andreas Ennemoser'
 author = 'Andreas Ennemoser'
 
+# automated detection of version number
+with open('../src/PyAero.py') as f:
+    pyaero = f.readlines()
+    for line in pyaero:
+        if line.startswith('__version__'):
+            version = line.split('=')[1].strip()
+            break
+
 # The short X.Y version
-version = '2.1.5'
+# version = '2.1.5'
 # The full version, including alpha/beta/rc tags
-release = 'v2.1.5'
+release = 'v' + version
 
 
 # -- General configuration ---------------------------------------------------
