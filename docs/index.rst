@@ -70,8 +70,7 @@ Kobayashi SGS model was done. With the applied mesh resolution both approaches l
    "Laminar", 0.0079, 0.371
    "LES", 0.0078, 0.362 
 
-Features
-========
+**Features**
 
  - Load and display airfoil contour files
  - Airfoil splining and refining
@@ -115,13 +114,11 @@ Features
    - `AeroPython <http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb>`_
 
 
-Quick start guide
-=================
+**Quick start guide**
 
 Follow the :ref:`quickstart` tutorial to get a first impression of the key functionality.
 
-Code repository
-===============
+**Code repository**
 
 The code ist hosted on GitHub: `PyAero source code <https://github.com/chiefenne/PyAero>`_
 
