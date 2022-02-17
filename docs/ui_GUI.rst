@@ -4,7 +4,7 @@
 User Interface
 ==============
 
-`PyAero <index.html>`_ comes with a graphical user interface (GUI) written in `Python <http://www.python.org/>`_ and `Qt for Python <https://www.qt.io/qt-for-python>`_.
+`PyAero <index.html>`_ comes with a graphical user interface (GUI) written in `Qt for Python <https://www.qt.io/qt-for-python>`_ aka Pyside6.
 
 Overview
 -----------
@@ -41,7 +41,7 @@ The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in
 .. _figure_menu_structure:
 .. figure::  images/menu_structure_NEW.png
    :align:   center
-   :scale: 70%
+   :scale: 60%
    :target:  _images/menu_structure_NEW.png
    :name: menu_structure
 
