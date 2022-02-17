@@ -41,7 +41,7 @@ The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in
 .. _figure_menu_structure:
 .. figure::  images/menu_structure_NEW.png
    :align:   center
-   :scale: 60%
+   :width: 60%
    :target:  _images/menu_structure_NEW.png
    :name: menu_structure
 
