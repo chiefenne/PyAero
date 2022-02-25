@@ -19,7 +19,7 @@
         <Tool tip='Fit airfoil in view' icon='Fit airfoil.png' handler='fitAirfoilInView'></Tool>
         <Tool tip='Fit all in view' icon='Fit in view.png' handler='onViewAll'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
-        <Tool tip='Run commands' icon='Scenario.png' handler='runCommands'></Tool>
+        <Tool tip='Autorun (for testing)' icon='Scenario.png' handler='runCommands'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
         <Tool tip='About' icon='About.png' handler='onAbout'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>

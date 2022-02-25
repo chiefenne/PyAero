@@ -30,7 +30,7 @@ class SplineRefine:
 
         # interpolate a spline through the raw contour points
         # constant point distribution used here
-        # typically nose radius poorly resolevd by that
+        # typically nose radius poorly resolved by that
         self.spline_data = self.spline(x, y, points=points, degree=3)
 
         # refine the contour in order to meet the tolerance

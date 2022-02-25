@@ -8,14 +8,14 @@
 Loading Airfoils
 ================
 
-Loading airfoils can be done in different ways:
+Loading airfoils can be done in different ways.
 
-Load via menu :menuselection:`File --> Open`
---------------------------------------------
+Load via menu :guilabel:`Open`
+------------------------------
 
-The :guilabel:`File` |right_medium_Arrow| :guilabel:`Open` menu is the standard way to load airfoil contour data. The shortcut assigned to this menu is :kbd:`CTRL-o`. Clicking :guilabel:`Open` or applying the respective shortcut provides a dialog that allow users to select files or browse directories.
-
-.. note:: The keyboard shortcuts are rendered as uppercase letters in the GUI (see following figure). Nevertheless, always lowercase letters need to be pressed.
+The :menuselection:`File --> Open` menu is the standard way to load airfoil contour data. 
+The shortcut assigned to this menu is :kbd:`CTRL-o`. When clicking this menu or applying the 
+respective shortcut, a file dialog pops up. It allows to select files or browse directories.
 
 .. _figure_menu_open:
 .. figure::  images/menu_open.png
@@ -28,14 +28,20 @@ The :guilabel:`File` |right_medium_Arrow| :guilabel:`Open` menu is the standard 
 Load via the inline file browser
 --------------------------------
 
-As outlined above there are more ways to load airfoils. A very handy way to browse airfoils is to use the implemented file browser. This browser is restricted in terms of navigation. Only files and folders below a predefined root path are visible. The default root is  the :file:`data` subfolder from the standard installation.
+As outlined above there are more ways to load airfoils. A very handy way to browse airfoils is to use the 
+implemented file browser. This browser is restricted in terms of navigation. Only files and folders below a 
+predefined root path are visible. The default root is the :file:`data/Airfoils` subfolder from the 
+standard installation. The root path for airfoils can be changed by the user in the file :file:`src/Settings.py` 
+by changing the value of the variable :code:`AIRFOILDATA`.
 
-The file browser is located in the *toolbox* area on the left side of the application (see also :ref:`figure_main_screen`). A *toolbox* is a GUI element that displays a column of tabs one above the other, with the current item displayed below the current tab.
+The file browser is located in the toolbox on the left side of the application. It is the uppermost tab in 
+the toolbox area.
 
 .. _figure_toolbox_area:
-.. figure::  images/toolbox_area_1.png
+.. figure::  images/toolbox_area_1_NEW.png
    :align:   center
-   :target:  _images/toolbox_area_1.png
+   :width: 60%
+   :target:  _images/toolbox_area_1_NEW.png
    :name: Toolbar_Open
 
    File browser integrated in the *Toolbox*.
@@ -45,7 +51,9 @@ The file browser is located in the *toolbox* area on the left side of the applic
 Load via the *Toolbar*
 ----------------------
 
-Another fast way to open the file dialog is to click on the :menuselection:`Open` icon (see image below) in the toolbar. The toolbar consists of a row of icons just below the menu bar. The toolbar can be customized by editing the file :file:`$PYAEROPATH/data/PToolBar.xml`.
+Another way to open the file dialog is to click on the :menuselection:`Open` icon in the toolbar. 
+The toolbar consists of a row of icons just below the menu bar. The toolbar and its icons can be customized by 
+editing the file :file:`data/PToolBar.xml`.
 
 .. _figure_toolbar_open:
 .. figure::  images/toolbar_open.png
@@ -75,18 +83,14 @@ For testing purposes a predefined airfoil can be loaded without the need of a fi
 Load via drag and drop
 ----------------------
 
-another convenient way to load one or more airfoil(s) is via drag and drop. Just drag a couple of files, e.g. from the Explorer in Windows, to the graphics window. All files will be loaded and the view will be zoomed in way that all contours fit into the screen.
+Last but not least, one or more airfoil(s) can be loaded via drag and drop. Just drag a couple of files, e.g. from the 
+Explorer (Windows) or Finder (MacOS), to the graphics window. All files will be loaded, but only one file will 
+be displayed. All the other files are shown (and can be activated by double-clicking on the name) in the toolbox area.
 
 .. _figure_drag_and_drop:
-.. figure::  images/load_drag_and_drop.png
+.. figure::  images/Drag_and_drop.gif
    :align:   center
-   :target:  _images/load_drag_and_drop.png
-   :name: Load_drag_and_drop
-
-.. _figure_drag_and_drop:
-.. figure::  images/load_drag_and_drop_1.png
-   :align:   center
-   :target:  _images/load_drag_and_drop_1.png
+   :target:  _images/Drag_and_drop.gif
    :name: Load_drag_and_drop
 
    Load multiple contours via drag and drop

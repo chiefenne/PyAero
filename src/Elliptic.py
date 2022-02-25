@@ -1,137 +1,146 @@
 
-from functools import partial
 import copy
 
 import numpy as np
-from scipy import optimize
 
-DEBUG = False
+from Utils import Utils
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Elliptic:
-    """Generate an orthogonal curvilinear grid by solving the inverse form of
-    two laplace equations.
-    Source: Basic Structured Grid Generation, M. Farrashkhalvat and J.P. Miles
-    """
+    def __init__(self, ulines):
 
-    def __init__(self, boundary):
-        """Summary
+        self.ulines = ulines
+        
+        self.nx = np.array(self.ulines).shape[1]
+        self.ny = np.array(self.ulines).shape[0]
 
-        Args:
-            boundary (dictionary): contains x,y-coordinates of all 4 boundaries
-        """
-        self.xw = boundary['west'][0]
-        self.yw = boundary['west'][1]
-        self.xe = boundary['east'][0]
-        self.ye = boundary['east'][1]
-        self.xn = boundary['north'][0]
-        self.yn = boundary['north'][1]
-        self.xs = boundary['south'][0]
-        self.ys = boundary['south'][1]
+        # initialize coordinate array
+        self.x = np.empty((self.nx, self.ny))
+        self.y = np.empty_like(self.x)
 
-    def solver(self, solver_type, iterations):
+        
+        # map coordinates from ulines to i,j index
+        self.mapUlines()
+ 
+    def mapUlines(self):
+        # FIXME try using np.stack
+        for j, uline in enumerate(self.ulines):
+            for i, u in enumerate(uline):
+                self.x[i, j] = u[0]
+                self.y[i, j] = u[1]
+    
+    def mapToUlines(self):
+        self.new_ulines = list()
+        for j, uline in enumerate(self.ulines):
+            new_uline = list()
+            for i, u in enumerate(uline):
+                new_uline.append((self.xn[i, j], self.yn[i, j]))
+            self.new_ulines.append(new_uline)
 
-        # knowns
-        f_o = copy.copy(self.f[:, 0])
-        u_o = copy.copy(self.u[:, 0])
+    @staticmethod
+    def curveNormals(x, y, closed=False):
+        istart = 0
+        iend = 0
+        n = list()
 
-        # extra parameters for 'function'
-        # are later wrapped with partial
-        etamax = copy.copy(self.etamax)
+        for i, _ in enumerate(x):
 
-        #
-        def F(unknowns, F_args=[etamax]):
-            """Summary
+            if closed:
+                if i == len(x) - 1:
+                    iend = -i - 1
+            else:
+                if i == 0:
+                    istart = 1
+                if i == len(x) - 1:
+                    iend = -1
 
-            Args:
-                unknowns (np.array): x, y
+            a = np.array([x[i + 1 + iend] - x[i - 1 + istart],
+                          y[i + 1 + iend] - y[i - 1 + istart]])
+            e = Utils.unit_vector(a)
+            n.append([e[1], -e[0]])
+            istart = 0
+            iend = 0
+        return np.array(n)
 
-            Returns:
-                TYPE: Description
-            """
+    def smooth(self, iterations=10, tolerance=1e-3, bnd_type=None, verbose=False):
 
-            # unknowns
-            if DEBUG:
-                print('unknowns', unknowns)
+        self.mapUlines()
 
-            # (x, y) = unknowns
-            x = unknowns[0: etamax]
-            y = unknowns[etamax:2 * etamax]
+        self.xn = copy.deepcopy(self.x)
+        self.yn = copy.deepcopy(self.y)
 
-            eq1 = np.zeros_like(x)
-            eq2 = np.zeros_like(x)
+        # calculate normals at boundaries
+        # used for Neumann boundary conditions
+        normals_left = self.curveNormals(self.xn[0, :], self.yn[0, :])
+        normals_right = self.curveNormals(self.xn[-1, :], self.yn[-1, :])
+        normals_top = self.curveNormals(self.xn[:, -1], self.yn[:, -1])
+        normals_bottom = self.curveNormals(self.xn[:, 0], self.yn[:, 0])
 
-            # boundary conditions
-            x[0] = 0.0
-            y[0] = 0.0
+        for iteration in range(iterations):
 
-            deta = 1.0
-            dgsi = 1.0
+            # loop internal nodes, index a[0, 0] refers to the first internal node
+            for i in range(1, self.nx - 1):
+                for j in range(1, self.ny - 1):
 
-            # array slicing for index j
-            # [1:] means index j
-            # [:-1] means index j-1
+                    # g22
+                    alpha = 1./4. * ( (self.x[i, j+1] - self.x[i, j-1])**2 \
+                                  + (self.y[i, j+1] - self.y[i, j-1])**2 )
+                    # g11
+                    gamma = 1./4. * ( (self.x[i+1, j] - self.x[i-1, j])**2 \
+                                  + (self.y[i+1, j] - self.y[i-1, j])**2 )
+                    # g12
+                    beta = 1./16. * ( ( self.x[i+1, j] - self.x[i-1, j] ) \
+                                    * ( self.x[i, j+1] - self.x[i, j-1] ) \
+                                    + ( self.y[i+1, j] - self.y[i-1, j] ) \
+                                    * ( self.y[i, j+1] - self.y[i, j-1] ) )
+                    # calculate new x-coordinate
+                    self.xn[i,j] = -0.5 / (alpha + gamma + 1.e-9) \
+                        * (2. * beta * ( self.x[i+1, j+1] - self.x[i-1, j+1] \
+                        - self.x[i+1, j-1] + self.x[i-1, j-1] ) \
+                        - alpha * ( self.x[i+1, j] + self.x[i-1, j] ) \
+                        - gamma * ( self.x[i, j+1] + self.x[i, j-1] ) )
+                    # calculate new y-coordinate
+                    self.yn[i,j] = -0.5 / (alpha + gamma + 1.e-9) \
+                        * (2. * beta * ( self.y[i+1, j+1] - self.y[i-1, j+1] \
+                        - self.y[i+1, j-1] + self.y[i-1, j-1] ) \
+                        - alpha * ( self.y[i+1, j] + self.y[i-1, j] ) \
+                        - gamma * ( self.y[i, j+1] + self.y[i, j-1] ) )
 
-            dxdgsi = (x[1:, :] - x[:-1, :]) / (2 * dgsi)
-            dydgsi = (y[1:, :] - y[:-1, :]) / (2 * dgsi)
-            dxdeta = (x[1:, :] - x[:-1, :]) / (2 * deta)
-            dydeta = (y[1:, :] - y[:-1, :]) / (2 * deta)
+                    # Neumann boundary conditions (normal to boundary here)
+                    # project vector a (boundary node to internal node)
+                    # onto vector b (normal vector at boundary) and move 
+                    # internal node to this position
+                    if bnd_type == 'Neumann':
+                        if j == 1:
+                            a = [self.xn[i,1] - self.xn[i,0],
+                                 self.yn[i,1] - self.yn[i,0]]
+                            b = normals_bottom[i]
+                            projected = np.dot(a, b) / np.dot(b, b) * b
+                            self.xn[i,1] = self.xn[i,0] + projected[0]
+                            self.yn[i,1] = self.yn[i,0] + projected[1]
+                        elif i == self.nx - 1:
+                            pass
+                        elif j == 1:
+                            pass
+                        elif j == self.ny - 1:
+                            pass
 
-            # components of the covariant metric tensor
-            g11 = dxdgsi**2 + dydgsi**2
-            g22 = dxdeta**2 + dydeta**2
-            g12 = dxdgsi * dxdeta + dydgsi * dydeta
+            tol = np.max(np.abs(self.xn - self.x)) + np.max(np.abs(self.yn - self.y))
 
-            a = g22 / dgsi**2
-            b = 2 * g22 / dgsi**2 + 2 * g11 / deta**2
-            c = a
-            d = g11 / deta**2 * (x[:, :-1] + x[:, 1:]) - \
-                2 * g12 * (x[:-1, :-1] + x[1:, 1:] - x[1:, :-1] - x[:-1, 1:]) \
-                / (4 * dgsi * deta)
-            e = g11 / deta**2 * (y[:, :-1] + y[:, 1:]) - \
-                2 * g12 * (y[:-1, :-1] + y[1:, 1:] - y[1:, :-1] - y[:-1, 1:]) \
-                / (4 * dgsi * deta)
+            if verbose:
+                logger.info(f'Iteration={iteration+1:3d}, residual={tol:.3e}')
 
-            # Winslow x
-            eq1[1:] = -a * x[1:, :] + b * x[:, :] - c * x[:-1, :] - d
+            if tol < tolerance:
+                break
 
-            # Winslow y
-            eq2[1:] = -a * y[1:, :] + b * y[:, :] - c * y[:-1, :] - e
+            # update coordinates for next iteration
+            self.x = copy.deepcopy(self.xn)
+            self.y = copy.deepcopy(self.yn)
+                    
+        # map coordinates back to uline data structure
+        self.mapToUlines()
 
-            # boundary conditions make up another 2 equations
-            # put them on the 0-th element of all 2 equations
-            eq1[0] = x[0]
-            eq2[0] = y[0]
-
-            return np.array([eq1, eq2]).ravel()
-
-        # initial guess
-        guess = np.array([f_o, u_o]).ravel()
-
-        F_partial = partial(F,
-                            F_args=[etamax])
-
-        solution = optimize.fsolve(F_partial, guess,
-                                   full_output=True, xtol=1e-06)
-
-        solver_message = solution[3]
-        print('  Solver: {}'.format(solver_message))
-
-        return solution, solver_message
-
-    def shift_profiles(self):
-
-        self.x[:, 0] = copy.copy(self.solution[0][0 *
-                                 self.etamax:1 * self.etamax])
-        self.y[:, 0] = copy.copy(self.solution[0][1 *
-                                 self.etamax:2 * self.etamax])
-
-    def main(self, solver_type='fsolve', iterations=10):
-
-        # initial velocity profile
-        self.boundary_conditions()
-
-        for self.nx in range(1, self.gsimax):
-            self.solution, self.solver_message = \
-                self.solver(solver_type, iterations)
-            self.shift_profiles()
+        return self.new_ulines

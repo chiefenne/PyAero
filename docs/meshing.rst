@@ -26,9 +26,9 @@ The mesh blocks are (listed below with the same name as in the GUI):
 The main mesh block is the one directly attached to the airfoil contour. It is constructed by grid lines emerging perpendicular from the airfoil, starting at the points from the splined contour (see :ref:`spline_refine`). Another set of lines parallel to the airfoil contour complete the main mesh block. The default settings there implement a streching away from the airfoil, so that the thinnest mesh layer is attached at the airfoil and further mesh layers are gradually thickened outwards.
 
 .. _figure_mesh_block_1:
-.. figure::  images/mesh_block1bb.gif
+.. figure::  images/mesh_block1bb.png
    :align:   center
-   :target:  _images/mesh_block1bb.gif
+   :target:  _images/mesh_block1bb.png
    :name: MeshBlock1
 
    Mesh around airfoil (block 1)
@@ -43,7 +43,7 @@ The process of constructing the grid lines perpendicular and parallel to the con
 
    Settings for the mesh around the airfoil (block 1)
 
-The value for the number of :guilabel:`Gridpoints along airfoil` contour is grayed out. This value is taken from the number of points on the spline (see :ref:`figure_toolbox_spline_refine_1`) and is displayed here just for reference. If a different number of grid points along the contour is required the spline has to be updated first. Next the :guilabel:`Divisions normal to airfoil` allows to vary the number mesh layers normal to the contour within mesh block 1. The setting :guilabel:`Thickness normal to airfoil (%)` specifies the dimension/length of block 1 normal to the contour in percentage of the airfoil chord. It is limited to 100% chord length, but typical values would be in the range 5% to 20%. The final parameter for block 1 is the :guilabel:`Cell thickness ratio (-)`. It specifies the ratio of the cell thickness of the outermost cell in the block (wrt to airfoil normal direction) over the cell thickness of the layer which is attached to the contour. So if for example the ratio is 3, the outer cell layer of block one is 3 times a thick as the cell layer at the airfoil (see :ref:`figure_mesh_stretching_annotated`).
+The value for the number of :code:`Gridpoints along airfoil` contour is grayed out. This value is taken from the number of points on the spline  and is displayed here just for reference(see also :ref:`figure_toolbox_spline_refine_1`). If a different number of grid points along the contour is required the spline has to be updated at first. Next the :code:`Divisions normal to airfoil` allows to vary the number mesh layers normal to the contour within mesh block 1. The setting :code:`1st cell layer thickness` specifies the dimension/length of block 1 normal to the contour in percentage of the airfoil chord. It is limited to 100% chord length, but typical values would be in the range 5% to 20%. The final parameter for block 1 is the :code:`Cell thickness ratio (-)`. It specifies the ratio of the cell thickness of the outermost cell in the block (wrt to airfoil normal direction) over the cell thickness of the layer which is attached to the contour. So if for example the ratio is 3, the outer cell layer of block one is 3 times a thick as the cell layer at the airfoil (see :ref:`figure_mesh_stretching_annotated`).
 
 .. _figure_mesh_stretching_annotated:
 .. figure::  images/mesh_stretching_annotated.png

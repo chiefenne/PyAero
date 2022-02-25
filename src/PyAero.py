@@ -39,8 +39,8 @@ import BatchMode
 __appname__ = 'PyAero'
 __author__ = 'Andreas Ennemoser'
 __credits__ = 'Internet and open source'
-__copyright__ = '2014-' + str(datetime.date.today().strftime("%Y")) + \
-                ' ' + __author__
+year = str(datetime.date.today().strftime("%Y"))
+__copyright__ = '2014-' + year + ' ' + __author__
 __license__ = 'MIT'
 __version__ = '2.1.5'
 __email__ = 'andreas.ennemoser@aon.at'
@@ -241,6 +241,9 @@ class CentralWidget(QtWidgets.QWidget):
         self.cb2 = QtWidgets.QCheckBox('Airfoil Points')
         self.cb2.setChecked(False)
         self.cb2.setEnabled(False)
+        self.cb10 = QtWidgets.QCheckBox('Airfoil Raw Contour')
+        self.cb10.setChecked(False)
+        self.cb10.setEnabled(False)
         self.cb3 = QtWidgets.QCheckBox('Airfoil Spline Points')
         self.cb3.setChecked(False)
         self.cb3.setEnabled(False)
@@ -263,6 +266,7 @@ class CentralWidget(QtWidgets.QWidget):
         self.cb9.setChecked(False)
         self.cb9.setEnabled(False)
         vbox1.addWidget(self.cb2)
+        vbox1.addWidget(self.cb10)
         vbox1.addWidget(self.cb3)
         vbox1.addWidget(self.cb4)
         vbox1.addWidget(self.cb5)
@@ -279,6 +283,7 @@ class CentralWidget(QtWidgets.QWidget):
         self.cb1.clicked.connect(
             lambda: self.parent.slots.toggleLogDock('tick'))
         self.cb2.clicked.connect(self.toolbox.toggleRawPoints)
+        self.cb10.clicked.connect(self.toolbox.toggleRawContour)
         self.cb3.clicked.connect(self.toolbox.toggleSplinePoints)
         self.cb4.clicked.connect(self.toolbox.toggleSpline)
         self.cb5.clicked.connect(self.toolbox.toggleChord)
@@ -291,10 +296,10 @@ class CentralWidget(QtWidgets.QWidget):
 def main():
 
     # check if the user is running the program in batch mode
-    useGUI = '-no-gui' not in sys.argv
+    batchmode = '-no-gui' in sys.argv
 
     # run PyAero in batch mode
-    if not useGUI:
+    if batchmode:
         app = QtCore.QCoreApplication(sys.argv)
 
         # FIXME

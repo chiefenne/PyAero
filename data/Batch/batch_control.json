@@ -46,7 +46,10 @@
       "Windtunnel height": 3.5,
       "Divisions of tunnel height": 100,
       "Cell thickness ratio": 10.0,
-      "Distribution biasing" : "symmetric"
+      "Distribution biasing" : "symmetric",
+      "Smoothing algorithm" : "elliptic",
+      "Smoothing iterations" : 20,
+      "Smoothing tolerance" : 1.2e-5
     },
     "Windtunnel mesh wake": {
       "Windtunnel wake": 7.0,

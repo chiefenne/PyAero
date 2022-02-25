@@ -38,11 +38,11 @@ class Airfoil:
         # self.contourSpline = None
         self.spline_data = None
         self.raw_coordinates = None
-        self.pencolor = QtGui.QColor(80, 150, 220, 255)
-        self.penwidth = 2.0
+        self.pencolor = QtGui.QColor(0, 20, 255, 255)
+        self.penwidth = 4.0
         self.brushcolor = QtGui.QColor()
         self.brushcolor.setNamedColor('#7c8696')
-
+ 
     def readContour(self, filename, comment):
 
         try:
@@ -87,16 +87,22 @@ class Airfoil:
 
     def makeAirfoil(self):
         # make polygon graphicsitem from coordinates
-        self.makeContourPolygon(self.raw_coordinates)
+        self.makeContourPolygon()
         self.makeChord()
         self.makePolygonMarkers()
 
         # activate ckeck boxes for contour points and chord in viewing options
         self.mainwindow.centralwidget.cb2.setChecked(True)
         self.mainwindow.centralwidget.cb2.setEnabled(True)
+        self.mainwindow.centralwidget.cb10.setChecked(True)
+        self.mainwindow.centralwidget.cb10.setEnabled(True)
         self.mainwindow.centralwidget.cb5.setChecked(True)
         self.mainwindow.centralwidget.cb5.setEnabled(True)
 
+    # FIXME
+    # FIXME why is this static? should it be done with self?
+    # FIXME refactor this function
+    # FIXME
     @staticmethod
     def addToScene(airfoil, scene):
         """add all items to the scene"""
@@ -105,13 +111,13 @@ class Airfoil:
         airfoil.polygonMarkersGroup = scene. \
             createItemGroup(airfoil.polygonMarkers)
 
-    def makeContourPolygon(self, coordinates):
+    def makeContourPolygon(self):
         """Add airfoil points as GraphicsItem to the scene"""
 
         # instantiate a graphics item
         contour = gic.GraphicsCollection()
         # make it polygon type and populate its points
-        points = [QtCore.QPointF(x, y) for x, y in zip(*coordinates)]
+        points = [QtCore.QPointF(x, y) for x, y in zip(*self.raw_coordinates)]
         contour.Polygon(QtGui.QPolygonF(points), self.name)
         # set its properties
         contour.pen.setColor(self.pencolor)
@@ -164,7 +170,7 @@ class Airfoil:
         line.pen.setCosmetic(True)
         # setting CustomDashLine not needed as it will be set
         # implicitely by Qt when CustomDashLine is applied
-        # put it just for completness
+        # put it just for completeness
         line.pen.setStyle(QtCore.Qt.CustomDashLine)
         stroke = 10
         dot = 1
@@ -179,6 +185,7 @@ class Airfoil:
         line.Line(x1, y1, x2, y2)
 
         self.chord = GraphicsItem.GraphicsItem(line)
+        self.chord.setZValue(99)
         self.chord.setAcceptHoverEvents(False)
 
     def makeContourSpline(self):
@@ -186,7 +193,7 @@ class Airfoil:
         the scene
         """
         self.pencolor = QtGui.QColor(80, 80, 220, 255)
-        self.penwidth = 3.5
+        self.penwidth = 4.0
 
         # instantiate a graphics item
         splinecontour = gic.GraphicsCollection()
@@ -198,9 +205,6 @@ class Airfoil:
         splinecontour.pen.setWidthF(self.penwidth)
         # no pen thickness change when zoomed
         splinecontour.pen.setCosmetic(True)
-        splinecontour.brush.setColor(self.brushcolor)
-        # add the spline polygon without filling
-        splinecontour.brush.setStyle(QtCore.Qt.NoBrush)
 
         # remove items from iterated uses of spline/refine and trailing edge
         if hasattr(self, 'contourSpline'):
@@ -221,11 +225,12 @@ class Airfoil:
         color.setNamedColor('#7c8696')
         self.contourSpline.brush.setColor(color)
         self.polygonMarkersGroup.setZValue(100)
-        self.chord.setZValue(99)
 
         # switch off raw contour and toogle corresponding checkbox
         if self.polygonMarkersGroup.isVisible():
             self.mainwindow.centralwidget.cb2.click()
+        if self.contourPolygon.isVisible():
+            self.mainwindow.centralwidget.cb10.click()
 
         # activate ckeck boxes for contour points and chord in viewing options
         self.mainwindow.centralwidget.cb3.setChecked(True)
@@ -233,8 +238,6 @@ class Airfoil:
         self.mainwindow.centralwidget.cb4.setChecked(True)
         self.mainwindow.centralwidget.cb4.setEnabled(True)
 
-        self.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
-        self.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
         self.mainwindow.view.adjustMarkerSize()
 
     def makeSplineMarkers(self):
@@ -284,6 +287,7 @@ class Airfoil:
             self.mainwindow.scene.removeItem(self.camberline)
         self.camberline = GraphicsItem.GraphicsItem(camberline)
         self.camberline.setAcceptHoverEvents(False)
+        self.camberline.setZValue(99)
         self.mainwindow.scene.addItem(self.camberline)
         self.mainwindow.centralwidget.cb9.setChecked(True)
         self.mainwindow.centralwidget.cb9.setEnabled(True)

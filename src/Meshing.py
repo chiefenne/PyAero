@@ -13,7 +13,9 @@ from PySide6 import QtGui, QtCore, QtWidgets
 import PyAero
 import GraphicsItemsCollection as gic
 import GraphicsItem
+import Elliptic
 import Connect
+from Smooth_angle_based import SmoothAngleBased
 from Utils import Utils
 from Settings import OUTPUTDATA
 import logging
@@ -101,7 +103,10 @@ class Windtunnel:
         self.blocks.append(block_te)
 
     def TunnelMesh(self, name='', tunnel_height=2.0, divisions_height=100,
-                   ratio_height=10.0, dist='symmetric'):
+                   ratio_height=10.0, dist='symmetric',
+                   smoothing_algorithm='simple',
+                   smoothing_iterations=10,
+                   smoothing_tolerance=1e-3):
         block_tunnel = BlockMesh(name=name)
 
         self.tunnel_height = tunnel_height
@@ -143,8 +148,12 @@ class Windtunnel:
             p = p3 + t * vec
             line.append(p.tolist())
 
+        # make numpy array
         line = np.array(line)
-        tck, u = interpolate.splprep(line.T, s=0, k=1)
+
+        # interpolate a spline through line
+        # at this point "line" is the big "C" of the windtunnel until TE
+        tck, _ = interpolate.splprep(line.T, s=0, k=1)
 
         # point distribution on upper, front and lower part
         if dist == 'symmetric':
@@ -159,8 +168,9 @@ class Windtunnel:
         xx = np.linspace(ld, ud, len(block_tunnel.getULines()[0]))
         t = (np.tanh(xx) + 1.0) / 2.0
 
-        line = interpolate.splev(t, tck, der=0)
-        line = list(zip(line[0].tolist(), line[1].tolist()))
+        # calculate new points on the big "C" according to t distribution
+        xs, ys = interpolate.splev(t, tck, der=0)
+        line = list(zip(xs.tolist(), ys.tolist()))
 
         block_tunnel.addLine(line)
 
@@ -222,6 +232,7 @@ class Windtunnel:
         for uline in ulines:
             block_tunnel.addLine(uline)
 
+        # make transfinite interpolation from boundary lines
         ij = [0, 30, 0, len(block_tunnel.getULines()) - 1]
         block_tunnel.transfinite(ij=ij)
         ij = [len(block_tunnel.getVLines()) - 31,
@@ -230,8 +241,16 @@ class Windtunnel:
               len(block_tunnel.getULines()) - 1]
         block_tunnel.transfinite(ij=ij)
 
-        sm = 1
-        if sm == 1:
+        # FIXME:
+        # FIXME: refactoring needed here (put smoother in blockmesh class)
+        # FIXME: and refactor complete meshing functions
+        # FIXME:
+
+        if smoothing_algorithm == 'simple':
+            # FIXME:
+            # FIXME: this can be improved
+            # FIXME: and at least documented
+            # FIXME:
             smooth = Smooth(block_tunnel)
 
             nodes = smooth.selectNodes(domain='interior')
@@ -248,6 +267,23 @@ class Windtunnel:
             nodes = smooth.selectNodes(domain='ij', ij=ij)
             block_tunnel = smooth.smooth(nodes, iterations=3,
                                          algorithm='laplace')
+
+        elif smoothing_algorithm == 'elliptic':
+            # elliptic grid generation
+            smoother = Elliptic.Elliptic(block_tunnel.getULines())
+            new_ulines = smoother.smooth(iterations=smoothing_iterations,
+                                         tolerance=smoothing_tolerance,
+                                         bnd_type=None, # can be 'Neumann'
+                                         verbose=True)
+            block_tunnel.setUlines(new_ulines)
+
+        elif smoothing_algorithm == 'angle_based':
+            smoother = SmoothAngleBased(block_tunnel, data_source='block')
+            smoothed_vertices = smoother.smooth(iterations=smoothing_iterations,
+                                                tolerance=smoothing_tolerance,
+                                                verbose=True)
+            new_ulines = smoother.mapToUlines(smoothed_vertices)
+            block_tunnel.setUlines(new_ulines)
 
         self.block_tunnel = block_tunnel
         self.blocks.append(block_tunnel)
@@ -370,7 +406,10 @@ class Windtunnel:
                         tunnel_height=toolbox.tunnel_height.value(),
                         divisions_height=toolbox.divisions_height.value(),
                         ratio_height=toolbox.ratio_height.value(),
-                        dist=toolbox.dist.currentText())
+                        dist=toolbox.dist.currentText(),
+                        smoothing_algorithm=toolbox.smoothing_algorithm,
+                        smoothing_iterations=toolbox.smoother_iterations.value(),
+                        smoothing_tolerance=float(toolbox.smoother_tolerance.text()))
         progdialog.setValue(50)
 
         if progdialog.wasCanceled():
@@ -426,6 +465,15 @@ class Windtunnel:
         """
         _, connectivity = self.mesh
         self.LCV = connectivity
+
+    def makeLVC(self):
+        _, connectivity = self.mesh
+        nodes = list(set([node for cell in connectivity for node in cell]))
+        self.lvc = dict()
+        for node in nodes:
+            for cell in connectivity:
+                if node in cell:
+                    self.lvc.setdefault(node, []).append(cell.tolist())
 
     def makeLCE(self):
         """Make cell to edge connectivity for the mesh"""
@@ -663,6 +711,9 @@ class BlockMesh:
 
     def getULines(self):
         return self.ULines
+
+    def setUlines(self, ulines):
+        self.ULines = ulines
 
     def getVLines(self):
         vlines = list()

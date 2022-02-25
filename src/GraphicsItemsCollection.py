@@ -45,12 +45,14 @@ class GraphicsCollection:
 
     def Line(self, x1, y1, x2, y2):
         eps = 0.01
-        p1 = QtCore.QPointF(x1-eps, y1-eps)
-        p2 = QtCore.QPointF(x2+eps, y2+eps)
-        self.rect = QtCore.QRectF(p1, p2)
+        p1 = QtCore.QPointF(x1, y1)
+        p2 = QtCore.QPointF(x2, y2)
+        p1e = QtCore.QPointF(x1-eps, y1-eps)
+        p2e = QtCore.QPointF(x2+eps, y2+eps)
+        self.rect = QtCore.QRectF(p1e, p2e)
         self.shape.addRect(self.rect)
         self.method = 'drawLine'
-        self.args = [x1, y1, x2, y2]
+        self.args = [p1, p2]
 
     def Circle(self, x, y, r):
         self.rect = QtCore.QRectF(x-r, y-r, 2.*r, 2.*r)

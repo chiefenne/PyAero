@@ -1,4 +1,4 @@
-Menu *File Exit*
-""""""""""""""""
+Submenu :guilabel:`Exit`
+""""""""""""""""""""""""
 
-The *Exit* submenu does what is says and closes all windows and exits `PyAero <index.html>`_.
+The :menuselection:`File --> Exit` submenu does what is says and closes all windows and exits `PyAero <index.html>`_.

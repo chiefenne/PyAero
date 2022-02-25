@@ -8,12 +8,13 @@ lessons/11_Lesson11_vortexSourcePanelMethod.ipynb
 Code under MIT license. (c)2014 Lorena A. Barba, Olivier Mesnard.
 """
 
+import os
 import math
+
 import numpy
 from scipy import integrate
 
 from PySide6 import QtCore
-
 
 import logging
 logger = logging.getLogger(__name__)
@@ -383,6 +384,6 @@ def runSVP(name, x, y, u_inf, alpha, npanel=40):
     cl = gamma*sum(panel.length for panel in panels) / \
         (0.5*freestream.u_inf*(x_max-x_min))
 
-    logger.info('Aerodynamic properties {}'.format(name))
-    logger.info('Lift coefficient: Cl = {0:6.3f} [-]'.format(cl))
-    logger.info('Uinf = {:6.3f} [m/s], AOA = {:6.3f} [degree]'.format(u_inf, alpha))
+    logger.info(f'Aerodynamic properties of {os.path.splitext(name)[0]}:')
+    logger.info(f'Cl = {cl:6.3f} [-] at Uinf = {u_inf:6.3f} [m/s], '
+                f'and AOA = {alpha:6.3f} [degree]')
