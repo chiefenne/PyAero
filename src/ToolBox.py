@@ -889,6 +889,12 @@ class Toolbox(QtWidgets.QToolBox):
             visible = self.parent.airfoil.polygonMarkersGroup.isVisible()
             self.parent.airfoil.polygonMarkersGroup.setVisible(not visible)
 
+    def toggleRawContour(self):
+        """Toggle contour polygon of raw airfoil contour (on/off)"""
+        if hasattr(self.parent.airfoil, 'contourPolygon'):
+            visible = self.parent.airfoil.contourPolygon.isVisible()
+            self.parent.airfoil.contourPolygon.setVisible(not visible)
+
     def toggleSplinePoints(self):
         """Toggle points of raw airfoil contour (on/off)"""
         if hasattr(self.parent.airfoil, 'splineMarkersGroup'):
@@ -1022,14 +1028,19 @@ class Toolbox(QtWidgets.QToolBox):
         color = QtGui.QColor()
         color.setNamedColor('#7c8696')
         self.parent.airfoil.contourSpline.brush.setColor(color)
+        # FIXME
+        # FIXME check if redundant, because already set elsewhere
+        # FIXME
         self.parent.airfoil.polygonMarkersGroup.setZValue(100)
         self.parent.airfoil.chord.setZValue(99)
         self.parent.airfoil.camberline.setZValue(99)
+
         # switch off raw contour and toogle corresponding checkbox
         if self.parent.airfoil.polygonMarkersGroup.isVisible():
-            self.parent.centralwidget.cb2.cklick()
-        self.parent.airfoil.contourPolygon.brush.setStyle(QtCore.Qt.NoBrush)
-        self.parent.airfoil.contourPolygon.pen.setStyle(QtCore.Qt.NoPen)
+            self.parent.centralwidget.cb2.click()
+        if self.parent.airfoil.contourPolygon.isVisible():
+            self.parent.centralwidget.cb10.click()
+        
         self.parent.view.adjustMarkerSize()
 
     def generateMesh(self):
