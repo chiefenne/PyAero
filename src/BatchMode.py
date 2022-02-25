@@ -129,15 +129,14 @@ class Batch:
             # mesh tunnel wake
             twm = self.batch_control['Windtunnel mesh wake']
             wind_tunnel.TunnelMeshWake(name='block_tunnel_wake',
-                                       tunnel_wake=twm['Windtunnel wake'],
-                                       divisions=twm['Divisions in the wake'],
-                                       ratio=twm['Cell thickness ratio'],
-                                       spread=twm['Equalize vertical wake line at'] / 100.0)
+                                    tunnel_wake=twm['Windtunnel wake'],
+                                    divisions=twm['Divisions in the wake'],
+                                    ratio=twm['Cell thickness ratio'],
+                                    spread=twm['Equalize vertical wake line at'] / 100.0)
             
             # connect mesh blocks
             connect = Connect.Connect(None)
-            vertices, connectivity, _ = \
-                connect.connectAllBlocks(wind_tunnel.blocks)
+            vertices, connectivity, _ = connect.connectAllBlocks(wind_tunnel.blocks)
 
             # add mesh to Wind-tunnel instance
             wind_tunnel.mesh = vertices, connectivity
