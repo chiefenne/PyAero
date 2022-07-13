@@ -46,7 +46,7 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         self.font = item.font
         self.item_shape = item.shape
         self.hoverstyle = QtCore.Qt.SolidLine
-        self.hoverwidth = 0.1
+        self.hoverwidth = 2.
         if hasattr(item, 'name'):
             self.name = item.name
 
