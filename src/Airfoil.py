@@ -56,11 +56,26 @@ class Airfoil:
 
         data = [line for line in lines if comment not in line]
 
+        # find and drop duplicate points (except first and last)
+        data_clean = list()
+        for index, line in enumerate(data):
+            if index == 0:
+                data_clean.append(line)
+                continue
+            elif index == len(data)-1:
+                data_clean.append(line)
+                break   
+            
+            if line != data[index-1]:
+                data_clean.append(line)
+            else:
+                logger.info('Dropped duplicate point {}'.format(line))
+
         # check for correct data
         # specifically important for drag and drop
         try:
-            x = [float(l.split()[0]) for l in data]
-            y = [float(l.split()[1]) for l in data]
+            x = [float(l.split()[0]) for l in data_clean]
+            y = [float(l.split()[1]) for l in data_clean]
         except (ValueError, IndexError) as error:
             logger.error('Unable to parse file file {}'. \
                          format(filename))
@@ -207,13 +222,15 @@ class Airfoil:
         splinecontour.pen.setCosmetic(True)
 
         # remove items from iterated uses of spline/refine and trailing edge
-        if hasattr(self, 'contourSpline'):
+        if hasattr(self, 'contourSpline') and \
+                self.contourSpline in self.mainwindow.scene.items():
             self.mainwindow.scene.removeItem(self.contourSpline)
         self.contourSpline = GraphicsItem.GraphicsItem(splinecontour)
         self.mainwindow.scene.addItem(self.contourSpline)
 
         # remove items from iterated uses of spline/refine and trailing edge
-        if hasattr(self, 'splineMarkersGroup'):
+        if hasattr(self, 'splineMarkersGroup') and \
+                self.splineMarkersGroup in self.mainwindow.scene.items():
             self.mainwindow.scene.removeItem(self.splineMarkersGroup)
         self.makeSplineMarkers()
         self.splineMarkersGroup = self.mainwindow.scene. \
@@ -250,10 +267,10 @@ class Airfoil:
             # put airfoil contour points as graphicsitem
             splinemarker = gic.GraphicsCollection()
             splinemarker.pen.setColor(QtGui.QColor(60, 60, 80, 255))
-            splinemarker.brush.setColor(QtGui.QColor(203, 250, 72, 255))
             splinemarker.pen.setWidthF(1.6)
             # no pen thickness change when zoomed
             splinemarker.pen.setCosmetic(True)
+            splinemarker.brush.setColor(QtGui.QColor(203, 250, 72, 255))
 
             splinemarker.Circle(x, y, 0.004)
 
@@ -283,7 +300,8 @@ class Airfoil:
         camberline.brush.setStyle(QtCore.Qt.NoBrush)
 
         # remove items from iterated uses of spline/refine and trailing edge
-        if hasattr(self, 'camberline'):
+        if hasattr(self, 'camberline') and \
+                self.camberline in self.mainwindow.scene.items():
             self.mainwindow.scene.removeItem(self.camberline)
         self.camberline = GraphicsItem.GraphicsItem(camberline)
         self.camberline.setAcceptHoverEvents(False)
