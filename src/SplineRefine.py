@@ -91,9 +91,9 @@ class SplineRefine:
     def makeLeCircle(self, rc, xc, yc, xle, yle):
 
         # delete exitsing LE circle ItemGroup from scene
-        if hasattr(self.mainwindow.airfoil, 'le_circle'):
+        if hasattr(self.mainwindow.airfoil, 'le_circle') and \
+                self.mainwindow.airfoil.le_circle in self.mainwindow.scene.items():
             self.mainwindow.scene.removeItem(self.mainwindow.airfoil.le_circle)
-            del self.mainwindow.airfoil.le_circle
 
         # put LE circle, center and tangent point in a list
         circles = list()
