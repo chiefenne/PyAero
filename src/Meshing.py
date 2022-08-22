@@ -1256,6 +1256,19 @@ class BlockMesh:
                     format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
+    def writeOBJ(wind_tunnel, name=''):
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        cells = [('quad', connectivity)]
+        vertices_3D = [v + (0.0,) for v in vertices]
+
+        meshio.write_points_cells(name, vertices_3D, cells)
+
+        basename = os.path.basename(name)
+        logger.info('OBJ type mesh saved as {}'.
+                    format(os.path.join(OUTPUTDATA, basename)))
+
+    @staticmethod
     def writeGMSH_OLD(wind_tunnel, name=''):
         """export mesh in GMSH format 2
         http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format-version-2-_0028Legacy_0029
