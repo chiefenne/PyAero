@@ -60,7 +60,7 @@ class Slots:
     def onOpenPredefined(self):
         self.loadAirfoil(DEFAULT_CONTOUR)
 
-    @QtCore.Slot()
+    @QtCore.Slot(str, str)
     def loadAirfoil(self, filename, comment='#'):
         fileinfo = QtCore.QFileInfo(filename)
         name = fileinfo.fileName()
@@ -88,7 +88,7 @@ class Slots:
             self.parent.centralwidget.toolbox.listwidget.setEnabled(True)
             self.parent.centralwidget.toolbox.listwidget.addItem(name)
 
-    @QtCore.Slot()
+    @QtCore.Slot(str)
     def loadSU2(self, filename):
         comment = '%'
 
@@ -212,7 +212,7 @@ class Slots:
         # render QGraphicsView
         self.parent.view.render(QtGui.QPainter(printer))
 
-    @QtCore.Slot()
+    @QtCore.Slot(str)
     def toggleLogDock(self, _sender):
         """Switch message log window on/off"""
 
@@ -228,7 +228,7 @@ class Slots:
     def onBlockMesh(self):
         pass
 
-    @QtCore.Slot()
+    @QtCore.Slot(str)
     def getAirfoilByName(self, name):
         for airfoil in self.parent.airfoils:
             if airfoil.name == name:
@@ -278,7 +278,7 @@ class Slots:
         # fit all remaining scene items into the view
         self.onViewAll()
 
-    @QtCore.Slot()
+    @QtCore.Slot(str)
     def onMessage(self, msg):
         # move cursor to the end before writing new message
         # so in case text inside the log window was selected before
@@ -330,7 +330,7 @@ class Slots:
         if tab_text == 'Contour Analysis':
             toolbox.setCurrentIndex(toolbox.tb3)
 
-    @QtCore.Slot()
+    @QtCore.Slot(str)
     def messageBox(self, message):
         QtWidgets.QMessageBox. \
             information(self.parent, 'Information',
