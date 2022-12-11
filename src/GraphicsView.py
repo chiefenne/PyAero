@@ -331,6 +331,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # 
         current_zoom = self.transform().m11()
         scale_marker = 1. + 3. * (current_zoom - MINZOOM) / (MAXZOOM - MINZOOM)
+        # scale_marker = 100.
         logger.info(f'Current zoom value {current_zoom}')
         logger.info(f'Scale factor for markers {scale_marker}')
 
