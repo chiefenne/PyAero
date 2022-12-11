@@ -16,3 +16,4 @@ setup.py
 src/__pycache__/
 SU2/
 todo.txt
+environment.yml
