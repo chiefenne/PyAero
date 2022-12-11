@@ -288,7 +288,7 @@ class Slots:
 
     @QtCore.Slot()
     def onExit(self):
-        sys.exit(QtWidgets.QApplication.quit())
+        sys.exit(QtWidgets.QApplication.exit())
 
     @QtCore.Slot()
     def onCalculator(self):
