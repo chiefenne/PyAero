@@ -165,7 +165,8 @@ class Batch:
                              'GMSH': '.msh',
                              'VTK': '.vtk',
                              'CGNS': '.cgns',
-                             'ABAQUS': '.inp'}
+                             'ABAQUS': '.inp',
+                             'OBJ': '.obj'}
                 mesh_name = os.path.join(mesh_path, basename + extension[output_format])
                 getattr(Meshing.BlockMesh, 'write'+output_format)(wind_tunnel, name=mesh_name)
 

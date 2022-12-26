@@ -652,12 +652,14 @@ class Toolbox(QtWidgets.QToolBox):
         self.check_VTK = QtWidgets.QCheckBox('VTK')
         self.check_CGNS = QtWidgets.QCheckBox('CGNS')
         self.check_ABAQUS = QtWidgets.QCheckBox('ABAQUS')
+        self.check_OBJ = QtWidgets.QCheckBox('OBJ')
         self.check_FIRE.setChecked(True)
         self.check_SU2.setChecked(True)
         self.check_GMSH.setChecked(False)
         self.check_VTK.setChecked(True)
         self.check_CGNS.setChecked(False)
         self.check_ABAQUS.setChecked(False)
+        self.check_OBJ.setChecked(False)
         label = QtWidgets.QLabel('Export format:')
         label.setToolTip('Check format to be exported')
 
@@ -669,6 +671,7 @@ class Toolbox(QtWidgets.QToolBox):
         grid.addWidget(self.check_VTK, 1, 1)
         grid.addWidget(self.check_CGNS, 1, 2)
         grid.addWidget(self.check_ABAQUS, 1, 3)
+        grid.addWidget(self.check_OBJ, 2, 1)
 
         exportMeshButton = QtWidgets.QPushButton('Export Mesh')
         hbl = QtWidgets.QHBoxLayout()
@@ -1120,6 +1123,10 @@ class Toolbox(QtWidgets.QToolBox):
         if self.check_ABAQUS.isChecked():
             name = filename + '.inp'
             Meshing.BlockMesh.writeABAQUS(self.wind_tunnel,
+                                        name=name)
+        if self.check_OBJ.isChecked():
+            name = filename + '.obj'
+            Meshing.BlockMesh.writeOBJ(self.wind_tunnel,
                                         name=name)
 
     def exportContour(self):
