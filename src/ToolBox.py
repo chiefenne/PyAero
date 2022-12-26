@@ -656,7 +656,7 @@ class Toolbox(QtWidgets.QToolBox):
         self.check_FIRE.setChecked(True)
         self.check_SU2.setChecked(True)
         self.check_GMSH.setChecked(False)
-        self.check_VTK.setChecked(True)
+        self.check_VTK.setChecked(False)
         self.check_CGNS.setChecked(False)
         self.check_ABAQUS.setChecked(False)
         self.check_OBJ.setChecked(False)
