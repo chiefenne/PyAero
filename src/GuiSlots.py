@@ -22,6 +22,9 @@ class Slots:
 
     PyQt uses signals and slots for GUI events and their respective
     handlers/callbacks.
+
+    It is mandatory to decorate the callback functions with the
+    @QtCore.Slot() decorator.
     """
 
     def __init__(self, parent):
@@ -32,6 +35,7 @@ class Slots:
         """
         self.parent = parent
 
+    @QtCore.Slot()
     def onOpen(self):
         """Summary
 
@@ -52,9 +56,11 @@ class Slots:
 
         self.loadAirfoil(filename)
 
+    @QtCore.Slot()
     def onOpenPredefined(self):
         self.loadAirfoil(DEFAULT_CONTOUR)
 
+    @QtCore.Slot(str, str)
     def loadAirfoil(self, filename, comment='#'):
         fileinfo = QtCore.QFileInfo(filename)
         name = fileinfo.fileName()
@@ -82,6 +88,7 @@ class Slots:
             self.parent.centralwidget.toolbox.listwidget.setEnabled(True)
             self.parent.centralwidget.toolbox.listwidget.addItem(name)
 
+    @QtCore.Slot(str)
     def loadSU2(self, filename):
         comment = '%'
 
@@ -99,6 +106,7 @@ class Slots:
         # FIXME
         data = [line for line in lines if comment not in line]
 
+    @QtCore.Slot()
     def fitAirfoilInView(self):
 
         if len(self.parent.airfoils) == 0:
@@ -132,6 +140,7 @@ class Slots:
         # cache view to be able to keep it during resize
         self.parent.view.getSceneFromView()
 
+    @QtCore.Slot()
     def onViewAll(self):
         """zoom inorder to view all items in the scene"""
 
@@ -148,6 +157,7 @@ class Slots:
         # cache view to be able to keep it during resize
         self.parent.view.getSceneFromView()
 
+    @QtCore.Slot()
     def toggleTestObjects(self):
         if self.parent.testitems:
             GraphicsTest.deleteTestItems(self.parent.scene)
@@ -157,6 +167,7 @@ class Slots:
             logger.info('Test items for GraphicsView removed')
         self.parent.testitems = not self.parent.testitems
 
+    @QtCore.Slot()
     def onSave(self):
         (fname, thefilter) = QtWidgets.QFileDialog. \
             getSaveFileNameAndFilter(self.parent,
@@ -167,6 +178,7 @@ class Slots:
         with open(fname, 'w') as f:
             f.write('This test worked for me ...')
 
+    @QtCore.Slot()
     def onSaveAs(self):
         (fname, thefilter) = QtGui. \
             QFileDialog.getSaveFileNameAndFilter(
@@ -177,11 +189,13 @@ class Slots:
         with open(fname, 'w') as f:
             f.write('This test worked for me ...')
 
+    @QtCore.Slot()
     def onPrint(self):
         dialog = QtWidgets.QPrintDialog()
         if dialog.exec_() == QtGui.QDialog.Accepted:
             self.parent.editor.document().print_(dialog.printer())
 
+    @QtCore.Slot()
     def onPreview(self):
         printer = QtPrintSupport.QPrinter(QtPrintSupport.QPrinter.HighResolution)
         layout = QtGui.QPageLayout()
@@ -193,11 +207,12 @@ class Slots:
         preview.paintRequested.connect(self.handlePaintRequest)
         preview.exec()
 
-    # handle paint request
+    @QtCore.Slot()
     def handlePaintRequest(self, printer):
         # render QGraphicsView
         self.parent.view.render(QtGui.QPainter(printer))
 
+    @QtCore.Slot(str)
     def toggleLogDock(self, _sender):
         """Switch message log window on/off"""
 
@@ -209,15 +224,18 @@ class Slots:
             checkbox = self.parent.centralwidget.cb1
             checkbox.setChecked(not checkbox.isChecked())
 
+    @QtCore.Slot()
     def onBlockMesh(self):
         pass
 
+    @QtCore.Slot(str)
     def getAirfoilByName(self, name):
         for airfoil in self.parent.airfoils:
             if airfoil.name == name:
                 return airfoil
         return None
 
+    @QtCore.Slot()
     def removeAirfoil(self, name=None):
         """Remove all selected airfoils from the scene"""
 
@@ -260,6 +278,7 @@ class Slots:
         # fit all remaining scene items into the view
         self.onViewAll()
 
+    @QtCore.Slot(str)
     def onMessage(self, msg):
         # move cursor to the end before writing new message
         # so in case text inside the log window was selected before
@@ -267,12 +286,15 @@ class Slots:
         self.parent.messages.moveCursor(QtGui.QTextCursor.End)
         self.parent.messages.append(msg)
 
+    @QtCore.Slot()
     def onExit(self):
-        sys.exit(QtWidgets.QApplication.quit())
+        sys.exit(QtWidgets.QApplication.exit())
 
+    @QtCore.Slot()
     def onCalculator(self):
         pass
 
+    @QtCore.Slot()
     def onBackground(self):
         if self.parent.view.viewstyle == 'gradient':
             self.parent.view.viewstyle = 'solid'
@@ -281,11 +303,13 @@ class Slots:
 
         self.parent.view.setBackground(self.parent.view.viewstyle)
 
+    @QtCore.Slot()
     def onLevelChanged(self):
         """Change size of message window when floating """
         if self.parent.messagedock.isFloating():
             self.parent.messagedock.resize(600, 300)
 
+    @QtCore.Slot()
     def onTextChanged(self):
         """Move the scrollbar in the message log-window to the bottom.
         So latest messages are always in the view.
@@ -294,6 +318,7 @@ class Slots:
         if vbar:
             vbar.triggerAction(QtWidgets.QAbstractSlider.SliderToMaximum)
 
+    @QtCore.Slot()
     def onTabChanged(self):
         """Sync tabs and toolboxes """
         tabs = self.parent.centralwidget.tabs
@@ -305,11 +330,13 @@ class Slots:
         if tab_text == 'Contour Analysis':
             toolbox.setCurrentIndex(toolbox.tb3)
 
+    @QtCore.Slot(str)
     def messageBox(self, message):
         QtWidgets.QMessageBox. \
             information(self.parent, 'Information',
                         message, QtWidgets.QMessageBox.Ok)
 
+    @QtCore.Slot()
     def onKeyBd(self):
         # automatically populate shortcuts from PMenu.xml
         text = '<table> \
@@ -353,6 +380,7 @@ class Slots:
         dlg.setLayout(layout)
         dlg.exec_()
 
+    @QtCore.Slot()
     def runCommands(self):
         '''Automate different actions by simulation of button clicks
         Call directly a function or
@@ -375,15 +403,19 @@ class Slots:
         # export the mesh
         self.parent.centralwidget.toolbox.exportMesh()
 
+    @QtCore.Slot()
     def onHelpOnline(self):
         webbrowser.open('http://pyaero.readthedocs.io/en/latest/')
 
+    @QtCore.Slot()
     def onHelpPDF(self):
         webbrowser.open('https://pyaero.readthedocs.io/_/downloads/en/latest/pdf/')
 
+    @QtCore.Slot()
     def onAboutQt(self):
         QtWidgets.QApplication.aboutQt()
 
+    @QtCore.Slot()
     def onAbout(self):
         QtWidgets.QMessageBox. \
             about(self.parent, "About " + PyAero.__appname__,

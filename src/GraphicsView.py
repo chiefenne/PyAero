@@ -5,6 +5,8 @@ from PySide6 import QtGui, QtCore, QtWidgets
 
 from Settings import ZOOMANCHOR, SCALEINC, MINZOOM, MAXZOOM, \
                       MARKERSIZE, RUBBERBANDSIZE, VIEWSTYLE
+import logging
+logger = logging.getLogger(__name__)
 
 # put constraints on rubberband zoom (relative rectangle wdith)
 RUBBERBANDSIZE = min(RUBBERBANDSIZE, 1.0)
@@ -296,6 +298,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # check if zoom limits are exceeded
         # m11 = x-scaling
         sx = self.transform().m11()
+
         too_big = sx > MAXZOOM and factor > 1.0
         too_small = sx < MINZOOM and factor < 1.0
 
@@ -318,8 +321,19 @@ class GraphicsView(QtWidgets.QGraphicsView):
         This method immitates the behaviour of pen.setCosmetic()
         """
 
+        # FIXME
+        # FIXME this fixes an accidential call of this method
+        # FIXME should be fixed by checking when called
+        # FIXME
         if not self.parent.airfoil:
             return
+        
+        # 
+        current_zoom = self.transform().m11()
+        scale_marker = 1. + 3. * (current_zoom - MINZOOM) / (MAXZOOM - MINZOOM)
+        # scale_marker = 100.
+        # logger.info(f'Current zoom value {current_zoom}')
+        # logger.info(f'Scale factor for markers {scale_marker}')
 
         # markers are drawn in GraphicsItem using scene coordinates
         # in order to keep them constant size, also when zooming
@@ -328,8 +342,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # depending on the zoom, this leads to always different
         # scene coordinates
         # map a square with side length of MARKERSIZE to the scene coords
+
         mappedMarker = self.mapToScene(
-            QtCore.QRect(0, 0, MARKERSIZE, MARKERSIZE))
+            QtCore.QRect(0, 0, MARKERSIZE*scale_marker, MARKERSIZE*scale_marker))
         mappedMarkerWidth = mappedMarker.boundingRect().width()
 
         if self.parent.airfoil.contourPolygon:

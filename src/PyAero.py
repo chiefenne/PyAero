@@ -42,7 +42,7 @@ __credits__ = 'Internet and open source'
 year = str(datetime.date.today().strftime("%Y"))
 __copyright__ = '2014-' + year + ' ' + __author__
 __license__ = 'MIT'
-__version__ = '2.1.5'
+__version__ = '2.1.6'
 __email__ = 'andreas.ennemoser@aon.at'
 __status__ = 'Release'
 
@@ -194,20 +194,16 @@ class CentralWidget(QtWidgets.QWidget):
         # create box where viewing options are placed
         self.viewingOptions()
 
-        verticalSpacer = QtWidgets.QSpacerItem(50, 15,
-                                               QtWidgets.QSizePolicy.Minimum,
-                                               QtWidgets.QSizePolicy.Fixed)
-
         horizontal_line = QtWidgets.QFrame()
         horizontal_line.setFrameShape(QtWidgets.QFrame.HLine)
         horizontal_line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
         self.left_pane = QtWidgets.QWidget()
-        vbox = QtWidgets.QVBoxLayout(self)
+        vbox = QtWidgets.QVBoxLayout()
         vbox.addWidget(self.toolbox)
-        vbox.addItem(verticalSpacer)
+        vbox.addStretch(5)
         vbox.addWidget(horizontal_line)
-        vbox.addItem(verticalSpacer)
+        vbox.addSpacing(15)
         vbox.addWidget(self.viewing_options)
         self.left_pane.setLayout(vbox)
 
@@ -226,12 +222,20 @@ class CentralWidget(QtWidgets.QWidget):
         self.splitter.setSizes([100, 1300])  # initial hint for splitter spacing
 
         # put splitter in a layout box
-        hbox = QtWidgets.QHBoxLayout(self)
+        hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(self.splitter)
         self.setLayout(hbox)
 
     def viewingOptions(self):
         self.viewing_options = QtWidgets.QGroupBox('Viewing Options')
+
+        # FIXME:
+        # FIXME: set font size via CSS
+        # FIXME: workaround here because QGroupBox title was too small
+        font = self.viewing_options.font()
+        font.setPointSize(13)
+        self.viewing_options.setFont(font)
+
         hbox = QtWidgets.QHBoxLayout()
         vbox1 = QtWidgets.QVBoxLayout()
         vbox2 = QtWidgets.QVBoxLayout()
