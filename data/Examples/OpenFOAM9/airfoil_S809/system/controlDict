@@ -1,0 +1,92 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5                                     |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     simpleFoam;
+
+startFrom       latestTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         10000;
+
+deltaT          1;
+
+writeControl    timeStep;
+
+writeInterval   100;
+
+purgeWrite      3;
+
+writeFormat     ascii;
+
+writePrecision  6;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable true;
+
+functions
+
+{
+	
+	
+	forceCoeffs		// aerodynamic force coefficients
+	{
+		type forceCoeffs;
+		functionObjectLibs ("libforces.so");
+		patches (airfoil);
+                rho     rhoInf;
+		rhoInf 1;			// reference fluid density 
+		CofR (0.25 0 0);		// changes due to AOA, but no influence on Cl and Cd
+		liftDir (0 1 0);		// vertical
+		dragDir (1 0 0);		// horizontal
+		pitchAxis (0 0 1);		// in-plane
+		magUInf 29.6;			// reference fluid velocity
+		lRef 1;			        // reference length (chord)
+		Aref 1;			// reference area (chord * span; for 2D: chord * z-coord.)
+						// (no influence on Cl and Cd)
+						// https://www.cfd-online.com/Forums/openfoam/85764-forces-what-maguinf-lref-aref.html
+	}
+	
+	wingPressure		// pressure distribution around airfoil
+    	{
+        	type            surfaceFieldValue;
+        	libs            ("libfieldFunctionObjects.so");
+        	enabled         yes;
+        	writeControl    writeTime;
+        	log             yes;
+        	writeFields     yes;
+        	regionType      patch;
+        	name            airfoil;
+        	operation       none;
+        	surfaceFormat   raw;
+        	fields
+        	(
+        	    p
+        	);
+    	}
+
+};
+
+
+// ************************************************************************* //
