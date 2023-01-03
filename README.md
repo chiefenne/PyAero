@@ -201,25 +201,12 @@ After a small creative break I decided to upgrade to PyQt5 and continue developm
 
 Short online research revealed to me that meanwhile Qt themselves are developing now **Qt for Python** which is based on the legacy Pyside API. This made me think that it is possibly best to go with Qt for Python as it is tightly coupled to Qt.
 
-## Install on Ubuntu 
 
-requirments:
-- download and unzip
-
-- Install required package for python3 using pip3
-```bash
-$ pip3 install meshio h5py PySide6
-```
-
-- add the installation directory into .bashrc
-```bash
-export PYAEROPATH=/installation directory path
-```
-- create a command to run it from terminal
-```bash
-alias pyAero="cd $PYAEROPATH/src && python3 PyAero.py"
-```
-
-2022 Andreas Ennemoser – andreas.ennemoser@aon.at
+## License
 
 Distributed under the MIT license. See [LICENSE](https://raw.githubusercontent.com/chiefenne/PyAero/master/LICENSE) for more information.
+
+2024 Andreas Ennemoser – andreas.ennemoser@aon.at
+
+## Stargazers over time
+[![Stargazers over time](https://starchart.cc/chiefenne/PyAero.svg?variant=adaptive)](https://starchart.cc/chiefenne/PyAero)
