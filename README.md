@@ -202,24 +202,6 @@ After a small creative break I decided to upgrade to PyQt5 and continue developm
 Short online research revealed to me that meanwhile Qt themselves are developing now **Qt for Python** which is based on the legacy Pyside API. This made me think that it is possibly best to go with Qt for Python as it is tightly coupled to Qt.
 
 ##
-## Install on ubuntu
-requirments:
-1- download and unzip
-
-2-Install required package for python3 using pip3 
-```bash
-$ pip3 install meshio h5py PySide6
-```
-3- add the installation directory into .bashrc
-
-export PYAEROPATH=/installation directory path
-
-4- create a command to run it in terminal
-
-alias pyAero="cd $PYAEROPATH/src && python3 PyAero.py"
-
-
-
 
 2022 Andreas Ennemoser – andreas.ennemoser@aon.at
 
