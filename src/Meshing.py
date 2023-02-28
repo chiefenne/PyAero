@@ -607,7 +607,7 @@ class Windtunnel:
         """
 
         # FIXME
-        # FIXME Refactroing of code duplication here and in drawMesh
+        # FIXME Refactoring of code duplication here and in drawMesh
         # FIXME
 
         mesh_blocks = list()
