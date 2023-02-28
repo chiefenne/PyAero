@@ -1110,24 +1110,19 @@ class Toolbox(QtWidgets.QToolBox):
                                        name=name)
         if self.check_GMSH.isChecked():
             name = filename + '.msh'
-            Meshing.BlockMesh.writeGMSH(self.wind_tunnel,
-                                        name=name)
+            Meshing.BlockMesh.writeMESH(self.wind_tunnel, 'GMSH', name=name)
         if self.check_VTK.isChecked():
             name = filename + '.vtk'
-            Meshing.BlockMesh.writeVTK(self.wind_tunnel,
-                                        name=name)
+            Meshing.BlockMesh.writeMESH(self.wind_tunnel, 'VTK', name=name)
         if self.check_CGNS.isChecked():
             name = filename + '.cgns'
-            Meshing.BlockMesh.writeCGNS(self.wind_tunnel,
-                                       name=name)
+            Meshing.BlockMesh.writeMESH(self.wind_tunnel, 'CGNS', name=name)
         if self.check_ABAQUS.isChecked():
             name = filename + '.inp'
-            Meshing.BlockMesh.writeABAQUS(self.wind_tunnel,
-                                        name=name)
+            Meshing.BlockMesh.writeMESH(self.wind_tunnel, 'ABAQUS', name=name)
         if self.check_OBJ.isChecked():
             name = filename + '.obj'
-            Meshing.BlockMesh.writeOBJ(self.wind_tunnel,
-                                        name=name)
+            Meshing.BlockMesh.writeMESH(self.wind_tunnel, 'OBJ', name=name)
 
     def exportContour(self):
 
