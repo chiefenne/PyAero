@@ -26,11 +26,10 @@ class Elliptic:
         self.mapUlines()
  
     def mapUlines(self):
-        # FIXME try using np.stack
         for j, uline in enumerate(self.ulines):
-            for i, u in enumerate(uline):
-                self.x[i, j] = u[0]
-                self.y[i, j] = u[1]
+           for i, u in enumerate(uline):
+               self.x[i, j] = u[0]
+               self.y[i, j] = u[1]
     
     def mapToUlines(self):
         self.new_ulines = list()
