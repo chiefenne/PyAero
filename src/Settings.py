@@ -34,14 +34,6 @@ LOGDATA = os.path.join(DATAPATH, 'LOGS')
 # in case of 'C' decimal separator is a dot in spin boxes, etc.
 LOCALE = 'C'
 
-# Window style. Possible options are the the results of:
-# QtGui.QStyleFactory.keys()
-STYLE = 'Windows'
-
-# special GUI style
-# if installed, accepts None, 'Aqua' or 'Dark'
-STYLESPECIAL = None
-
 # application can be exited by pressing the escape key
 EXITONESCAPE = True
 

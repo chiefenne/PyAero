@@ -29,7 +29,7 @@ import GraphicsScene
 import GuiSlots
 import ContourAnalysis
 import ToolBox
-from Settings import ICONS, LOCALE, STYLE, EXITONESCAPE, \
+from Settings import ICONS, LOCALE, EXITONESCAPE, \
                       OUTPUTDATA, MENUDATA, VIEWSTYLE, LOGDATA
 import Logger
 import ShortCuts
@@ -50,7 +50,7 @@ __status__ = 'Release'
 class MainWindow(QtWidgets.QMainWindow):
     """PyAero's main QT window"""
     # constructor of MainWindow
-    def __init__(self, app, style):
+    def __init__(self, app):
         # constructor of QMainWindow
         super().__init__()
 
@@ -63,15 +63,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.app.mainwindow = self
         # identify platform (one of Windows, Linux, or Darwin for macOS)
         self.platform = platform.system()
-
-        self.style = style
-        # styles do not work anymore; need to come back
-        # style_keys = [x.lower() for x in QtWidgets.QStyleFactory.keys()]
-        # FIXME
-        # FIXME currently leads to segmentation faults
-        # FIXME
-        # if self.style.lower() in style_keys:
-        #     QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create(style))
 
         # holds active airfoil
         self.airfoil = None
@@ -344,7 +335,7 @@ def main():
         QtCore.QLocale.setDefault(QtCore.QLocale.c())
 
     # window style set in Settings.py
-    window = MainWindow(app, STYLE)
+    window = MainWindow(app)
     window.show()
 
     sys.exit(app.exec())
