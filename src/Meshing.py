@@ -1175,20 +1175,6 @@ class BlockMesh:
                         format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
-    def writeVTK(wind_tunnel, name=''):
-
-        mesh = wind_tunnel.mesh
-        vertices, connectivity = mesh
-        cells = [('quad', connectivity)]
-        vertices_3D = [v + (0.0,) for v in vertices]
-
-        meshio.write_points_cells(name, vertices_3D, cells)
-
-        basename = os.path.basename(name)
-        logger.info('VTK type mesh saved as {}'.
-                    format(os.path.join(OUTPUTDATA, basename)))
-
-    @staticmethod
     def writeSU2(wind_tunnel, name=''):
 
         mesh = wind_tunnel.mesh
@@ -1211,6 +1197,37 @@ class BlockMesh:
 
         basename = os.path.basename(name)
         logger.info('SU2 type mesh saved as {}'.
+                    format(os.path.join(OUTPUTDATA, basename)))
+
+    @staticmethod
+    def writeMESH(wind_tunnel, fmt, name=''):
+        """Wrapper function to write mesh to different formats"""
+
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        vertices_3D = [v + (0.0,) for v in vertices]
+        cells = [('quad', connectivity)]
+
+        file_fmt = 'gmsh22' if fmt == 'GMSH' else None
+        meshio.write_points_cells(name, vertices_3D, cells, file_format=file_fmt)
+
+        basename = os.path.basename(name)
+        fullpath = os.path.join(OUTPUTDATA, basename)
+        logger.info(f'{fmt} type mesh saved as {fullpath}')
+
+    @staticmethod
+    def writeVTK(wind_tunnel, name=''):
+        """Write mesh to VTK format."""
+
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        cells = [('quad', connectivity)]
+        vertices_3D = [v + (0.0,) for v in vertices]
+
+        meshio.write_points_cells(name, vertices_3D, cells)
+
+        basename = os.path.basename(name)
+        logger.info('VTK type mesh saved as {}'.
                     format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
