@@ -75,7 +75,7 @@ class Slots:
             # make contour, markers, chord and add everything to the scene
             airfoil.makeAirfoil()
             # add all airfoil items (contour markers) to the scene
-            Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
+            airfoil.addToScene(self.parent.scene)
             # make loaded airfoil the currently active airfoil
             self.parent.airfoil = airfoil
             # add airfoil to list of loaded airfoils
@@ -142,7 +142,7 @@ class Slots:
 
     @QtCore.Slot()
     def onViewAll(self):
-        """zoom inorder to view all items in the scene"""
+        """Zoom view in order to fit all items of the scene"""
 
         # take all items except markers (as they are adjusted in size for view)
 

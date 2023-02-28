@@ -114,17 +114,12 @@ class Airfoil:
         self.mainwindow.centralwidget.cb5.setChecked(True)
         self.mainwindow.centralwidget.cb5.setEnabled(True)
 
-    # FIXME
-    # FIXME why is this static? should it be done with self?
-    # FIXME refactor this function
-    # FIXME
-    @staticmethod
-    def addToScene(airfoil, scene):
+    def addToScene(self, scene):
         """add all items to the scene"""
-        scene.addItem(airfoil.contourPolygon)
-        scene.addItem(airfoil.chord)
-        airfoil.polygonMarkersGroup = scene. \
-            createItemGroup(airfoil.polygonMarkers)
+        scene.addItem(self.contourPolygon)
+        scene.addItem(self.chord)
+        self.polygonMarkersGroup = scene. \
+            createItemGroup(self.polygonMarkers)
 
     def makeContourPolygon(self):
         """Add airfoil points as GraphicsItem to the scene"""
@@ -163,13 +158,6 @@ class Airfoil:
             # there a fixed markersize in pixels is taken from settings which
             # can be configured by the user
 
-            # FIXME
-            # FIXME this size still affects the items size for the scene.itemsBoundingRect()
-            # FIXME this is affecting slots.onViewAll()
-            # FIXME there it is not directly visible as adjustMarkerSize is called
-            # FIXME the fit acts to the size that shows up when adjustMarkerSize
-            # FIXME would not be called
-            # FIXME
             marker.Circle(x, y, 0.004)
 
             markerItem = GraphicsItem.GraphicsItem(marker)
