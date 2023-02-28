@@ -1202,7 +1202,7 @@ class ListWidget(QtWidgets.QListWidget):
                 # activate double clicked airfoil
                 airfoil.makeAirfoil()
                 # add all airfoil items (contour markers) to the scene
-                Airfoil.Airfoil.addToScene(airfoil, self.parent.scene)
+                airfoil.addToScene(self.parent.scene)
                 # make double clicked airfoil the currently active airfoil
                 self.parent.airfoil = airfoil
                 # adjust the marker size again
