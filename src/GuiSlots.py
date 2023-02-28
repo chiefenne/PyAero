@@ -102,7 +102,7 @@ class Slots:
             return False
 
         # FIXME
-        # FIXME
+        # FIXME complete code to read SU2 mesh files
         # FIXME
         data = [line for line in lines if comment not in line]
 
