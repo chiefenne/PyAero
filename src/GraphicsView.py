@@ -380,7 +380,11 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.sceneview = QtCore.QRectF(polygon[0], polygon[2])
 
     def contextMenuEvent(self, event):
-        """creates popup menu for the graphicsview"""
+        """Creates context menu (popup menu) for the graphicsview.
+
+        This has to be done by reimplementing the contextMenuEvent handler
+        from The QWidget class.
+        """
 
         menu = QtWidgets.QMenu(self)
 
