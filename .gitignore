@@ -17,3 +17,4 @@ src/__pycache__/
 SU2/
 todo.txt
 environment.yml
+!requirements.txt
