@@ -9,6 +9,7 @@ docs/*.pptx
 howto_configure_readthedocs.txt
 howto_git.txt
 howto_*.txt
+FX*.txt
 lib_AE/
 PyInstaller/
 setup.py
