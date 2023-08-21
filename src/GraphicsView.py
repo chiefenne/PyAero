@@ -387,6 +387,16 @@ class GraphicsView(QtWidgets.QGraphicsView):
         """
 
         menu = QtWidgets.QMenu(self)
+        menu.setStyleSheet(
+            """
+            QMenu{
+                background-color: #EFEFFF;
+            }
+            QMenu::hover{
+                background-color: #B0B0FF;
+            }
+            """
+            )
 
         fitairfoil = menu.addAction('Fit airfoil in view')
         fitairfoil.setShortcut('CTRL+f')
