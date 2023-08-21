@@ -8,7 +8,7 @@ debug/
 docs/*.pptx
 howto_configure_readthedocs.txt
 howto_git.txt
-*.txt
+howto_*.txt
 lib_AE/
 PyInstaller/
 setup.py
