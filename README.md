@@ -197,7 +197,7 @@ PyAero version based on the [Qt for Python](https://www.qt.io/qt-for-python) API
 
 PyAero started based on the PyQt4 framework which for me was the API to go at the time when I started development.
 
-After a small creative break I decided to upgrade to PyQt5 and continue development. I soon realized that the PyQt5 documentation lacks information, i.e. there were only links to the Qt C++ documentation and no Python related docs, I had the feelig that the PyQt5 development probably stagnates.
+After a small creative break I decided to upgrade to PyQt5 and continue development. I soon realized that the PyQt5 documentation lacks information, i.e. there were only links to the Qt C++ documentation and no Python related docs, I had the feeling that the PyQt5 development probably stagnates.
 
 Short online research revealed to me that meanwhile Qt themselves are developing now **Qt for Python** which is based on the legacy Pyside API. This made me think that it is possibly best to go with Qt for Python as it is tightly coupled to Qt.
 
