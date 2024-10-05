@@ -51,55 +51,35 @@ class MainWindow(QtWidgets.QMainWindow):
     """PyAero's main QT window"""
     # constructor of MainWindow
     def __init__(self, app):
-        # constructor of QMainWindow
         super().__init__()
 
-        self.checkEnvironment()
-
-        # set application wide attributes
-        # access via "QtCore.QCoreApplication.instance().xxx"
-        # helps to overcome nested usage of "parent"
         self.app = app
         self.app.mainwindow = self
-        # identify platform (one of Windows, Linux, or Darwin for macOS)
         self.platform = platform.system()
 
-        # holds active airfoil
         self.airfoil = None
-        # container for all loaded airfoils
-        self.airfoils = list()
+        self.airfoils = []
 
         self.scene = GraphicsScene.GraphicsScene(self)
-
         self.view = GraphicsView.GraphicsView(self, self.scene)
         self.view.viewstyle = VIEWSTYLE
 
-        # prepare additional views for tabs in right splitter window
         self.contourview = ContourAnalysis.ContourAnalysis(canvas=True)
-
-        # create slots (i.e. handlers or callbacks)
         self.slots = GuiSlots.Slots(self)
-
-        # set central widget for the application
         self.centralwidget = CentralWidget(self)
 
         self.setCentralWidget(self.centralwidget)
-
-        # add a shortcut for toggling the message window
-        sc = ShortCuts.ShortCuts(self)
-        sc.addShortcut('ALT+m', 'toggleLogDock', 'shortcut')
-
-        # shortcut for test items
-        sc.addShortcut('ALT+t', 'toggleTestObjects')
-
-        # initialize test items (checked in toggleTestObjects)
+        self._setupShortcuts()
         self.testitems = False
 
-        # setup user interface and menus
+        self.checkEnvironment()
         self.init_GUI()
-
-        # prepare logger
         Logger.log(self)
+
+    def _setupShortcuts(self):
+        sc = ShortCuts.ShortCuts(self)
+        sc.addShortcut('ALT+m', 'toggleLogDock', 'shortcut')
+        sc.addShortcut('ALT+t', 'toggleTestObjects')
 
     def init_GUI(self):
 
@@ -118,8 +98,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # create statusbar in main window
         self.statusbar = self.statusBar()
         self.statusbar.setFixedHeight(22)
-        style = (""" QStatusBar {background-color:rgb(232,232,232); \
-                border: 1px solid grey;}""")
+        style = """
+            QStatusBar {
+            background-color: rgb(232, 232, 232);
+            border: 1px solid grey;
+            }
+        """
         self.statusbar.setStyleSheet(style)
         self.statusbar.setSizeGripEnabled(False)
         self.statusbar.showMessage('Ready', 3000)
@@ -131,9 +115,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # check if path is correct
         if not os.path.exists(MENUDATA):
-            print(f'\n PyAero ERROR: Folder {MENUDATA} does not exist.')
-            print(' PyAero ERROR: Maybe you are starting '
-                  'PyAero from the wrong location.\n')
+            error_message = (
+            f'\n PyAero ERROR: Folder {MENUDATA} does not exist.\n'
+            ' PyAero ERROR: Maybe you are starting PyAero from the wrong location.\n'
+            )
+            print(error_message)
             sys.exit()
 
         # check if output folder does exist
@@ -145,10 +131,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if not os.path.exists(LOGDATA):
             os.mkdir(LOGDATA, mode=0o777)
             print('Folder %s created.' % (LOGDATA))
-
-    # ********************************
-    # slots which are not in PGuiSlots
-    # ********************************
 
     def keyPressEvent(self, event):
         """Catch keypress events in main window
@@ -169,6 +151,26 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 class CentralWidget(QtWidgets.QWidget):
+    """
+    CentralWidget is a custom QWidget that serves as the central widget for the main window.
+    It contains a splitter that divides the window into two panes: a toolbox and viewing options pane on the left,
+    and a tabbed widget for different views on the right.
+
+    Attributes:
+        parent (QWidget): The parent widget.
+        splitter (QSplitter): The main splitter dividing the window horizontally.
+        toolbox (ToolBox.Toolbox): A toolbox widget for various tools.
+        viewing_options (QGroupBox): A group box containing viewing options checkboxes.
+        left_pane (QWidget): The left pane containing the toolbox and viewing options.
+        tabs (QTabWidget): The tabbed widget containing different views.
+
+    Methods:
+        __init__(self, parent=None):
+            Initializes the CentralWidget, sets up the layout, and connects signals.
+        
+        viewingOptions(self):
+            Creates and configures the viewing options group box with checkboxes.
+    """
     # call constructor of CentralWidget
     def __init__(self, parent=None):
         # call constructor of QWidget
@@ -209,7 +211,6 @@ class CentralWidget(QtWidgets.QWidget):
         # add splitter panes
         self.splitter.addWidget(self.left_pane)
         self.splitter.addWidget(self.tabs)
-
         self.splitter.setSizes([100, 1300])  # initial hint for splitter spacing
 
         # put splitter in a layout box
@@ -220,72 +221,52 @@ class CentralWidget(QtWidgets.QWidget):
     def viewingOptions(self):
         self.viewing_options = QtWidgets.QGroupBox('Viewing Options')
 
-        # FIXME:
-        # FIXME: set font size via CSS
-        # FIXME: workaround here because QGroupBox title was too small
+        # Set font size via CSS workaround
         font = self.viewing_options.font()
         font.setPointSize(13)
         self.viewing_options.setFont(font)
 
+        # Layouts for organizing checkboxes
         hbox = QtWidgets.QHBoxLayout()
         vbox1 = QtWidgets.QVBoxLayout()
         vbox2 = QtWidgets.QVBoxLayout()
         self.viewing_options.setLayout(hbox)
-        self.cb1 = QtWidgets.QCheckBox('Message Window')
-        self.cb1.setChecked(True)
-        self.cb2 = QtWidgets.QCheckBox('Airfoil Points')
-        self.cb2.setChecked(False)
-        self.cb2.setEnabled(False)
-        self.cb10 = QtWidgets.QCheckBox('Airfoil Raw Contour')
-        self.cb10.setChecked(False)
-        self.cb10.setEnabled(False)
-        self.cb3 = QtWidgets.QCheckBox('Airfoil Spline Points')
-        self.cb3.setChecked(False)
-        self.cb3.setEnabled(False)
-        self.cb4 = QtWidgets.QCheckBox('Airfoil Spline Contour')
-        self.cb4.setChecked(False)
-        self.cb4.setEnabled(False)
-        self.cb5 = QtWidgets.QCheckBox('Airfoil Chord')
-        self.cb5.setChecked(False)
-        self.cb5.setEnabled(False)
-        self.cb6 = QtWidgets.QCheckBox('Mesh')
-        self.cb6.setChecked(False)
-        self.cb6.setEnabled(False)
-        self.cb7 = QtWidgets.QCheckBox('Leading Edge Circle')
-        self.cb7.setChecked(False)
-        self.cb7.setEnabled(False)
-        self.cb8 = QtWidgets.QCheckBox('Mesh Blocks')
-        self.cb8.setChecked(False)
-        self.cb8.setEnabled(False)
-        self.cb9 = QtWidgets.QCheckBox('Airfoil Camber Line')
-        self.cb9.setChecked(False)
-        self.cb9.setEnabled(False)
-        vbox1.addWidget(self.cb2)
-        vbox1.addWidget(self.cb10)
-        vbox1.addWidget(self.cb3)
-        vbox1.addWidget(self.cb4)
-        vbox1.addWidget(self.cb5)
-        vbox1.addWidget(self.cb9)
-        vbox2.addWidget(self.cb1)
-        vbox2.addWidget(self.cb6)
-        vbox2.addWidget(self.cb8)
-        vbox2.addWidget(self.cb7)
+
+        # Checkboxes for viewing options
+        checkboxes = [
+            ('Message Window', True, True, self.parent.slots.toggleLogDock, 'tick'),
+            ('Airfoil Points', False, False, self.toolbox.toggleRawPoints),
+            ('Airfoil Raw Contour', False, False, self.toolbox.toggleRawContour),
+            ('Airfoil Spline Points', False, False, self.toolbox.toggleSplinePoints),
+            ('Airfoil Spline Contour', False, False, self.toolbox.toggleSpline),
+            ('Airfoil Chord', False, False, self.toolbox.toggleChord),
+            ('Mesh', False, False, self.toolbox.toggleMesh),
+            ('Leading Edge Circle', False, False, self.toolbox.toggleLeCircle),
+            ('Mesh Blocks', False, False, self.toolbox.toggleMeshBlocks),
+            ('Airfoil Camber Line', False, False, self.toolbox.toggleCamberLine)
+        ]
+
+        # Create and add checkboxes to layouts
+        for i, (label, checked, enabled, slot, *args) in enumerate(checkboxes):
+            checkbox = QtWidgets.QCheckBox(label)
+            checkbox.setChecked(checked)
+            checkbox.setEnabled(enabled)
+            if args:
+                checkbox.clicked.connect(lambda _, s=slot, a=args[0]: s(a))
+            else:
+                checkbox.clicked.connect(slot)
+            if i == 0:
+                vbox2.addWidget(checkbox)
+            else:
+                vbox1.addWidget(checkbox)
+
+            # Set attribute for each checkbox with a meaningful name
+            attribute_name = label.lower().replace(' ', '_') + '_checkbox'
+            setattr(self, attribute_name, checkbox)
+
         hbox.addLayout(vbox1)
         hbox.addLayout(vbox2)
         hbox.setAlignment(QtCore.Qt.AlignTop)
-        # connect signals to slots
-        # lambda allows to send extra parameters
-        self.cb1.clicked.connect(
-            lambda: self.parent.slots.toggleLogDock('tick'))
-        self.cb2.clicked.connect(self.toolbox.toggleRawPoints)
-        self.cb10.clicked.connect(self.toolbox.toggleRawContour)
-        self.cb3.clicked.connect(self.toolbox.toggleSplinePoints)
-        self.cb4.clicked.connect(self.toolbox.toggleSpline)
-        self.cb5.clicked.connect(self.toolbox.toggleChord)
-        self.cb6.clicked.connect(self.toolbox.toggleMesh)
-        self.cb7.clicked.connect(self.toolbox.toggleLeCircle)
-        self.cb8.clicked.connect(self.toolbox.toggleMeshBlocks)
-        self.cb9.clicked.connect(self.toolbox.toggleCamberLine)
 
 
 def main():
@@ -321,11 +302,9 @@ def main():
     # and add specialization icons per size
     # (needed depending on the operating system)
     app_icon = QtGui.QIcon(os.path.join(ICONS, 'app_image.png'))
-    app_icon.addFile(os.path.join(ICONS, 'app_image_16x16.png'), QtCore.QSize(16, 16))
-    app_icon.addFile(os.path.join(ICONS, 'app_image_24x24.png'), QtCore.QSize(24, 24))
-    app_icon.addFile(os.path.join(ICONS, 'app_image_32x32.png'), QtCore.QSize(32, 32))
-    app_icon.addFile(os.path.join(ICONS, 'app_image_48x48.png'), QtCore.QSize(48, 48))
-    app_icon.addFile(os.path.join(ICONS, 'app_image_256x256.png'), QtCore.QSize(256, 256))
+    icon_sizes = [16, 24, 32, 48, 256]
+    for size in icon_sizes:
+        app_icon.addFile(os.path.join(ICONS, f'app_image_{size}x{size}.png'), QtCore.QSize(size, size))
 
     app.setWindowIcon(app_icon)
 

@@ -68,25 +68,30 @@ class Slots:
         airfoil = Airfoil.Airfoil(name)
         loaded = airfoil.readContour(filename, comment)
 
-        # no error during loading
-        if loaded:
-            # clear all items from the scene when new airfoil is loaded
-            self.parent.scene.clear()
-            # make contour, markers, chord and add everything to the scene
-            airfoil.makeAirfoil()
-            # add all airfoil items (contour markers) to the scene
-            airfoil.addToScene(self.parent.scene)
-            # make loaded airfoil the currently active airfoil
-            self.parent.airfoil = airfoil
-            # add airfoil to list of loaded airfoils
-            self.parent.airfoils.append(airfoil)
-            # automatically zoom airfoil so that it fits into the view
-            self.fitAirfoilInView()
-            logger.info('Airfoil {} loaded'.format(name))
+        if not loaded:
+            logger.error(f'Failed to load airfoil from {filename}')
+            return
 
-            self.parent.centralwidget.toolbox.header.setEnabled(True)
-            self.parent.centralwidget.toolbox.listwidget.setEnabled(True)
-            self.parent.centralwidget.toolbox.listwidget.addItem(name)
+        self._clearScene()
+        self._addAirfoilToScene(airfoil)
+        self._updateAirfoilList(name)
+        self.fitAirfoilInView()
+        logger.info(f'Airfoil {name} loaded')
+
+    def _clearScene(self):
+        self.parent.scene.clear()
+
+    def _addAirfoilToScene(self, airfoil):
+        airfoil.makeAirfoil()
+        airfoil.addToScene(self.parent.scene)
+        self.parent.airfoil = airfoil
+        self.parent.airfoils.append(airfoil)
+
+    def _updateAirfoilList(self, name):
+        toolbox = self.parent.centralwidget.toolbox
+        toolbox.header.setEnabled(True)
+        toolbox.listwidget.setEnabled(True)
+        toolbox.listwidget.addItem(name)
 
     @QtCore.Slot(str)
     def loadSU2(self, filename):
@@ -221,7 +226,7 @@ class Slots:
 
         # update the checkbox if toggling is done via keyboard shortcut
         if _sender == 'shortcut':
-            checkbox = self.parent.centralwidget.cb1
+            checkbox = self.parent.centralwidget.message_window_checkbox
             checkbox.setChecked(not checkbox.isChecked())
 
     @QtCore.Slot()

@@ -801,6 +801,7 @@ class Toolbox(QtWidgets.QToolBox):
         form1.addRow(label, self.thickness)
 
         self.trailingButton = QtWidgets.QPushButton('Add Trailing Edge')
+        self.trailingButton.setEnabled(False)
         hbl1 = QtWidgets.QHBoxLayout()
         hbl1.addStretch(stretch=1)
         hbl1.addWidget(self.trailingButton, stretch=4)
@@ -815,8 +816,9 @@ class Toolbox(QtWidgets.QToolBox):
         # export menu
         name = ''
         hbox = QtWidgets.QHBoxLayout()
-        exportContourButton = QtWidgets.QPushButton('Export Contour')
-        hbox.addWidget(exportContourButton)
+        self.exportContourButton = QtWidgets.QPushButton('Export Contour')
+        self.exportContourButton.setEnabled(False)
+        hbox.addWidget(self.exportContourButton)
 
         box2 = QtWidgets.QGroupBox('Export modified contour')
         box2.setLayout(hbox)
@@ -835,7 +837,7 @@ class Toolbox(QtWidgets.QToolBox):
 
         self.splineButton.clicked.connect(self.spline_and_refine)
         self.trailingButton.clicked.connect(self.makeTrailingEdge)
-        exportContourButton.clicked.connect(self.exportContour)
+        self.exportContourButton.clicked.connect(self.exportContour)
 
     def makeToolbox(self):
 
@@ -991,6 +993,12 @@ class Toolbox(QtWidgets.QToolBox):
             logger.info('Leading edge radius: {:11.8f}'.format(rc))
             logger.info('Leading edge circle tangent at point: {}'.format(le_id))
 
+            # enable trailing edge button
+            self.trailingButton.setEnabled(True)
+            
+            # enable export button
+            self.exportContourButton.setEnabled(True)
+
         else:
             self.parent.slots.messageBox('No airfoil loaded.')
             return
@@ -1038,12 +1046,6 @@ class Toolbox(QtWidgets.QToolBox):
         self.parent.airfoil.chord.setZValue(99)
         self.parent.airfoil.camberline.setZValue(99)
 
-        # switch off raw contour and toogle corresponding checkbox
-        if self.parent.airfoil.polygonMarkersGroup.isVisible():
-            self.parent.centralwidget.cb2.click()
-        if self.parent.airfoil.contourPolygon.isVisible():
-            self.parent.centralwidget.cb10.click()
-        
         self.parent.view.adjustMarkerSize()
 
     def generateMesh(self):

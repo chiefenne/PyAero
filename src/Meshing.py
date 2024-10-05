@@ -544,7 +544,7 @@ class Windtunnel:
         """
 
         # toggle spline points
-        self.mainwindow.centralwidget.cb3.click()
+        self.mainwindow.centralwidget.airfoil_spline_points_checkbox.click()
 
         # delete old mesh if existing
         if hasattr(airfoil, 'mesh'):
@@ -577,8 +577,8 @@ class Windtunnel:
         airfoil.mesh = self.mainwindow.scene.createItemGroup(mesh)
 
         # activate viewing options if mesh is created and displayed
-        self.mainwindow.centralwidget.cb6.setChecked(True)
-        self.mainwindow.centralwidget.cb6.setEnabled(True)
+        self.mainwindow.centralwidget.mesh_checkbox.setChecked(True)
+        self.mainwindow.centralwidget.mesh_checkbox.setEnabled(True)
 
     def drawMeshQuality(self, quality):
 
@@ -654,13 +654,9 @@ class Windtunnel:
         airfoil.mesh_blocks = self.mainwindow.scene \
             .createItemGroup(mesh_blocks)
 
-        # activate viewing options if mesh is created and displayed
-        self.mainwindow.centralwidget.cb8.setChecked(True)
-        self.mainwindow.centralwidget.cb8.setEnabled(True)
-        # after instantiating everything above switch it off
-        # as blocks should not be shown as a default
-        # now visibility of blocks fits to checkbox setting
-        self.mainwindow.centralwidget.cb8.click()
+        # initial visibility of mesh blocks is False, but enabled
+        airfoil.mesh_blocks.setVisible(False)
+        self.mainwindow.centralwidget.mesh_blocks_checkbox.setEnabled(True)
 
     def MeshQuality(self, crit='k2inf'):
         vertices, connectivity = self.mesh

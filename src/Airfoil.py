@@ -106,13 +106,15 @@ class Airfoil:
         self.makeChord()
         self.makePolygonMarkers()
 
-        # activate ckeck boxes for contour points and chord in viewing options
-        self.mainwindow.centralwidget.cb2.setChecked(True)
-        self.mainwindow.centralwidget.cb2.setEnabled(True)
-        self.mainwindow.centralwidget.cb10.setChecked(True)
-        self.mainwindow.centralwidget.cb10.setEnabled(True)
-        self.mainwindow.centralwidget.cb5.setChecked(True)
-        self.mainwindow.centralwidget.cb5.setEnabled(True)
+        # Activate checkboxes for contour points, polygon, and chord in viewing options.
+        checkboxes = [
+            self.mainwindow.centralwidget.airfoil_points_checkbox,
+            self.mainwindow.centralwidget.airfoil_raw_contour_checkbox,
+            self.mainwindow.centralwidget.airfoil_chord_checkbox,
+        ]
+        for checkbox in checkboxes:
+            checkbox.setChecked(True)
+            checkbox.setEnabled(True)
 
     def addToScene(self, scene):
         """add all items to the scene"""
@@ -233,15 +235,18 @@ class Airfoil:
 
         # switch off raw contour and toogle corresponding checkbox
         if self.polygonMarkersGroup.isVisible():
-            self.mainwindow.centralwidget.cb2.click()
+            self.mainwindow.centralwidget.airfoil_points_checkbox.click()
         if self.contourPolygon.isVisible():
-            self.mainwindow.centralwidget.cb10.click()
+            self.mainwindow.centralwidget.airfoil_raw_contour_checkbox.click()
 
-        # activate ckeck boxes for contour points and chord in viewing options
-        self.mainwindow.centralwidget.cb3.setChecked(True)
-        self.mainwindow.centralwidget.cb3.setEnabled(True)
-        self.mainwindow.centralwidget.cb4.setChecked(True)
-        self.mainwindow.centralwidget.cb4.setEnabled(True)
+        # Activate checkboxes for contour points and chord in viewing options.
+        checkboxes = [
+            self.mainwindow.centralwidget.airfoil_spline_points_checkbox,
+            self.mainwindow.centralwidget.airfoil_spline_contour_checkbox,
+        ]
+        for checkbox in checkboxes:
+            checkbox.setChecked(True)
+            checkbox.setEnabled(True)
 
         self.mainwindow.view.adjustMarkerSize()
 
@@ -295,8 +300,8 @@ class Airfoil:
         self.camberline.setAcceptHoverEvents(False)
         self.camberline.setZValue(99)
         self.mainwindow.scene.addItem(self.camberline)
-        self.mainwindow.centralwidget.cb9.setChecked(True)
-        self.mainwindow.centralwidget.cb9.setEnabled(True)
+        self.mainwindow.centralwidget.airfoil_camber_line_checkbox.setChecked(True)
+        self.mainwindow.centralwidget.airfoil_camber_line_checkbox.setEnabled(True)
 
     def setPenColor(self, r, g, b, a):
         self.pencolor = QtGui.QColor(r, g, b, a)

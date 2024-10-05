@@ -2,7 +2,7 @@
 import numpy as np
 
 from PySide6 import QtCore, QtGui, QtWidgets
-import PySide6.QtCharts as QtCharts
+# import PySide6.QtCharts as QtCharts
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ class ContourAnalysis(QtWidgets.QFrame):
             self.initUI()
 
     def initUI(self):
+        '''
         self.lineSeries = QtCharts.QLineSeries()
         # legend name
         # self.lineSeries.setName("trend")
@@ -52,9 +53,10 @@ class ContourAnalysis(QtWidgets.QFrame):
         self.chartView = QtCharts.QChartView(self.chart)
         self.chartView.setRenderHint(QtGui.QPainter.Antialiasing)
         self.chartView.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
+        '''
 
         vlayout = QtWidgets.QVBoxLayout()
-        vlayout.addWidget(self.chartView)
+        # vlayout.addWidget(self.chartView)
         self.setLayout(vlayout)
 
     @staticmethod
