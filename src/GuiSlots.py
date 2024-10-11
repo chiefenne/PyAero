@@ -1,4 +1,3 @@
-from datetime import date
 import sys
 import copy
 import webbrowser
