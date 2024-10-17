@@ -23,7 +23,13 @@ logger = logging.getLogger(__name__)
 
 
 class Windtunnel:
-    """docstring for Windtunnel"""
+    """
+    The Windtunnel class is responsible for generating a computational fluid dynamics (CFD) mesh 
+    around an airfoil within a wind tunnel. It includes methods for creating different parts of 
+    the mesh, such as the airfoil mesh, trailing edge mesh, tunnel mesh, and tunnel wake mesh. 
+    Additionally, it provides functionality for mesh quality assessment, drawing the mesh, and 
+    exporting the mesh in various formats.
+    """
 
     def __init__(self):
 
