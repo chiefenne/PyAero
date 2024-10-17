@@ -2,7 +2,8 @@
 import numpy as np
 
 from PySide6 import QtCore, QtGui, QtWidgets
-# import PySide6.QtCharts as QtCharts
+from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
+from PySide6.QtGui import QPainter
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,8 +29,7 @@ class ContourAnalysis(QtWidgets.QFrame):
             self.initUI()
 
     def initUI(self):
-        '''
-        self.lineSeries = QtCharts.QLineSeries()
+        self.lineSeries = QLineSeries()
         # legend name
         # self.lineSeries.setName("trend")
         self.lineSeries.append(QtCore.QPoint(0, 0))
@@ -37,26 +37,25 @@ class ContourAnalysis(QtWidgets.QFrame):
         pen = QtGui.QPen(QtCore.Qt.red, 6, QtCore.Qt.SolidLine)
         self.lineSeries.setPen(pen)
 
-        self.chart = QtCharts.QChart()
-        self.chart.setAnimationOptions(QtCharts.QChart.AllAnimations)
+        self.chart = QChart()
+        self.chart.setAnimationOptions(QChart.AllAnimations)
         self.chart.setTitle("Airfoil contour analysis")
         self.chart.addSeries(self.lineSeries)
 
         self.chart.legend().setVisible(False)
         self.chart.legend().setAlignment(QtCore.Qt.AlignBottom)
 
-        self.axisX = QtCharts.QValueAxis()
-        self.axisY = QtCharts.QValueAxis()
+        self.axisX = QValueAxis()
+        self.axisY = QValueAxis()
         self.chart.setAxisX(self.axisX, self.lineSeries)
         self.chart.setAxisY(self.axisY, self.lineSeries)
 
-        self.chartView = QtCharts.QChartView(self.chart)
-        self.chartView.setRenderHint(QtGui.QPainter.Antialiasing)
-        self.chartView.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
-        '''
+        self.chart_view = QChartView(self.chart)
+        self.chart_view.setRenderHint(QPainter.Antialiasing)
+        self.chart_view.setRubberBand(QChartView.RectangleRubberBand)
 
         vlayout = QtWidgets.QVBoxLayout()
-        # vlayout.addWidget(self.chartView)
+        vlayout.addWidget(self.chart_view)
         self.setLayout(vlayout)
 
     @staticmethod
@@ -150,7 +149,7 @@ class ContourAnalysis(QtWidgets.QFrame):
         points = [QtCore.QPointF(x, y) for x, y in zip(spline_data[0][0],
             curvature_data[selector[quantity]])]
 
-        self.lineSeries = QtCharts.QLineSeries()
+        self.lineSeries = QLineSeries()
         self.lineSeries.append(points)
         self.chart.removeAllSeries()
         self.chart.addSeries(self.lineSeries)
