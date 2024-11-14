@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "PyAero",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/PyAero.py",
             "console": "integratedTerminal",
