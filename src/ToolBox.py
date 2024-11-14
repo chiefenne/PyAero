@@ -1108,7 +1108,7 @@ class Toolbox(QtWidgets.QToolBox):
                                         name=name)
         if self.check_SU2.isChecked():
             name = filename + '.su2'
-            Meshing.BlockMesh.writeSU2(self.wind_tunnel,
+            Meshing.BlockMesh.writeSU2_nolib(self.wind_tunnel,
                                        name=name)
         if self.check_GMSH.isChecked():
             name = filename + '.msh'

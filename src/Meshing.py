@@ -1187,7 +1187,7 @@ class BlockMesh:
         num_inlet_edges = len(tags['inlet'])
         num_outlet_edges = len(tags['outlet'])
 
-        # write to SU2 formazt using meshio
+        # write to SU2 format using meshio
         # NDIM is automatically derived from shape of vertices (x,y or x,y,z)
         # so here NDIM will be 2
         cells = [('quad', connectivity), ('line', tags['airfoil']+tags['inlet']+tags['outlet'])]
@@ -1196,6 +1196,62 @@ class BlockMesh:
                                         num_inlet_edges*[2] +
                                         num_outlet_edges*[3])]}
         meshio.write_points_cells(name, vertices, cells, cell_data=cell_data)
+
+        basename = os.path.basename(name)
+        logger.info('SU2 type mesh saved as {}'.
+                    format(os.path.join(OUTPUTDATA, basename)))
+
+    def writeSU2_nolib(wind_tunnel, name=''):
+        '''Write mesh to SU2 format without using meshio'''
+
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        tags = wind_tunnel.boundary_tags
+
+        num_airfoil_edges = len(tags['airfoil'])
+        num_inlet_edges = len(tags['inlet'])
+        num_outlet_edges = len(tags['outlet'])
+
+        with open(name, 'w') as f:
+            # write header
+            f.write('%\n')
+            f.write('% Problem dimension\n')
+            f.write('%\n')
+            f.write('NDIME= 2\n')
+            f.write('NPOIN= ' + str(len(vertices)) + '\n')
+
+            # write vertices
+            for i, vertex in enumerate(vertices):
+                f.write(f'{i + 1} {vertex[0]} {vertex[1]} 0.0\n')
+
+            f.write('NELEM= ' + str(len(connectivity)) + '\n')
+
+            # write elements
+            for i, cell in enumerate(connectivity):
+                f.write(f'{i + 1} 9 {cell[0] + 1} {cell[1] + 1} {cell[2] + 1} {cell[3] + 1}\n')
+
+            # comment for boundary tags
+            f.write('%\n')
+            f.write('% Boundary tags\n')
+            f.write('%\n')
+
+            # write boundary tags
+            f.write('NMARK= 3\n')
+
+            f.write('MARKER_TAG= airfoil\n')
+            f.write('MARKER_ELEMS= ' + str(num_airfoil_edges) + '\n')
+            for edge in tags['airfoil']:
+                f.write(f'3 {edge[0] + 1} {edge[1] + 1}\n')
+
+            f.write('MARKER_TAG= inlet\n')
+            f.write('MARKER_ELEMS= ' + str(num_inlet_edges) + '\n')
+            for edge in tags['inlet']:
+                f.write(f'3 {edge[0] + 1} {edge[1] + 1}\n')
+
+            f.write('MARKER_TAG= outlet\n')
+            f.write('MARKER_ELEMS= ' + str(num_outlet_edges) + '\n')
+            for edge in tags['outlet']:
+                f.write(f'3 {edge[0] + 1} {edge[1] + 1}\n')
 
         basename = os.path.basename(name)
         logger.info('SU2 type mesh saved as {}'.
