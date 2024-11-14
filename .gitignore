@@ -4,16 +4,8 @@ backup2Diskstation.sh
 debug/
 data/OUTPUT/
 data/LOGS/
-debug/
 docs/*.pptx
-howto_configure_readthedocs.txt
-howto_git.txt
-<<<<<<< HEAD
 *.txt
-=======
-howto_*.txt
-FX*.txt
->>>>>>> 720de87 (update for txt files)
 lib_AE/
 PyInstaller/
 setup.py
@@ -22,3 +14,4 @@ src/__pycache__/
 SU2/
 todo.txt
 environment.yml
+launch.json
