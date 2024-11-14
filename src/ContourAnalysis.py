@@ -1,7 +1,8 @@
 
 import numpy as np
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QPushButton
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 from PySide6.QtGui import QPainter
 
@@ -9,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class ContourAnalysis(QtWidgets.QFrame):
+class ContourAnalysis(QFrame):
     """Summary
 
     Attributes:
@@ -53,10 +54,37 @@ class ContourAnalysis(QtWidgets.QFrame):
         self.chart_view = QChartView(self.chart)
         self.chart_view.setRenderHint(QPainter.Antialiasing)
         self.chart_view.setRubberBand(QChartView.RectangleRubberBand)
+        self.chart_view.setDragMode(QChartView.ScrollHandDrag)
 
-        vlayout = QtWidgets.QVBoxLayout()
+        vlayout = QVBoxLayout()
         vlayout.addWidget(self.chart_view)
         self.setLayout(vlayout)
+
+        # Add buttons for zoom and home
+        self.zoom_in_button = QPushButton("Zoom In")
+        self.zoom_out_button = QPushButton("Zoom Out")
+        self.home_button = QPushButton("Home")
+
+        self.zoom_in_button.clicked.connect(self.zoom_in)
+        self.zoom_out_button.clicked.connect(self.zoom_out)
+        self.home_button.clicked.connect(self.home)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.zoom_in_button)
+        button_layout.addWidget(self.zoom_out_button)
+        button_layout.addWidget(self.home_button)
+
+        vlayout.addLayout(button_layout)
+        self.setLayout(vlayout)
+
+    def zoom_in(self):
+        self.chart_view.chart().zoomIn()
+
+    def zoom_out(self):
+        self.chart_view.chart().zoomOut()
+
+    def home(self):
+        self.chart_view.chart().zoomReset()
 
     @staticmethod
     def getCurvature(spline_data):
