@@ -534,19 +534,20 @@ class Windtunnel:
                               'outlet': [],
                               'top': [],
                               'bottom': []}
+        tol = 1.e-4
         for edge in self.boundary_edges:
             x = vertices[edge[0]][0]
             y = vertices[edge[0]][1]
             if x > -0.1 and x < 1.1 and y < 0.5 and y > -0.5:
                 self.boundary_tags['airfoil'].append(edge)
-            elif x == np.max(vertices[:,0]):
+            elif x > np.max(vertices[:,0]) - tol:
                 self.boundary_tags['outlet'].append(edge)
-            elif x == np.min(vertices[:,0]):
-                self.boundary_tags['inlet'].append(edge)
-            elif y == np.max(vertices[:,1]):
+            elif y > np.max(vertices[:,1]) - tol:
                 self.boundary_tags['top'].append(edge)
-            elif y == np.min(vertices[:,1]):
+            elif y < np.min(vertices[:,1]) + tol:
                 self.boundary_tags['bottom'].append(edge)
+            else:
+                self.boundary_tags['inlet'].append(edge)
 
         return
 
@@ -1217,6 +1218,7 @@ class BlockMesh:
         tags = wind_tunnel.boundary_tags
 
         num_airfoil_edges = len(tags['airfoil'])
+        num_farfield_edges = len(tags['farfield'])
         num_inlet_edges = len(tags['inlet'])
         num_outlet_edges = len(tags['outlet'])
         num_top_edges = len(tags['top'])
@@ -1235,7 +1237,7 @@ class BlockMesh:
             f.write('NPOIN= ' + str(len(vertices)) + '\n')
             # write vertices
             for i, vertex in enumerate(vertices):
-                f.write(f'{vertex[0]:<20} {vertex[1]:<20} {i:<10}\n')
+                f.write(f'{vertex[0]: .8e} {vertex[1]: .8e} {i:<}\n')
 
             f.write('%\n')
             f.write('% Element connectivity\n')
@@ -1243,7 +1245,7 @@ class BlockMesh:
             f.write('NELEM= ' + str(len(connectivity)) + '\n')
             # write elements
             for i, cell in enumerate(connectivity):
-                f.write(f'{i+1:<10} 9 {cell[0]:<10} {cell[1]:<10} {cell[2]:<10} {cell[3]:<10}\n')
+                f.write(f'9 {cell[0]:10d} {cell[1]:10d} {cell[2]:10d} {cell[3]:10d} {i:>10d}\n')
 
             f.write('%\n')
             f.write('% Boundary tags\n')
