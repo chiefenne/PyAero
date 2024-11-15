@@ -1218,7 +1218,6 @@ class BlockMesh:
         tags = wind_tunnel.boundary_tags
 
         num_airfoil_edges = len(tags['airfoil'])
-        num_farfield_edges = len(tags['farfield'])
         num_inlet_edges = len(tags['inlet'])
         num_outlet_edges = len(tags['outlet'])
         num_top_edges = len(tags['top'])
