@@ -1222,13 +1222,13 @@ class BlockMesh:
 
             # write vertices
             for i, vertex in enumerate(vertices):
-                f.write(f'{i + 1} {vertex[0]} {vertex[1]} 0.0\n')
+                f.write(f'{vertex[0]} {vertex[1]} {i} \n')
 
             f.write('NELEM= ' + str(len(connectivity)) + '\n')
 
             # write elements
             for i, cell in enumerate(connectivity):
-                f.write(f'{i + 1} 9 {cell[0] + 1} {cell[1] + 1} {cell[2] + 1} {cell[3] + 1}\n')
+                f.write(f'9 {cell[0]} {cell[1]} {cell[2]} {cell[3]} {i}\n')
 
             # comment for boundary tags
             f.write('%\n')
