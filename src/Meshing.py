@@ -529,7 +529,11 @@ class Windtunnel:
         # FIXME here it's done the dirty way
         # FIXME at least try to make it faster later
         # FIXME
-        self.boundary_tags = {'airfoil': [], 'inlet': [], 'outlet': []}
+        self.boundary_tags = {'airfoil': [],
+                              'inlet': [],
+                              'outlet': [],
+                              'top': [],
+                              'bottom': []}
         for edge in self.boundary_edges:
             x = vertices[edge[0]][0]
             y = vertices[edge[0]][1]
