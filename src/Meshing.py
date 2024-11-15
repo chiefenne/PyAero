@@ -1218,40 +1218,43 @@ class BlockMesh:
             f.write('% Problem dimension\n')
             f.write('%\n')
             f.write('NDIME= 2\n')
-            f.write('NPOIN= ' + str(len(vertices)) + '\n')
 
+            f.write('%\n')
+            f.write('% Node coordinates\n')
+            f.write('%\n')
+            f.write('NPOIN= ' + str(len(vertices)) + '\n')
             # write vertices
             for i, vertex in enumerate(vertices):
                 f.write(f'{vertex[0]} {vertex[1]} {i} \n')
 
+            f.write('%\n')
+            f.write('% Element connectivity\n')
+            f.write('%\n')
             f.write('NELEM= ' + str(len(connectivity)) + '\n')
-
             # write elements
             for i, cell in enumerate(connectivity):
                 f.write(f'9 {cell[0]} {cell[1]} {cell[2]} {cell[3]} {i}\n')
 
-            # comment for boundary tags
             f.write('%\n')
             f.write('% Boundary tags\n')
             f.write('%\n')
-
             # write boundary tags
             f.write('NMARK= 3\n')
 
             f.write('MARKER_TAG= airfoil\n')
             f.write('MARKER_ELEMS= ' + str(num_airfoil_edges) + '\n')
             for edge in tags['airfoil']:
-                f.write(f'3 {edge[0] + 1} {edge[1] + 1}\n')
+                f.write(f'3 {edge[0]} {edge[1]}\n')
 
             f.write('MARKER_TAG= inlet\n')
             f.write('MARKER_ELEMS= ' + str(num_inlet_edges) + '\n')
             for edge in tags['inlet']:
-                f.write(f'3 {edge[0] + 1} {edge[1] + 1}\n')
+                f.write(f'3 {edge[0]} {edge[1]}\n')
 
             f.write('MARKER_TAG= outlet\n')
             f.write('MARKER_ELEMS= ' + str(num_outlet_edges) + '\n')
             for edge in tags['outlet']:
-                f.write(f'3 {edge[0] + 1} {edge[1] + 1}\n')
+                f.write(f'3 {edge[0]} {edge[1]}\n')
 
         basename = os.path.basename(name)
         logger.info('SU2 type mesh saved as {}'.
