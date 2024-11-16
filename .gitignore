@@ -4,10 +4,7 @@ backup2Diskstation.sh
 debug/
 data/OUTPUT/
 data/LOGS/
-debug/
 docs/*.pptx
-howto_configure_readthedocs.txt
-howto_git.txt
 *.txt
 lib_AE/
 PyInstaller/
@@ -17,4 +14,5 @@ src/__pycache__/
 SU2/
 todo.txt
 environment.yml
-!requirements.txt
+launch.json
+requirements.txt

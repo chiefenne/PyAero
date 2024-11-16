@@ -106,25 +106,22 @@ class Airfoil:
         self.makeChord()
         self.makePolygonMarkers()
 
-        # activate ckeck boxes for contour points and chord in viewing options
-        self.mainwindow.centralwidget.cb2.setChecked(True)
-        self.mainwindow.centralwidget.cb2.setEnabled(True)
-        self.mainwindow.centralwidget.cb10.setChecked(True)
-        self.mainwindow.centralwidget.cb10.setEnabled(True)
-        self.mainwindow.centralwidget.cb5.setChecked(True)
-        self.mainwindow.centralwidget.cb5.setEnabled(True)
+        # Activate checkboxes for contour points, polygon, and chord in viewing options.
+        checkboxes = [
+            self.mainwindow.centralwidget.airfoil_points_checkbox,
+            self.mainwindow.centralwidget.airfoil_raw_contour_checkbox,
+            self.mainwindow.centralwidget.airfoil_chord_checkbox,
+        ]
+        for checkbox in checkboxes:
+            checkbox.setChecked(True)
+            checkbox.setEnabled(True)
 
-    # FIXME
-    # FIXME why is this static? should it be done with self?
-    # FIXME refactor this function
-    # FIXME
-    @staticmethod
-    def addToScene(airfoil, scene):
+    def addToScene(self, scene):
         """add all items to the scene"""
-        scene.addItem(airfoil.contourPolygon)
-        scene.addItem(airfoil.chord)
-        airfoil.polygonMarkersGroup = scene. \
-            createItemGroup(airfoil.polygonMarkers)
+        scene.addItem(self.contourPolygon)
+        scene.addItem(self.chord)
+        self.polygonMarkersGroup = scene. \
+            createItemGroup(self.polygonMarkers)
 
     def makeContourPolygon(self):
         """Add airfoil points as GraphicsItem to the scene"""
@@ -163,13 +160,6 @@ class Airfoil:
             # there a fixed markersize in pixels is taken from settings which
             # can be configured by the user
 
-            # FIXME
-            # FIXME this size still affects the items size for the scene.itemsBoundingRect()
-            # FIXME this is affecting slots.onViewAll()
-            # FIXME there it is not directly visible as adjustMarkerSize is called
-            # FIXME the fit acts to the size that shows up when adjustMarkerSize
-            # FIXME would not be called
-            # FIXME
             marker.Circle(x, y, 0.004)
 
             markerItem = GraphicsItem.GraphicsItem(marker)
@@ -245,15 +235,18 @@ class Airfoil:
 
         # switch off raw contour and toogle corresponding checkbox
         if self.polygonMarkersGroup.isVisible():
-            self.mainwindow.centralwidget.cb2.click()
+            self.mainwindow.centralwidget.airfoil_points_checkbox.click()
         if self.contourPolygon.isVisible():
-            self.mainwindow.centralwidget.cb10.click()
+            self.mainwindow.centralwidget.airfoil_raw_contour_checkbox.click()
 
-        # activate ckeck boxes for contour points and chord in viewing options
-        self.mainwindow.centralwidget.cb3.setChecked(True)
-        self.mainwindow.centralwidget.cb3.setEnabled(True)
-        self.mainwindow.centralwidget.cb4.setChecked(True)
-        self.mainwindow.centralwidget.cb4.setEnabled(True)
+        # Activate checkboxes for contour points and chord in viewing options.
+        checkboxes = [
+            self.mainwindow.centralwidget.airfoil_spline_points_checkbox,
+            self.mainwindow.centralwidget.airfoil_spline_contour_checkbox,
+        ]
+        for checkbox in checkboxes:
+            checkbox.setChecked(True)
+            checkbox.setEnabled(True)
 
         self.mainwindow.view.adjustMarkerSize()
 
@@ -307,8 +300,8 @@ class Airfoil:
         self.camberline.setAcceptHoverEvents(False)
         self.camberline.setZValue(99)
         self.mainwindow.scene.addItem(self.camberline)
-        self.mainwindow.centralwidget.cb9.setChecked(True)
-        self.mainwindow.centralwidget.cb9.setEnabled(True)
+        self.mainwindow.centralwidget.airfoil_camber_line_checkbox.setChecked(True)
+        self.mainwindow.centralwidget.airfoil_camber_line_checkbox.setEnabled(True)
 
     def setPenColor(self, r, g, b, a):
         self.pencolor = QtGui.QColor(r, g, b, a)

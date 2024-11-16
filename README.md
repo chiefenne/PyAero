@@ -208,4 +208,5 @@ Distributed under the MIT license. See [LICENSE](https://raw.githubusercontent.c
 2024 Andreas Ennemoser – andreas.ennemoser@aon.at
 
 ## Stargazers over time
+
 [![Stargazers over time](https://starchart.cc/chiefenne/PyAero.svg?variant=adaptive)](https://starchart.cc/chiefenne/PyAero)

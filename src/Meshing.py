@@ -23,7 +23,13 @@ logger = logging.getLogger(__name__)
 
 
 class Windtunnel:
-    """docstring for Windtunnel"""
+    """
+    The Windtunnel class is responsible for generating a computational fluid dynamics (CFD) mesh 
+    around an airfoil within a wind tunnel. It includes methods for creating different parts of 
+    the mesh, such as the airfoil mesh, trailing edge mesh, tunnel mesh, and tunnel wake mesh. 
+    Additionally, it provides functionality for mesh quality assessment, drawing the mesh, and 
+    exporting the mesh in various formats.
+    """
 
     def __init__(self):
 
@@ -523,14 +529,23 @@ class Windtunnel:
         # FIXME here it's done the dirty way
         # FIXME at least try to make it faster later
         # FIXME
-        self.boundary_tags = {'airfoil': [], 'inlet': [], 'outlet': []}
+        self.boundary_tags = {'airfoil': [],
+                              'inlet': [],
+                              'outlet': [],
+                              'top': [],
+                              'bottom': []}
+        tol = 1.e-4
         for edge in self.boundary_edges:
             x = vertices[edge[0]][0]
             y = vertices[edge[0]][1]
             if x > -0.1 and x < 1.1 and y < 0.5 and y > -0.5:
                 self.boundary_tags['airfoil'].append(edge)
-            elif x == np.max(vertices[:,0]):
+            elif x > np.max(vertices[:,0]) - tol:
                 self.boundary_tags['outlet'].append(edge)
+            elif y > np.max(vertices[:,1]) - tol:
+                self.boundary_tags['top'].append(edge)
+            elif y < np.min(vertices[:,1]) + tol:
+                self.boundary_tags['bottom'].append(edge)
             else:
                 self.boundary_tags['inlet'].append(edge)
 
@@ -544,7 +559,7 @@ class Windtunnel:
         """
 
         # toggle spline points
-        self.mainwindow.centralwidget.cb3.click()
+        self.mainwindow.centralwidget.airfoil_spline_points_checkbox.click()
 
         # delete old mesh if existing
         if hasattr(airfoil, 'mesh'):
@@ -577,8 +592,8 @@ class Windtunnel:
         airfoil.mesh = self.mainwindow.scene.createItemGroup(mesh)
 
         # activate viewing options if mesh is created and displayed
-        self.mainwindow.centralwidget.cb6.setChecked(True)
-        self.mainwindow.centralwidget.cb6.setEnabled(True)
+        self.mainwindow.centralwidget.mesh_checkbox.setChecked(True)
+        self.mainwindow.centralwidget.mesh_checkbox.setEnabled(True)
 
     def drawMeshQuality(self, quality):
 
@@ -607,7 +622,7 @@ class Windtunnel:
         """
 
         # FIXME
-        # FIXME Refactroing of code duplication here and in drawMesh
+        # FIXME Refactoring of code duplication here and in drawMesh
         # FIXME
 
         mesh_blocks = list()
@@ -654,13 +669,9 @@ class Windtunnel:
         airfoil.mesh_blocks = self.mainwindow.scene \
             .createItemGroup(mesh_blocks)
 
-        # activate viewing options if mesh is created and displayed
-        self.mainwindow.centralwidget.cb8.setChecked(True)
-        self.mainwindow.centralwidget.cb8.setEnabled(True)
-        # after instantiating everything above switch it off
-        # as blocks should not be shown as a default
-        # now visibility of blocks fits to checkbox setting
-        self.mainwindow.centralwidget.cb8.click()
+        # initial visibility of mesh blocks is False, but enabled
+        airfoil.mesh_blocks.setVisible(False)
+        self.mainwindow.centralwidget.mesh_blocks_checkbox.setEnabled(True)
 
     def MeshQuality(self, crit='k2inf'):
         vertices, connectivity = self.mesh
@@ -1175,20 +1186,6 @@ class BlockMesh:
                         format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
-    def writeVTK(wind_tunnel, name=''):
-
-        mesh = wind_tunnel.mesh
-        vertices, connectivity = mesh
-        cells = [('quad', connectivity)]
-        vertices_3D = [v + (0.0,) for v in vertices]
-
-        meshio.write_points_cells(name, vertices_3D, cells)
-
-        basename = os.path.basename(name)
-        logger.info('VTK type mesh saved as {}'.
-                    format(os.path.join(OUTPUTDATA, basename)))
-
-    @staticmethod
     def writeSU2(wind_tunnel, name=''):
 
         mesh = wind_tunnel.mesh
@@ -1199,7 +1196,7 @@ class BlockMesh:
         num_inlet_edges = len(tags['inlet'])
         num_outlet_edges = len(tags['outlet'])
 
-        # write to SU2 formazt using meshio
+        # write to SU2 format using meshio
         # NDIM is automatically derived from shape of vertices (x,y or x,y,z)
         # so here NDIM will be 2
         cells = [('quad', connectivity), ('line', tags['airfoil']+tags['inlet']+tags['outlet'])]
@@ -1211,6 +1208,108 @@ class BlockMesh:
 
         basename = os.path.basename(name)
         logger.info('SU2 type mesh saved as {}'.
+                    format(os.path.join(OUTPUTDATA, basename)))
+
+    def writeSU2_nolib(wind_tunnel, name=''):
+        '''Write mesh to SU2 format without using meshio'''
+
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        tags = wind_tunnel.boundary_tags
+
+        num_airfoil_edges = len(tags['airfoil'])
+        num_inlet_edges = len(tags['inlet'])
+        num_outlet_edges = len(tags['outlet'])
+        num_top_edges = len(tags['top'])
+        num_bottom_edges = len(tags['bottom'])
+
+        with open(name, 'w') as f:
+            # write header
+            f.write('%\n')
+            f.write('% Problem dimension\n')
+            f.write('%\n')
+            f.write('NDIME= 2\n')
+
+            f.write('%\n')
+            f.write('% Node coordinates\n')
+            f.write('%\n')
+            f.write('NPOIN= ' + str(len(vertices)) + '\n')
+            # write vertices
+            for i, vertex in enumerate(vertices):
+                f.write(f'{vertex[0]: .8e} {vertex[1]: .8e} {i:<}\n')
+
+            f.write('%\n')
+            f.write('% Element connectivity\n')
+            f.write('%\n')
+            f.write('NELEM= ' + str(len(connectivity)) + '\n')
+            # write elements
+            for i, cell in enumerate(connectivity):
+                f.write(f'9 {cell[0]:10d} {cell[1]:10d} {cell[2]:10d} {cell[3]:10d} {i:>10d}\n')
+
+            f.write('%\n')
+            f.write('% Boundary tags\n')
+            f.write('%\n')
+            # write boundary tags
+            f.write('NMARK= 5\n')
+
+            f.write('MARKER_TAG= airfoil\n')
+            f.write('MARKER_ELEMS= ' + str(num_airfoil_edges) + '\n')
+            for edge in tags['airfoil']:
+                f.write(f'3 {edge[0]} {edge[1]}\n')
+
+            f.write('MARKER_TAG= inlet\n')
+            f.write('MARKER_ELEMS= ' + str(num_inlet_edges) + '\n')
+            for edge in tags['inlet']:
+                f.write(f'3 {edge[0]} {edge[1]}\n')
+
+            f.write('MARKER_TAG= outlet\n')
+            f.write('MARKER_ELEMS= ' + str(num_outlet_edges) + '\n')
+            for edge in tags['outlet']:
+                f.write(f'3 {edge[0]} {edge[1]}\n')
+
+            f.write('MARKER_TAG= top\n')
+            f.write('MARKER_ELEMS= ' + str(num_top_edges) + '\n')
+            for edge in tags['top']:
+                f.write(f'3 {edge[0]} {edge[1]}\n')
+
+            f.write('MARKER_TAG= bottom\n')
+            f.write('MARKER_ELEMS= ' + str(num_bottom_edges) + '\n')
+            for edge in tags['bottom']:
+                f.write(f'3 {edge[0]} {edge[1]}\n')
+            
+        basename = os.path.basename(name)
+        logger.info('SU2 type mesh saved as {}'.
+                    format(os.path.join(OUTPUTDATA, basename)))
+
+    @staticmethod
+    def writeMESH(wind_tunnel, fmt, name=''):
+        """Wrapper function to write mesh to different formats"""
+
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        vertices_3D = [v + (0.0,) for v in vertices]
+        cells = [('quad', connectivity)]
+
+        file_fmt = 'gmsh22' if fmt == 'GMSH' else None
+        meshio.write_points_cells(name, vertices_3D, cells, file_format=file_fmt)
+
+        basename = os.path.basename(name)
+        fullpath = os.path.join(OUTPUTDATA, basename)
+        logger.info(f'{fmt} type mesh saved as {fullpath}')
+
+    @staticmethod
+    def writeVTK(wind_tunnel, name=''):
+        """Write mesh to VTK format."""
+
+        mesh = wind_tunnel.mesh
+        vertices, connectivity = mesh
+        cells = [('quad', connectivity)]
+        vertices_3D = [v + (0.0,) for v in vertices]
+
+        meshio.write_points_cells(name, vertices_3D, cells)
+
+        basename = os.path.basename(name)
+        logger.info('VTK type mesh saved as {}'.
                     format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod

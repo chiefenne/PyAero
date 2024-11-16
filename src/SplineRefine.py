@@ -135,8 +135,8 @@ class SplineRefine:
             self.mainwindow.scene.createItemGroup(circles)
         self.mainwindow.airfoil.le_circle.setZValue(110)
 
-        self.mainwindow.centralwidget.cb7.setChecked(True)
-        self.mainwindow.centralwidget.cb7.setEnabled(True)
+        self.mainwindow.centralwidget.leading_edge_circle_checkbox.setChecked(True)
+        self.mainwindow.centralwidget.leading_edge_circle_checkbox.setEnabled(True)
 
     def spline(self, x, y, points=200, degree=2, evaluate=False):
         """Interpolate spline through given points

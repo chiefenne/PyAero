@@ -121,9 +121,14 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
 
     def setBoundingRect(self):
         # FIXME
-        # FIXME how to calculate penwidth here since scene at the beginning
-        # FIXME is not knwon
+        # FIXME self.penwidth is in pixels, most probably needs
+        # FIXME to be transformed to scene coordinates
+        # FIXME maybe updated when refactoring GraphicsitemCollection
+        # FIXME and its usage
+        # FIXME
+
         pw = 0.0
+
         self.boundingrect = QtCore.QRectF(self.rect.left()-pw/2,
                                           self.rect.top()-pw/2,
                                           self.rect.width()+pw,
