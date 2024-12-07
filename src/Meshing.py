@@ -1084,6 +1084,7 @@ class BlockMesh:
 
     @staticmethod
     def writeFLMA(wind_tunnel, name='', depth=0.3):
+        '''Write mesh to AVL-FIRE *.flma format'''
 
         basename = os.path.basename(name)
         nameroot, extension = os.path.splitext(basename)
@@ -1186,30 +1187,6 @@ class BlockMesh:
                         format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
-    def writeSU2(wind_tunnel, name=''):
-
-        mesh = wind_tunnel.mesh
-        vertices, connectivity = mesh
-        tags = wind_tunnel.boundary_tags
-
-        num_airfoil_edges = len(tags['airfoil'])
-        num_inlet_edges = len(tags['inlet'])
-        num_outlet_edges = len(tags['outlet'])
-
-        # write to SU2 format using meshio
-        # NDIM is automatically derived from shape of vertices (x,y or x,y,z)
-        # so here NDIM will be 2
-        cells = [('quad', connectivity), ('line', tags['airfoil']+tags['inlet']+tags['outlet'])]
-        cell_data={'su2:tag': [np.zeros(len(connectivity), dtype=int),
-                               np.array(num_airfoil_edges*[1] +
-                                        num_inlet_edges*[2] +
-                                        num_outlet_edges*[3])]}
-        meshio.write_points_cells(name, vertices, cells, cell_data=cell_data)
-
-        basename = os.path.basename(name)
-        logger.info('SU2 type mesh saved as {}'.
-                    format(os.path.join(OUTPUTDATA, basename)))
-
     def writeSU2_nolib(wind_tunnel, name=''):
         '''Write mesh to SU2 format without using meshio'''
 
@@ -1313,18 +1290,100 @@ class BlockMesh:
                     format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
-    def writeGMSH(wind_tunnel, name=''):
+    def writeGMSH_nolib(wind_tunnel, name=''):
+        """Writes a GMSH 2.2 format mesh file."""
 
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
-        vertices_3D = [v + (0.0,) for v in vertices]
-        cells = [('quad', connectivity)]
+        boundaries = wind_tunnel.boundary_tags
 
-        meshio.write_points_cells(name, vertices_3D, cells, file_format="gmsh22")
+        # Assign unique physical tags to boundaries
+        boundary_tags = {name: idx + 1 for idx, name in enumerate(boundaries.keys())}
+        num_physical_names = len(boundaries) + 1  # +1 for the domain (elements)
 
-        basename = os.path.basename(name)
-        logger.info('GMSH type mesh saved as {}'.
-                    format(os.path.join(OUTPUTDATA, basename)))
+        # Assign a physical tag for the domain elements
+        domain_physical_tag = num_physical_names
+
+        # Write the mesh file
+        with open(name, 'w') as f:
+            # Write MeshFormat section
+            f.write('$MeshFormat\n')
+            f.write('2.2 0 8\n')  # Version 2.2, ASCII mode, size of double precision
+            f.write('$EndMeshFormat\n')
+
+            # Write PhysicalNames section
+            f.write('$PhysicalNames\n')
+            f.write(f'{num_physical_names}\n')
+            # Write boundary physical names
+            for name, tag in boundary_tags.items():
+                f.write(f'1 {tag} "{name}"\n')  # Dimension 1 for lines
+            # Write domain physical name
+            f.write(f'2 {domain_physical_tag} "Domain"\n')  # Dimension 2 for surface elements
+            f.write('$EndPhysicalNames\n')
+
+            # Write Nodes section
+            f.write('$Nodes\n')
+            f.write(f'{len(vertices)}\n')
+            z = 0.0  # 2D mesh
+            for idx, (x, y) in enumerate(vertices, start=1):
+                f.write(f'{idx} {x: .8e} {y: .8e} {z: .8e}\n')
+            f.write('$EndNodes\n')
+
+            # Prepare elements
+            elements_data = []
+            elem_id = 1
+
+            # Write boundary edge elements
+            for name, edges in boundaries.items():
+                physical_tag = boundary_tags[name]
+                geometrical_tag = physical_tag  # For simplicity, set geometrical tag equal to physical tag
+                element_type = 1  # Line elements
+                num_tags = 2
+                for edge in edges:
+                    node1, node2 = edge
+                    elements_data.append((elem_id,
+                                          element_type,
+                                          num_tags,
+                                          physical_tag,
+                                          geometrical_tag,
+                                          [node1+1, node2+1])) # +1 to match GMSH 1-based indexing
+                    elem_id += 1
+
+            # Write domain elements
+            for elem_nodes in connectivity:
+                num_nodes = len(elem_nodes)
+                if num_nodes == 3:
+                    element_type = 2  # Triangle
+                elif num_nodes == 4:
+                    element_type = 3  # Quadrangle
+                elif num_nodes == 6:
+                    element_type = 9  # 6-node second order triangle
+                elif num_nodes == 8:
+                    element_type = 16  # 8-node second order quadrangle
+                else:
+                    raise ValueError(f"Unsupported element with {num_nodes} nodes.")
+
+                num_tags = 2
+                physical_tag = domain_physical_tag
+                geometrical_tag = physical_tag
+                elements_data.append((elem_id,
+                                      element_type,
+                                      num_tags,
+                                      physical_tag,
+                                      geometrical_tag,
+                                      [node+1 for node in elem_nodes])) # +1 to match GMSH 1-based indexing
+                elem_id += 1
+
+            # Write Elements section
+            f.write('$Elements\n')
+            f.write(f'{len(elements_data)}\n')
+            for elem in elements_data:
+                elem_id, elem_type, num_tags, physical_tag, geometrical_tag, node_ids = elem
+                node_ids_str = ' '.join(map(str, node_ids))
+                f.write(f'{elem_id} {elem_type} {num_tags} {physical_tag} {geometrical_tag} {node_ids_str}\n')
+            f.write('$EndElements\n')
+                    
+        logger.info(f'GMSH type mesh saved as {name}')
 
     @staticmethod
     def writeCGNS(wind_tunnel, name=''):
@@ -1366,142 +1425,6 @@ class BlockMesh:
         basename = os.path.basename(name)
         logger.info('OBJ type mesh saved as {}'.
                     format(os.path.join(OUTPUTDATA, basename)))
-
-    @staticmethod
-    def writeGMSH_OLD(wind_tunnel, name=''):
-        """export mesh in GMSH format 2
-        http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format-version-2-_0028Legacy_0029
-
-        Args:
-            mesh (TYPE): Description
-            blocks (TYPE): Description
-            name (str, optional): Description
-        """
-        basename = os.path.basename(name)
-        nameroot, extension = os.path.splitext(basename)
-
-        mesh = wind_tunnel.mesh
-        boundary_loops = wind_tunnel.boundary_loops
-        bnd_airfoil = wind_tunnel.lineedit_airfoil
-        bnd_inlet = wind_tunnel.lineedit_inlet
-        bnd_outlet = wind_tunnel.lineedit_outlet
-        bnd_symmetry = wind_tunnel.lineedit_symmetry
-        is_outlet = wind_tunnel.is_outlet
-
-        vertices, connectivity = mesh
-
-        # element type "1" is GMSH 2-node line
-        # element type "2" is GMSH 3-node triangle
-        # element type "3" is GMSH 4-node quadrangle
-        element_type_line = '1'
-        # element_type_triangle = '2'
-        element_type_quadrangle = '3'
-
-        # write date in English
-        locale.setlocale(locale.LC_ALL, 'en')
-        _date = date.today().strftime("%A %d. %B %Y")
-
-        with open(name, 'w') as f:
-
-            f.write('$MeshFormat\n')
-            f.write('2.2 0 8\n')
-            f.write('$EndMeshFormat\n')
-            f.write('$Comments\n')
-            f.write(' Airfoil contour: ' + nameroot + ' \n')
-            f.write(' File created with ' + PyAero.__appname__ + '\n')
-            f.write(' Version: ' + PyAero.__version__ + '\n')
-            f.write(' Author: ' + PyAero.__author__ + '\n')
-            f.write(' Date: ' + _date + '\n')
-            f.write('$EndComments\n')
-            '''
-            $PhysicalNames
-            number-of-names
-            physical-dimension physical-tag "physical-name"
-            $EndPhysicalNames
-            '''
-            f.write('$PhysicalNames\n')
-            f.write('4\n')
-            f.write('1 1 "{}"\n'.format(bnd_airfoil))
-            f.write('1 2 "{}"\n'.format(bnd_inlet))
-            f.write('1 3 "{}"\n'.format(bnd_outlet))
-            f.write('2 4 "{}"\n'.format(bnd_symmetry))
-            f.write('$EndPhysicalNames\n')
-            f.write('$Nodes\n')
-            f.write('%s\n' % (len(vertices)))
-
-            # x- and y-coordinates
-            for node, vertex in enumerate(vertices, start=1):
-                x, y = vertex[0], vertex[1]
-                f.write(' {:} {:16.8} {:16.8} 0.0\n'.format(node, x, y))
-            f.write('$EndNodes\n')
-            '''
-            $Elements
-            number-of-elements
-            elm-number elm-type number-of-tags < tag > … node-number-list
-            $EndElements
-            '''
-            f.write('$Elements\n')
-
-            # boundary_loops is a disjoint set groups element
-            # key for each loop is one arbitrary vertex of the loop
-            # one loop is made by the airfoil
-            # the other loop is made by the windtunnel outer boundary
-            keys = list(boundary_loops.keys())
-            # print('Number of boundary loops', len(keys))
-            elements_loop1 = len(list(boundary_loops[keys[0]]))
-            elements_loop2 = len(list(boundary_loops[keys[1]]))
-            number_of_cells = len(connectivity)
-
-            # number of elements
-            # compiled of airfoil, outer boundary and mesh itself
-            f.write('{}\n'.format(elements_loop1 + elements_loop2 +
-                                  number_of_cells))
-
-            element_id = 0
-
-            # FIXME
-            # FIXME refactor dicts and their usage
-            # FIXME
-            # write boundary elements (as per physical names)
-            physical = {0: '1', 1: '2'}
-            elementary_entities = {0: '8', 1: '7'}
-            for j, loop in enumerate(boundary_loops):
-                for i, node in enumerate(boundary_loops[loop]):
-                    element_id += 1
-                    # an element consists of:
-                    #   element_id
-                    #   element_type
-                    #
-                    if is_outlet[i]:
-                        physical_l = '3'
-                        elementary_entities_l = '9'
-                    else:
-                        physical_l = physical[j]
-                        elementary_entities_l = elementary_entities[j]
-                    element = ' ' + str(element_id) + ' ' + \
-                        element_type_line + ' 3 ' + physical_l + ' ' + \
-                        elementary_entities_l + ' 0 ' + str(node[0] + 1) + \
-                        ' ' + str(node[1] + 1) + '\n'
-                    f.write(element)
-
-            # write mesh elements
-            # includes physical tag for symmetry "4"
-            for cell in connectivity:
-
-                element_id += 1
-                element = ' ' + str(element_id) + ' ' + \
-                    element_type_quadrangle + ' 3 4 6 0 ' + \
-                    str(cell[0] + 1) + ' ' + \
-                    str(cell[1] + 1) + ' ' + \
-                    str(cell[2] + 1) + ' ' + \
-                    str(cell[3] + 1) + '\n'
-
-                f.write(element)
-
-            f.write('$EndElements')
-
-            logger.info('GMSH type mesh saved as {}'.
-                        format(os.path.join(OUTPUTDATA, basename)))
 
 
 class Smooth:
