@@ -1112,7 +1112,7 @@ class Toolbox(QtWidgets.QToolBox):
                                        name=name)
         if self.check_GMSH.isChecked():
             name = filename + '.msh'
-            Meshing.BlockMesh.writeMESH(self.wind_tunnel, 'GMSH', name=name)
+            Meshing.BlockMesh.writeGMSH_nolib(self.wind_tunnel, name=name)
         if self.check_VTK.isChecked():
             name = filename + '.vtk'
             Meshing.BlockMesh.writeMESH(self.wind_tunnel, 'VTK', name=name)
