@@ -3,7 +3,6 @@
 # ****************
 
 import os
-import sys
 
 
 PYAEROPATH = os.getcwd()
@@ -76,8 +75,11 @@ MAXZOOM = 120000.
 # valid values between 0.05 and 1.0
 RUBBERBANDSIZE = 0.08
 
-# scale increment
+# scale increment (must be >= 1.1)
 SCALEINC = 1.1
+
+ # zoom direction (can be inverted by changing the sign)
+ZOOMDIRECTION = -1
 
 # Color for emphasized log messages
 LOGCOLOR = '#1763E7'
