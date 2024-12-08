@@ -534,17 +534,28 @@ class Windtunnel:
                               'outlet': [],
                               'top': [],
                               'bottom': []}
-        tol = 1.e-4
+        
+        ### FIXME
+        ### FIXME too dirty below (do not work with toplerances!!!)
+        ### FIXME
+
+        xmax = np.max(vertices[:,0])
+        ymax = np.max(vertices[:,1])
+        ymin = np.min(vertices[:,1])
+
         for edge in self.boundary_edges:
-            x = vertices[edge[0]][0]
-            y = vertices[edge[0]][1]
-            if x > -0.1 and x < 1.1 and y < 0.5 and y > -0.5:
+            x1 = vertices[edge[0]][0]
+            y1 = vertices[edge[0]][1]
+            x2 = vertices[edge[1]][0]
+            y2 = vertices[edge[1]][1]
+            tol = 1e-6  # tolerance for coordinate comparison
+            if x1 > -0.1 and x1 < 1.1 and y1 < 0.5 and y1 > -0.5:
                 self.boundary_tags['airfoil'].append(edge)
-            elif x > np.max(vertices[:,0]) - tol:
+            elif abs(x1 - xmax) < tol and abs(x2 - xmax) < tol:
                 self.boundary_tags['outlet'].append(edge)
-            elif y > np.max(vertices[:,1]) - tol:
+            elif abs(y1 - ymax) < tol and abs(y2 - ymax) < tol:
                 self.boundary_tags['top'].append(edge)
-            elif y < np.min(vertices[:,1]) + tol:
+            elif abs(y1 - ymin) < tol and abs(y2 - ymin) < tol:
                 self.boundary_tags['bottom'].append(edge)
             else:
                 self.boundary_tags['inlet'].append(edge)
@@ -1297,6 +1308,14 @@ class BlockMesh:
         vertices, connectivity = mesh
         boundaries = wind_tunnel.boundary_tags
 
+        # export vertices and connectivity and boundaries to TXT file for debugging
+        # write index beginning with 1 for GMSH 1-based indexing
+        np.savetxt('vertices.txt', vertices, fmt='%1.8e', header=' x y', comments='')
+        connectivity_plus_one = [[node + 1 for node in cell] for cell in connectivity]
+        np.savetxt('connectivity.txt', connectivity_plus_one, fmt='%d', header=' n1 n2 n3 n4', comments='')
+        for name1, edges in boundaries.items():
+            np.savetxt(f'{name1}.txt', [[n+1 for n in e] for e in edges], fmt='%d', header='n1 n2', comments='')
+
         # Assign unique physical tags to boundaries
         boundary_tags = {name: idx + 1 for idx, name in enumerate(boundaries.keys())}
         num_physical_names = len(boundaries) + 1  # +1 for the domain (elements)
@@ -1315,8 +1334,8 @@ class BlockMesh:
             f.write('$PhysicalNames\n')
             f.write(f'{num_physical_names}\n')
             # Write boundary physical names
-            for name, tag in boundary_tags.items():
-                f.write(f'1 {tag} "{name}"\n')  # Dimension 1 for lines
+            for name1, tag in boundary_tags.items():
+                f.write(f'1 {tag} "{name1}"\n')  # Dimension 1 for lines
             # Write domain physical name
             f.write(f'2 {domain_physical_tag} "Domain"\n')  # Dimension 2 for surface elements
             f.write('$EndPhysicalNames\n')
@@ -1334,8 +1353,8 @@ class BlockMesh:
             elem_id = 1
 
             # Write boundary edge elements
-            for name, edges in boundaries.items():
-                physical_tag = boundary_tags[name]
+            for name1, edges in boundaries.items():
+                physical_tag = boundary_tags[name1]
                 geometrical_tag = physical_tag  # For simplicity, set geometrical tag equal to physical tag
                 element_type = 1  # Line elements
                 num_tags = 2
