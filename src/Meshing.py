@@ -1308,14 +1308,6 @@ class BlockMesh:
         vertices, connectivity = mesh
         boundaries = wind_tunnel.boundary_tags
 
-        # export vertices and connectivity and boundaries to TXT file for debugging
-        # write index beginning with 1 for GMSH 1-based indexing
-        np.savetxt('vertices.txt', vertices, fmt='%1.8e', header=' x y', comments='')
-        connectivity_plus_one = [[node + 1 for node in cell] for cell in connectivity]
-        np.savetxt('connectivity.txt', connectivity_plus_one, fmt='%d', header=' n1 n2 n3 n4', comments='')
-        for name1, edges in boundaries.items():
-            np.savetxt(f'{name1}.txt', [[n+1 for n in e] for e in edges], fmt='%d', header='n1 n2', comments='')
-
         # Assign unique physical tags to boundaries
         boundary_tags = {name: idx + 1 for idx, name in enumerate(boundaries.keys())}
         num_physical_names = len(boundaries) + 1  # +1 for the domain (elements)
