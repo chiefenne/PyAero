@@ -4,7 +4,7 @@ import math
 from PySide6 import QtGui, QtCore, QtWidgets
 
 from Settings import ZOOMANCHOR, SCALEINC, MINZOOM, MAXZOOM, \
-                      MARKERSIZE, RUBBERBANDSIZE, VIEWSTYLE
+                      MARKERSIZE, RUBBERBANDSIZE, VIEWSTYLE, ZOOMDIRECTION
 import logging
 logger = logging.getLogger(__name__)
 
@@ -208,14 +208,23 @@ class GraphicsView(QtWidgets.QGraphicsView):
     def wheelEvent(self, event):
         """Re-implement QGraphicsView's wheelEvent handler"""
 
-        f = SCALEINC
-        # wheelevent.angleDelta() returns a QPoint instance
-        # the angle increment of the wheel is stored on the .y() attribute
-        angledelta = event.angleDelta().y()
-        if math.copysign(1, angledelta) > 0:
-            f = 1.0 / SCALEINC
+        # detect if event comes from a touchpad or similar (e.g., Apple magic mouse)
+        # then zoom based on pixel delta
+        device = event.device().type().name
 
-        self.scaleView(f)
+        if device == 'TouchPad':
+            delta = event.pixelDelta().y()
+            damping = 0.0
+        else:
+            delta = event.angleDelta().y()
+            damping = 0.0
+
+        # Determine the scale factor based on the wheel direction
+        factor = SCALEINC - damping
+        scale_factor = 1.0 / factor if delta * ZOOMDIRECTION > 0 else factor
+
+        # Apply the scaling
+        self.scaleView(scale_factor)
 
         # DO NOT CONTINUE HANDLING EVENTS HERE!!!
         # this would destroy the mouse anchor
@@ -308,7 +317,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # do the actual zooming
         self.scale(factor, factor)
 
-        # rescale markers during zoom, i.e. keep them constant size
+        # rescale markers during zoom, i.e., keep them constant size
         self.adjustMarkerSize()
 
         # cache view to be able to keep it during resize

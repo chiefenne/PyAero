@@ -623,28 +623,46 @@ class Toolbox(QtWidgets.QToolBox):
         hbl_cm.addWidget(self.createMeshButton, stretch=4)
         hbl_cm.addStretch(stretch=1)
 
+        # boundary definitions
+        label = QtWidgets.QLabel('Boundary definitions:')
+        label.setToolTip('Here you can define the names of the boundaries ' +
+                         'for the mesh export')
+
+        grid1 = QtWidgets.QGridLayout()
+        grid1.addWidget(label, 0, 0)
+
         # export menu and boundary definitions
         self.form_bnd = QtWidgets.QFormLayout()
+        header_1 = QtWidgets.QLabel('Boundary')
+        header_1.setStyleSheet('font-weight: bold;')
+        header_2 = QtWidgets.QLabel('Name')
+        header_2.setStyleSheet('font-weight: bold;')
+        self.form_bnd.addRow(header_1, header_2)
 
-        label = QtWidgets.QLabel('Boundary name for airfoil')
+        label = QtWidgets.QLabel('Airfoil')
         label.setToolTip('Name of the boundary definition for the airfoil')
         self.lineedit_airfoil = QtWidgets.QLineEdit('Airfoil')
         self.form_bnd.addRow(label, self.lineedit_airfoil)
 
-        label = QtWidgets.QLabel('Boundary name for inlet')
-        label.setToolTip('Name of the boundary definition for the inlet flow')
+        label = QtWidgets.QLabel('Inlet (C-arc)')
+        label.setToolTip('Name of the boundary definition for the inlet')
         self.lineedit_inlet = QtWidgets.QLineEdit('Inlet')
         self.form_bnd.addRow(label, self.lineedit_inlet)
 
-        label = QtWidgets.QLabel('Boundary name for outlet')
-        label.setToolTip('Name of the boundary definition for the outlet flow')
+        label = QtWidgets.QLabel('Outlet')
+        label.setToolTip('Name of the boundary definition for the outlet')
         self.lineedit_outlet = QtWidgets.QLineEdit('Outlet')
         self.form_bnd.addRow(label, self.lineedit_outlet)
 
-        label = QtWidgets.QLabel('Boundary name for symmetry')
-        label.setToolTip('Name of the boundary definition for the symmetry')
-        self.lineedit_symmetry = QtWidgets.QLineEdit('Symmetry')
-        self.form_bnd.addRow(label, self.lineedit_symmetry)
+        label = QtWidgets.QLabel('Top')
+        label.setToolTip('Name of the boundary definition for the top of the windtunnel')
+        self.lineedit_top = QtWidgets.QLineEdit('Top')
+        self.form_bnd.addRow(label, self.lineedit_top)
+
+        label = QtWidgets.QLabel('Bottom')
+        label.setToolTip('Name of the boundary definition for the bottom of the windtunnel')
+        self.lineedit_bottom = QtWidgets.QLineEdit('Bottom')
+        self.form_bnd.addRow(label, self.lineedit_bottom)
 
         self.check_FIRE = QtWidgets.QCheckBox('AVL FIRE')
         self.check_SU2 = QtWidgets.QCheckBox('SU2')
@@ -660,18 +678,18 @@ class Toolbox(QtWidgets.QToolBox):
         self.check_CGNS.setChecked(False)
         self.check_ABAQUS.setChecked(False)
         self.check_OBJ.setChecked(False)
+
         label = QtWidgets.QLabel('Export format:')
         label.setToolTip('Check format to be exported')
-
         grid = QtWidgets.QGridLayout()
         grid.addWidget(label, 0, 0)
-        grid.addWidget(self.check_FIRE, 0, 1)
-        grid.addWidget(self.check_SU2, 0, 2)
-        grid.addWidget(self.check_GMSH, 0, 3)
-        grid.addWidget(self.check_VTK, 1, 1)
-        grid.addWidget(self.check_CGNS, 1, 2)
-        grid.addWidget(self.check_ABAQUS, 1, 3)
-        grid.addWidget(self.check_OBJ, 2, 1)
+        grid.addWidget(self.check_FIRE, 1, 1)
+        grid.addWidget(self.check_SU2, 1, 2)
+        grid.addWidget(self.check_GMSH, 1, 3)
+        grid.addWidget(self.check_VTK, 2, 1)
+        grid.addWidget(self.check_CGNS, 2, 2)
+        grid.addWidget(self.check_ABAQUS, 2, 3)
+        grid.addWidget(self.check_OBJ, 3, 1)
 
         exportMeshButton = QtWidgets.QPushButton('Export Mesh')
         hbl = QtWidgets.QHBoxLayout()
@@ -680,6 +698,7 @@ class Toolbox(QtWidgets.QToolBox):
         hbl.addStretch(stretch=1)
 
         vbl1 = QtWidgets.QVBoxLayout()
+        vbl1.addLayout(grid1)
         vbl1.addLayout(self.form_bnd)
         vbl1.addLayout(grid)
         vbl1.addLayout(hbl)
@@ -1100,7 +1119,8 @@ class Toolbox(QtWidgets.QToolBox):
         self.wind_tunnel.boundary_airfoil = self.lineedit_airfoil.text()
         self.wind_tunnel.boundary_inlet = self.lineedit_inlet.text()
         self.wind_tunnel.boundary_outlet = self.lineedit_outlet.text()
-        self.wind_tunnel.boundary_symmetry = self.lineedit_symmetry.text()
+        self.wind_tunnel.boundary_top = self.lineedit_top.text()
+        self.wind_tunnel.boundary_bottom = self.lineedit_bottom.text()
 
         if self.check_FIRE.isChecked():
             name = filename + '.flma'
@@ -1112,7 +1132,7 @@ class Toolbox(QtWidgets.QToolBox):
                                        name=name)
         if self.check_GMSH.isChecked():
             name = filename + '.msh'
-            Meshing.BlockMesh.writeMESH(self.wind_tunnel, 'GMSH', name=name)
+            Meshing.BlockMesh.writeGMSH_nolib(self.wind_tunnel, name=name)
         if self.check_VTK.isChecked():
             name = filename + '.vtk'
             Meshing.BlockMesh.writeMESH(self.wind_tunnel, 'VTK', name=name)
