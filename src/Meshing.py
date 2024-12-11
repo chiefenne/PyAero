@@ -6,8 +6,6 @@ import locale
 import numpy as np
 from scipy import interpolate
 
-import meshio
-
 from PySide6 import QtGui, QtCore, QtWidgets
 
 import PyAero
@@ -1270,31 +1268,129 @@ class BlockMesh:
                     format(os.path.join(OUTPUTDATA, basename)))
 
     @staticmethod
-    def writeMESH(wind_tunnel, fmt, name=''):
-        """Wrapper function to write mesh to different formats"""
+    def writeVTK_nolib(wind_tunnel, name=''):
+        """
+        Write a VTU file (UnstructuredGrid)."""
 
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
-        vertices_3D = [v + (0.0,) for v in vertices]
-        cells = [('quad', connectivity)]
+        tags = wind_tunnel.boundary_tags
 
-        file_fmt = 'gmsh22' if fmt == 'GMSH' else None
-        meshio.write_points_cells(name, vertices_3D, cells, file_format=file_fmt)
+        vertices = [v + (0.0,) for v in vertices]
+        # Determine number of points
+        num_vertices = len(vertices)
 
-        basename = os.path.basename(name)
-        fullpath = os.path.join(OUTPUTDATA, basename)
-        logger.info(f'{fmt} type mesh saved as {fullpath}')
+        # Convert connectivity (list of lists) to a consistent format internally
+        # without changing the external data model.
+        polygon_cells = [np.array(cell, dtype=int) for cell in connectivity]
 
-    @staticmethod
-    def writeVTK(wind_tunnel, name=''):
-        """Write mesh to VTK format."""
 
-        mesh = wind_tunnel.mesh
-        vertices, connectivity = mesh
-        cells = [('quad', connectivity)]
-        vertices_3D = [v + (0.0,) for v in vertices]
+        # Function to determine VTK cell type based on number of vertices in a cell
+        # Add more mappings if you have other cell types.
+        def cell_type_from_length(n):
+            if n == 2:
+                return 3  # VTK_LINE
+            elif n == 3:
+                return 5  # VTK_TRIANGLE
+            elif n == 4:
+                return 9  # VTK_QUAD
+            else:
+                raise ValueError(f"No VTK cell type defined for {n}-node cells.")
 
-        meshio.write_points_cells(name, vertices_3D, cells)
+        # Process main polygonal cells
+        # For these cells, we assign boundary_id=0 as a default.
+        # Flatten their connectivity
+
+        # Process main polygonal cells
+        polygon_cell_lengths = [len(cell) for cell in polygon_cells]
+        polygon_connectivity_flat = np.concatenate([cell for cell in polygon_cells]) if polygon_cells else np.array([], dtype=int)
+        polygon_cell_types = np.array([cell_type_from_length(l) for l in polygon_cell_lengths], dtype=np.uint8)
+        polygon_boundary_ids = np.zeros(len(polygon_cells), dtype=np.int32)  # default boundary_id=0
+
+        # Process boundary edges (line cells)
+        # Assign each boundary name a unique ID starting from 1
+        boundary_names = list(tags.keys())
+        boundary_id_map = {name: i+1 for i, name in enumerate(boundary_names)}
+
+        # Flatten boundary edges into a single connectivity array
+        # Each edge is a 2-vertex line cell
+        boundary_edges = []
+        boundary_edge_lengths = []
+        boundary_edge_types = []
+        boundary_edge_ids = []
+
+        for bname, edges in tags.items():
+            for edge in edges:
+                edge = np.array(edge, dtype=int)  # ensure numpy array
+                if len(edge) != 2:
+                    raise ValueError("Boundary edges must have exactly 2 vertices.")
+                boundary_edges.append(edge)
+                boundary_edge_lengths.append(2)
+                boundary_edge_types.append(cell_type_from_length(2))
+                boundary_edge_ids.append(boundary_id_map[bname])
+
+        if len(boundary_edges) > 0:
+            boundary_connectivity_flat = np.concatenate(boundary_edges)
+            boundary_cell_types = np.array(boundary_edge_types, dtype=np.uint8)
+            boundary_ids_array = np.array(boundary_edge_ids, dtype=np.int32)
+        else:
+            boundary_connectivity_flat = np.array([], dtype=int)
+            boundary_cell_types = np.array([], dtype=np.uint8)
+            boundary_ids_array = np.array([], dtype=np.int32)
+
+        # Combine polygonal cells and boundary line cells
+        all_connectivity_flat = np.concatenate([polygon_connectivity_flat, boundary_connectivity_flat])
+        all_cell_types = np.concatenate([polygon_cell_types, boundary_cell_types])
+        all_boundary_ids = np.concatenate([polygon_boundary_ids, boundary_ids_array])
+        all_cell_lengths = polygon_cell_lengths + boundary_edge_lengths
+
+        num_cells = len(all_cell_lengths)
+        offsets = np.cumsum(all_cell_lengths)
+
+        # Write VTU file in ASCII format
+        with open(name, "w") as f:
+            f.write('<?xml version="1.0"?>\n')
+            f.write('<VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian">\n')
+            f.write('  <UnstructuredGrid>\n')
+            f.write(f'    <Piece NumberOfPoints="{num_vertices}" NumberOfCells="{num_cells}">\n')
+
+            # Cell Data: boundary_ids
+            f.write('      <CellData Scalars="BoundaryID">\n')
+            f.write('        <DataArray type="Int32" Name="BoundaryID" format="ascii">\n')
+            f.write('          ' + ' '.join(map(str, all_boundary_ids)) + '\n')
+            f.write('        </DataArray>\n')
+            f.write('      </CellData>\n')
+
+            # vertices
+            f.write('      <Points>\n')
+            f.write('        <DataArray type="Float32" NumberOfComponents="3" format="ascii">\n')
+            for p in vertices:
+                f.write(f'          {p[0]} {p[1]} {p[2]}\n')
+            f.write('        </DataArray>\n')
+            f.write('      </Points>\n')
+
+            # Cells
+            f.write('      <Cells>\n')
+            # connectivity
+            f.write('        <DataArray type="Int32" Name="connectivity" format="ascii">\n')
+            f.write('          ' + ' '.join(map(str, all_connectivity_flat)) + '\n')
+            f.write('        </DataArray>\n')
+
+            # offsets
+            f.write('        <DataArray type="Int32" Name="offsets" format="ascii">\n')
+            f.write('          ' + ' '.join(map(str, offsets)) + '\n')
+            f.write('        </DataArray>\n')
+
+            # types
+            f.write('        <DataArray type="UInt8" Name="types" format="ascii">\n')
+            f.write('          ' + ' '.join(map(str, all_cell_types)) + '\n')
+            f.write('        </DataArray>\n')
+
+            f.write('      </Cells>\n')
+
+            f.write('    </Piece>\n')
+            f.write('  </UnstructuredGrid>\n')
+            f.write('</VTKFile>\n')
 
         basename = os.path.basename(name)
         logger.info('VTK type mesh saved as {}'.
@@ -1395,47 +1491,6 @@ class BlockMesh:
             f.write('$EndElements\n')
                     
         logger.info(f'GMSH type mesh saved as {name}')
-
-    @staticmethod
-    def writeCGNS(wind_tunnel, name=''):
-
-        mesh = wind_tunnel.mesh
-        vertices, connectivity = mesh
-        vertices_3D = [v + (0.0,) for v in vertices]
-        cells = [('quad', connectivity)]
-
-        meshio.write_points_cells(name, vertices_3D, cells)
-
-        basename = os.path.basename(name)
-        logger.info('CGNS type mesh saved as {}'.
-                    format(os.path.join(OUTPUTDATA, basename)))
-
-    @staticmethod
-    def writeABAQUS(wind_tunnel, name=''):
-
-        mesh = wind_tunnel.mesh
-        vertices, connectivity = mesh
-        vertices_3D = [v + (0.0,) for v in vertices]
-        cells = [('quad', connectivity)]
-
-        meshio.write_points_cells(name, vertices_3D, cells)
-
-        basename = os.path.basename(name)
-        logger.info('ABAQUS type mesh saved as {}'.
-                    format(os.path.join(OUTPUTDATA, basename)))
-
-    @staticmethod
-    def writeOBJ(wind_tunnel, name=''):
-        mesh = wind_tunnel.mesh
-        vertices, connectivity = mesh
-        cells = [('quad', connectivity)]
-        vertices_3D = [v + (0.0,) for v in vertices]
-
-        meshio.write_points_cells(name, vertices_3D, cells)
-
-        basename = os.path.basename(name)
-        logger.info('OBJ type mesh saved as {}'.
-                    format(os.path.join(OUTPUTDATA, basename)))
 
 
 class Smooth:

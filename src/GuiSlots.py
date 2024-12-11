@@ -405,7 +405,7 @@ class Slots:
         # generate a mesh using defaults
         self.parent.centralwidget.toolbox.generateMesh()
         # export the mesh
-        self.parent.centralwidget.toolbox.exportMesh()
+        # self.parent.centralwidget.toolbox.exportMesh()
 
     @QtCore.Slot()
     def onHelpOnline(self):
