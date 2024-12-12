@@ -25,14 +25,12 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
    - Mesh resolution control for airfoil, leading edge, trailing edge and windtunnel
  - Sharp or blunt trailing edges
  - Mesh smoothing (to be improved)
- - Mesh export (including boundary markers)
+ - Mesh export
    - [AVL FIRE](https://www.avl.com/fire) (.flma)
    - [SU2](https://su2code.github.io) (.su2)
    - [GMSH](http://gmsh.info) (.msh)
    - [VTK](https://vtk.org) (.vtk)
-
-   - Automatic definition of boundary elements (edges, faces)
-     - Airfoil, inlet, outlet, symmetry
+ - Automatic definition of boundaries
  - Run in batch mode (i.e. run PyAero from the command line)
    - Mesh multiple airfoils and export the meshes in multiple formats in one run without user interaction
    - Using the ``-no-gui`` option and a [control file](data/Batch/batch_control.json) in json format
