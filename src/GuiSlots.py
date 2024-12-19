@@ -161,15 +161,6 @@ class Slots:
         # cache view to be able to keep it during resize
         self.parent.view.getSceneFromView()
 
-    @QtCore.Slot()
-    def toggleTestObjects(self):
-        if self.parent.testitems:
-            GraphicsTest.deleteTestItems(self.parent.scene)
-            logger.info('Test items for GraphicsView loaded')
-        else:
-            GraphicsTest.addTestItems(self.parent.scene)
-            logger.info('Test items for GraphicsView removed')
-        self.parent.testitems = not self.parent.testitems
 
     @QtCore.Slot()
     def onSave(self):
