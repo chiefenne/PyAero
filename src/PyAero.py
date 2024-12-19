@@ -79,7 +79,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def _setupShortcuts(self):
         sc = ShortCuts.ShortCuts(self)
         sc.addShortcut('ALT+m', 'toggleLogDock', 'shortcut')
-        sc.addShortcut('ALT+t', 'toggleTestObjects')
 
     def init_GUI(self):
 
