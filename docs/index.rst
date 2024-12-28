@@ -99,15 +99,12 @@ Kobayashi SGS model was done. With the applied mesh resolution both approaches l
    - Wake region
    - Windtunnel
  
- - Mesh export (most formats based on the `meshio <https://github.com/nschloe/meshio>`_ library)
+ - Mesh export
  
    - `AVL FIRE <https://www.avl.com/fire>`_ (*.flma)
    - `SU2 <https://su2code.github.io/>`_ (*.su2)
    - `GMSH <http://gmsh.info>`_ (*.msh)
    - `VTK <https://vtk.org>`_ (.vtk)
-   - `CGNS <https://cgns.github.io>`_ (.cgns)
-   - `ABAQUS <https://www.3ds.com>`_ (.inp)
-
  
  - Simple aerodynamic analysis, i.e. panel methods
  
