@@ -113,7 +113,6 @@ The documentation is automatically generated using the markdown files in the [do
  - [Qt for Python (PySide6)](https://www.qt.io/qt-for-python)
  - [Numpy](http://www.numpy.org/)
  - [Scipy](https://www.scipy.org/)
- - [meshio](https://github.com/nschloe/meshio)
 
 At the moment no binary is available for Windows.
 
@@ -182,7 +181,7 @@ $ alias pyaero="python $PYAEROPATH/src/PyAero.py"
 $ alias pyaero "python $PYAEROPATH/src/PyAero.py"
 ```
 
-To keep this across sessions, again append the *alias* command to the respective *.bashrc*, *.cshrc*, etc.
+To keep this across sessions, again append the *alias* command to the respective *.zshrc, *.bashrc, etc.
 
 Then start PyAero using:
 
