@@ -3,7 +3,6 @@ import os
 from PySide6 import QtGui, QtCore, QtWidgets
 
 from Utils import get_main_window
-import Settings
 import logging
 logger = logging.getLogger(__name__)
 
@@ -473,9 +472,9 @@ class RubberBand(QtWidgets.QRubberBand):
         self.pen.setStyle(QtCore.Qt.DotLine)
 
         # zoom rect must be at least RUBBERBAND_MIN % of view to allow zoom
-        if (QPaintEvent.rect().width() < RUBBERBAND_MIN * self.view.width()) \
+        if (QPaintEvent.rect().width() < self.mw.RUBBERBAND_MIN * self.view.width()) \
             or \
-           (QPaintEvent.rect().height() < RUBBERBAND_MIN * self.view.height()):
+           (QPaintEvent.rect().height() < self.mw.RUBBERBAND_MIN * self.view.height()):
 
             self.brush.setStyle(QtCore.Qt.NoBrush)
 
