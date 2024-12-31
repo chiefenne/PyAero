@@ -106,10 +106,8 @@ Kobayashi SGS model was done. With the applied mesh resolution both approaches l
    - `GMSH <http://gmsh.info>`_ (*.msh)
    - `VTK <https://vtk.org>`_ (.vtk)
  
- - Simple aerodynamic analysis, i.e. panel methods
+ - Simple aerodynamic analysis
  
-   - `AeroPython <http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb>`_
-
 
 **Quick start guide**
 
