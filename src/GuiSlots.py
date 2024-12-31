@@ -10,8 +10,7 @@ from PySide6 import QtGui, QtCore, QtWidgets, QtPrintSupport
 import PyAero
 import Airfoil
 import FileDialog
-import GraphicsTest
-from Settings import DIALOGFILTER, AIRFOILDATA, DEFAULT_CONTOUR
+from Utils import get_main_window
 import logging
 logger = logging.getLogger(__name__)
 
@@ -26,13 +25,11 @@ class Slots:
     @QtCore.Slot() decorator.
     """
 
-    def __init__(self, parent):
-        """Constructor for Slots class
+    def __init__(self):
+        """Constructor for Slots class"""
 
-        Args:
-            parent (QMainWindow object): MainWindow instance
-        """
-        self.parent = parent
+        # MainWindow instance
+        self.mw = get_main_window()
 
     @QtCore.Slot()
     def onOpen(self):
@@ -42,8 +39,8 @@ class Slots:
             TYPE: Description
         """
         file_dialog = FileDialog.Dialog()
-        file_dialog.setFilter(DIALOGFILTER)
-        filename, _ = file_dialog.openFilename(directory=AIRFOILDATA)
+        file_dialog.setFilter(self.mw.DIALOG_FILTER)
+        filename, _ = file_dialog.open_filename()
 
         if not filename:
             logger.info('No file selected. Nothing saved.')
@@ -57,7 +54,7 @@ class Slots:
 
     @QtCore.Slot()
     def onOpenPredefined(self):
-        self.loadAirfoil(DEFAULT_CONTOUR)
+        self.loadAirfoil(self.mw.DEFAULT_AIRFOIL)
 
     @QtCore.Slot(str, str)
     def loadAirfoil(self, filename, comment='#'):
@@ -78,16 +75,16 @@ class Slots:
         logger.info(f'Airfoil {name} loaded')
 
     def _clearScene(self):
-        self.parent.scene.clear()
+        self.mw.scene.clear()
 
     def _addAirfoilToScene(self, airfoil):
         airfoil.makeAirfoil()
-        airfoil.addToScene(self.parent.scene)
-        self.parent.airfoil = airfoil
-        self.parent.airfoils.append(airfoil)
+        airfoil.addToScene(self.mw.scene)
+        self.mw.airfoil = airfoil
+        self.mw.airfoils.append(airfoil)
 
     def _updateAirfoilList(self, name):
-        toolbox = self.parent.centralwidget.toolbox
+        toolbox = self.mw.mainArea.toolbox
         toolbox.header.setEnabled(True)
         toolbox.listwidget.setEnabled(True)
         toolbox.listwidget.addItem(name)
@@ -113,11 +110,11 @@ class Slots:
     @QtCore.Slot()
     def fitAirfoilInView(self):
 
-        if len(self.parent.airfoils) == 0:
+        if len(self.mw.airfoils) == 0:
             return
 
         # get bounding rect in scene coordinates
-        item = self.parent.airfoil.contourPolygon
+        item = self.mw.airfoil.contourPolygon
         rectf = item.boundingRect()
         rf = copy.deepcopy(rectf)
 
@@ -134,15 +131,15 @@ class Slots:
         cy = center.y()
         rf.moveCenter(QtCore.QPointF(cx, cy))
 
-        self.parent.view.fitInView(rf,
+        self.mw.view.fitInView(rf,
                                    aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
         # it is IMPORTANT that this is called after fitInView
-        # adjust airfoil marker size to MARKERSIZE setting
-        self.parent.view.adjustMarkerSize()
+        # adjust airfoil marker size to MARKER_SIZE setting
+        self.mw.view.adjustMarkerSize()
 
         # cache view to be able to keep it during resize
-        self.parent.view.getSceneFromView()
+        self.mw.view.getSceneFromView()
 
     @QtCore.Slot()
     def onViewAll(self):
@@ -150,23 +147,23 @@ class Slots:
 
         # take all items except markers (as they are adjusted in size for view)
 
-        rectf = self.parent.scene.itemsBoundingRect()
-        self.parent.view.fitInView(rectf,
+        rectf = self.mw.scene.itemsBoundingRect()
+        self.mw.view.fitInView(rectf,
                                    aspectRadioMode=QtCore.Qt.KeepAspectRatio)
 
         # it is IMPORTANT that this is called after fitInView
-        # adjust airfoil marker size to MARKERSIZE setting
-        self.parent.view.adjustMarkerSize()
+        # adjust airfoil marker size to MARKER_SIZE setting
+        self.mw.view.adjustMarkerSize()
 
         # cache view to be able to keep it during resize
-        self.parent.view.getSceneFromView()
+        self.mw.view.getSceneFromView()
 
 
     @QtCore.Slot()
     def onSave(self):
         (fname, thefilter) = QtWidgets.QFileDialog. \
-            getSaveFileNameAndFilter(self.parent,
-                                     'Save file', '.', filter=DIALOGFILTER)
+            getSaveFileNameAndFilter(self.mw,
+                                     'Save file', '.', filter=self.mw.DIALOG_FILTER)
         if not fname:
             return
 
@@ -177,8 +174,8 @@ class Slots:
     def onSaveAs(self):
         (fname, thefilter) = QtGui. \
             QFileDialog.getSaveFileNameAndFilter(
-            self.parent, 'Save file as ...', '.',
-            filter=DIALOGFILTER)
+            self.mw, 'Save file as ...', '.',
+            filter=self.mw.DIALOG_FILTER)
         if not fname:
             return
         with open(fname, 'w') as f:
@@ -188,7 +185,7 @@ class Slots:
     def onPrint(self):
         dialog = QtWidgets.QPrintDialog()
         if dialog.exec_() == QtGui.QDialog.Accepted:
-            self.parent.editor.document().print_(dialog.printer())
+            self.mw.editor.document().print_(dialog.printer())
 
     @QtCore.Slot()
     def onPreview(self):
@@ -198,34 +195,34 @@ class Slots:
         layout.setPageSize(QtGui.QPageSize.A3)
         printer.setPageLayout(layout)
 
-        preview = QtPrintSupport.QPrintPreviewDialog(printer, self.parent)
+        preview = QtPrintSupport.QPrintPreviewDialog(printer, self.mw)
         preview.paintRequested.connect(self.handlePaintRequest)
         preview.exec()
 
     @QtCore.Slot()
     def handlePaintRequest(self, printer):
         # render QGraphicsView
-        self.parent.view.render(QtGui.QPainter(printer))
+        self.mw.view.render(QtGui.QPainter(printer))
 
     @QtCore.Slot(str)
     def toggleLogDock(self, _sender):
         """Switch message log window on/off"""
 
-        visible = self.parent.messagedock.isVisible()
-        self.parent.messagedock.setVisible(not visible)
+        # check if self.mw.messagedock exists
+        if not hasattr(self.mw, 'messagedock'):
+            return
+        visible = self.mw.messagedock.isVisible()
+        self.mw.messagedock.setVisible(not visible)
 
         # update the checkbox if toggling is done via keyboard shortcut
         if _sender == 'shortcut':
-            checkbox = self.parent.centralwidget.message_window_checkbox
+            # variable message_window_checkbox is defined in viewingOptions()
+            checkbox = self.mw.mainArea.message_window_checkbox
             checkbox.setChecked(not checkbox.isChecked())
-
-    @QtCore.Slot()
-    def onBlockMesh(self):
-        pass
 
     @QtCore.Slot(str)
     def getAirfoilByName(self, name):
-        for airfoil in self.parent.airfoils:
+        for airfoil in self.mw.airfoils:
             if airfoil.name == name:
                 return airfoil
         return None
@@ -235,8 +232,8 @@ class Slots:
         """Remove all selected airfoils from the scene"""
 
         # look also at toolbox listwidget
-        centralwidget = self.parent.centralwidget
-        listwidget = centralwidget.toolbox.listwidget
+        mainArea = self.mw.mainArea
+        listwidget = mainArea.toolbox.listwidget
 
         # the name parameter is only set when coming from listwidget
         # and the deleting is done via DEL key
@@ -249,23 +246,23 @@ class Slots:
         elif len(listwidget.selectedItems()) > 0:
             name = listwidget.selectedItems()[0].text()
             airfoil = self.getAirfoilByName(name)
-        elif self.parent.airfoil:
-            airfoil = self.parent.airfoil
+        elif self.mw.airfoil:
+            airfoil = self.mw.airfoil
         else:
             print('No airfoil selected for deletion')
             return
 
         # remove airfoil from the list in the list widget
-        self.parent.airfoils.remove(airfoil)
+        self.mw.airfoils.remove(airfoil)
 
         # remove from scene only if active airfoil was chosen
-        if airfoil.name == self.parent.airfoil.name:
+        if airfoil.name == self.mw.airfoil.name:
             # removes all items from the scene (polygon, chord, mesh, etc.)
-            self.parent.scene.clear()
+            self.mw.scene.clear()
 
         # remove also listwidget entry
         itms = listwidget.findItems(
-            self.parent.airfoil.name, QtCore.Qt.MatchExactly)
+            self.mw.airfoil.name, QtCore.Qt.MatchExactly)
         for itm in itms:
             row = listwidget.row(itm)
             listwidget.takeItem(row)
@@ -275,11 +272,11 @@ class Slots:
 
     @QtCore.Slot(str)
     def onMessage(self, msg):
-        # move cursor to the end before writing new message
+        # Move cursor to the end before writing the new message
         # so in case text inside the log window was selected before
-        # the new text is pastes correct
-        self.parent.messages.moveCursor(QtGui.QTextCursor.End)
-        self.parent.messages.append(msg)
+        # the new text is pasted correctly
+        self.mw.messages.moveCursor(QtGui.QTextCursor.End)
+        self.mw.messages.append(msg)
 
     @QtCore.Slot()
     def onExit(self):
@@ -291,34 +288,34 @@ class Slots:
 
     @QtCore.Slot()
     def onBackground(self):
-        if self.parent.view.viewstyle == 'gradient':
-            self.parent.view.viewstyle = 'solid'
+        if self.mw.view.viewstyle == 'gradient':
+            self.mw.view.viewstyle = 'solid'
         else:
-            self.parent.view.viewstyle = 'gradient'
+            self.mw.view.viewstyle = 'gradient'
 
-        self.parent.view.setBackground(self.parent.view.viewstyle)
+        self.mw.view.setBackground(self.mw.view.viewstyle)
 
     @QtCore.Slot()
     def onLevelChanged(self):
         """Change size of message window when floating """
-        if self.parent.messagedock.isFloating():
-            self.parent.messagedock.resize(600, 300)
+        if self.mw.messagedock.isFloating():
+            self.mw.messagedock.resize(600, 300)
 
     @QtCore.Slot()
     def onTextChanged(self):
         """Move the scrollbar in the message log-window to the bottom.
         So latest messages are always in the view.
         """
-        vbar = self.parent.messages.verticalScrollBar()
+        vbar = self.mw.messages.verticalScrollBar()
         if vbar:
             vbar.triggerAction(QtWidgets.QAbstractSlider.SliderToMaximum)
 
     @QtCore.Slot()
     def onTabChanged(self):
         """Sync tabs and toolboxes """
-        tabs = self.parent.centralwidget.tabs
-        tab_text = self.parent.centralwidget.tabs.tabText(tabs.currentIndex())
-        toolbox = self.parent.centralwidget.toolbox
+        tabs = self.mw.mainArea.tabs
+        tab_text = self.mw.mainArea.tabs.tabText(tabs.currentIndex())
+        toolbox = self.mw.mainArea.toolbox
 
         if tab_text == 'Airfoil Viewer':
             toolbox.setCurrentIndex(toolbox.tb1)
@@ -328,7 +325,7 @@ class Slots:
     @QtCore.Slot(str)
     def messageBox(self, message):
         QtWidgets.QMessageBox. \
-            information(self.parent, 'Information',
+            information(self.mw, 'Information',
                         message, QtWidgets.QMessageBox.Ok)
 
     @QtCore.Slot()
@@ -336,10 +333,10 @@ class Slots:
         # automatically populate shortcuts from PMenu.xml
         text = '<table> \
                 '
-        for eachMenu in self.parent.menudata:
+        for eachMenu in self.mw.menudata:
             for pulldown in eachMenu[1]:
                 if pulldown[2]:
-                    if self.parent.platform == 'Darwin':
+                    if self.mw.platform == 'Darwin':
                         shortcut = pulldown[2].replace('CTRL', 'CMD')
                         # print(pulldown[2], '...', shortcut)
                     else:
@@ -365,7 +362,7 @@ class Slots:
         buttonBox = QtWidgets.QDialogButtonBox(buttons)
         
         # make a dialog to carry the textedit and button widget
-        dlg = QtWidgets.QDialog(self.parent)
+        dlg = QtWidgets.QDialog(self.mw)
         dlg.setWindowTitle('Keyboard shortcuts')
         dlg.setFixedSize(800, 900)
         buttonBox.accepted.connect(dlg.accept)
@@ -380,8 +377,8 @@ class Slots:
         '''Automate different actions by simulation of button clicks
         Call directly a function or
         using click or animateClick on the respective widget
-        # self.parent.centralwidget.toolbox.splineButton.click
-        # self.parent.centralwidget.toolbox.splineButton.animateClick
+        # self.mw.mainArea.toolbox.splineButton.click
+        # self.mw.mainArea.toolbox.splineButton.animateClick
 
         This feature is mainly used during tesing, as it runs the whole workflow
         automatically.
@@ -390,13 +387,13 @@ class Slots:
         # load the predefined airfoil
         self.onOpenPredefined()
         # spline and refine the contour with defaults
-        self.parent.centralwidget.toolbox.spline_and_refine()
+        self.mw.mainArea.toolbox.spline_and_refine()
         # add a blunt trailing edge with defaults
-        self.parent.centralwidget.toolbox.makeTrailingEdge()
+        self.mw.mainArea.toolbox.makeTrailingEdge()
         # generate a mesh using defaults
-        self.parent.centralwidget.toolbox.generateMesh()
+        self.mw.mainArea.toolbox.generateMesh()
         # export the mesh
-        # self.parent.centralwidget.toolbox.exportMesh()
+        # self.mw.mainArea.toolbox.exportMesh()
 
     @QtCore.Slot()
     def onHelpOnline(self):
@@ -413,23 +410,16 @@ class Slots:
     @QtCore.Slot()
     def onAbout(self):
         QtWidgets.QMessageBox. \
-            about(self.parent, "About " + PyAero.__appname__,
+            about(self.mw, "About " + PyAero.__appname__,
                   "<b>" + PyAero.__appname__ +
                   "</b> is used for "
-                  "2D airfoil contour analysis and CFD mesh generation.\
+                  "2D CFD mesh generation for airfoils.\
                   <br><br>"
                   "<b>" + PyAero.__appname__ + "</b> code under " +
                   PyAero.__license__ +
                   " license. (c) " +
                   PyAero.__copyright__ + "<br><br>"
                   "email to: " + PyAero.__email__ + "<br><br>"
-                  "Embedded <b>Aeropython</b> code under MIT license. <br> \
-                  (c) 2014 Lorena A. Barba, Olivier Mesnard<br>"
-                  "Link to " +
-                  "<a href='http://nbviewer.ipython.org/github/" +
-                  "barbagroup/AeroPython/blob/master/lessons/" +
-                  "11_Lesson11_vortexSourcePanelMethod.ipynb'> \
-                  <b>Aeropython</b></a> (iPython notebook)." + "<br><br>"
                   + "<b>VERSIONS:</b>" + "<br>"
                   + PyAero.__appname__ + ": " + PyAero.__version__ +
                   "<br>"
