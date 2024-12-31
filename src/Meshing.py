@@ -1,23 +1,21 @@
 
 import os
 import copy
-from datetime import date
-import locale
 import numpy as np
 from scipy import interpolate
 
 from PySide6 import QtGui, QtCore, QtWidgets
 
-import PyAero
 import GraphicsItemsCollection as gic
 import GraphicsItem
 import Elliptic
 import Connect
 from Smooth_angle_based import SmoothAngleBased
-from Utils import Utils
-from Settings import OUTPUTDATA
+from Utils import scalar_to_rgb, get_main_window
 import logging
 logger = logging.getLogger(__name__)
+
+OUTPUT = os.path.join(os.path.dirname(__file__), 'output')
 
 
 class Windtunnel:
@@ -34,8 +32,8 @@ class Windtunnel:
         # contains list of BlockMesh objects
         self.blocks = []
 
-        # get MainWindow instance (overcomes handling parents)
-        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+        # MainWindow instance
+        self.mw = get_main_window()
 
     def AirfoilMesh(self, name='', contour=None, divisions=15, ratio=3.0,
                     thickness=0.04):
@@ -74,7 +72,7 @@ class Windtunnel:
         line = copy.deepcopy(last_reversed)
 
         # in case of TE add the points from the TE
-        if self.mainwindow.airfoil.has_TE:
+        if self.mw.airfoil.has_TE:
             for i in range(1, te_divisions):
                 p = last_reversed[-1] + float(i) / te_divisions * vec
                 # p is type numpy.float, so convert it to float
@@ -353,29 +351,29 @@ class Windtunnel:
 
     def makeMesh(self):
 
-        toolbox = self.mainwindow.centralwidget.toolbox
+        toolbox = self.mw.mainArea.toolbox
 
-        if self.mainwindow.airfoil:
-            if not hasattr(self.mainwindow.airfoil, 'spline_data'):
+        if self.mw.airfoil:
+            if not hasattr(self.mw.airfoil, 'spline_data'):
                 message = 'Splining needs to be done first.'
-                self.mainwindow.slots.messageBox(message)
+                self.mw.slots.messageBox(message)
                 return
 
-            contour = self.mainwindow.airfoil.spline_data[0]
+            contour = self.mw.airfoil.spline_data[0]
 
         else:
-            self.mainwindow.slots.messageBox('No airfoil loaded.')
+            self.mw.slots.messageBox('No airfoil loaded.')
             return
 
         # delete blocks outline if existing
         # because a new one will be generated
-        if hasattr(self.mainwindow.airfoil, 'mesh_blocks'):
-            self.mainwindow.scene.removeItem(
-                self.mainwindow.airfoil.mesh_blocks)
-            del self.mainwindow.airfoil.mesh_blocks
+        if hasattr(self.mw.airfoil, 'mesh_blocks'):
+            self.mw.scene.removeItem(
+                self.mw.airfoil.mesh_blocks)
+            del self.mw.airfoil.mesh_blocks
 
         progdialog = QtWidgets.QProgressDialog(
-            "Meshing in progress", "Cancel", 0, 100, self.mainwindow)
+            "Meshing in progress", "Cancel", 0, 100, self.mw)
         progdialog.setFixedWidth(300)
         progdialog.setMinimumDuration(0)
         progdialog.setWindowTitle('Generating the CFD mesh')
@@ -447,12 +445,12 @@ class Windtunnel:
         self.makeBoundaries()
 
         logger.info('Mesh around {} created'.
-                    format(self.mainwindow.airfoil.name))
+                    format(self.mw.airfoil.name))
         logger.info('Mesh has {} vertices and {} elements'.
                     format(len(vertices), len(connectivity)))
 
-        self.drawMesh(self.mainwindow.airfoil)
-        self.drawBlockOutline(self.mainwindow.airfoil)
+        self.drawMesh(self.mw.airfoil)
+        self.drawBlockOutline(self.mw.airfoil)
 
         # mesh quality
         # quality = self.MeshQuality(crit='k2inf')
@@ -568,12 +566,12 @@ class Windtunnel:
         """
 
         # toggle spline points
-        self.mainwindow.centralwidget.airfoil_spline_points_checkbox.click()
+        self.mw.mainArea.airfoil_spline_points_checkbox.click()
 
         # delete old mesh if existing
         if hasattr(airfoil, 'mesh'):
             logger.debug('MESH item type: {}'.format(type(airfoil.mesh)))
-            self.mainwindow.scene.removeItem(airfoil.mesh)
+            self.mw.scene.removeItem(airfoil.mesh)
 
         mesh = list()
 
@@ -598,17 +596,17 @@ class Windtunnel:
                     meshline = GraphicsItem.GraphicsItem(contour)
                     mesh.append(meshline)
 
-        airfoil.mesh = self.mainwindow.scene.createItemGroup(mesh)
+        airfoil.mesh = self.mw.scene.createItemGroup(mesh)
 
         # activate viewing options if mesh is created and displayed
-        self.mainwindow.centralwidget.mesh_checkbox.setChecked(True)
-        self.mainwindow.centralwidget.mesh_checkbox.setEnabled(True)
+        self.mw.mainArea.mesh_checkbox.setChecked(True)
+        self.mw.mainArea.mesh_checkbox.setEnabled(True)
 
     def drawMeshQuality(self, quality):
 
         vertices, connectivity = self.mesh
         quads = list()
-        colors = [Utils.scalar_to_rgb(q, range='256') for q in quality]
+        colors = [scalar_to_rgb(q, range='256') for q in quality]
 
         for i, cell in enumerate(connectivity):
             quad = gic.GraphicsCollection()
@@ -621,7 +619,7 @@ class Windtunnel:
             quaditem = GraphicsItem.GraphicsItem(quad)
             quads.append(quaditem)
         
-        self.mainwindow.scene.createItemGroup(quads)
+        self.mw.scene.createItemGroup(quads)
 
     def drawBlockOutline(self, airfoil):
         """Add the mesh block outlines to the scene
@@ -675,12 +673,12 @@ class Windtunnel:
                     meshline = GraphicsItem.GraphicsItem(contour)
                     mesh_blocks.append(meshline)
 
-        airfoil.mesh_blocks = self.mainwindow.scene \
+        airfoil.mesh_blocks = self.mw.scene \
             .createItemGroup(mesh_blocks)
 
         # initial visibility of mesh blocks is False, but enabled
         airfoil.mesh_blocks.setVisible(False)
-        self.mainwindow.centralwidget.mesh_blocks_checkbox.setEnabled(True)
+        self.mw.mainArea.mesh_blocks_checkbox.setEnabled(True)
 
     def MeshQuality(self, crit='k2inf'):
         vertices, connectivity = self.mesh
@@ -697,10 +695,10 @@ class Windtunnel:
             p = 0.5 * (a + b + c + d)
             q2 = np.sqrt(a**2 + b**2 + c**2 + d**2)
 
-            alpha = Utils.angle_between(v12, -v41)
-            beta =  Utils.angle_between(v23, -v12)
-            gamma = Utils.angle_between(v34, -v23)
-            delta = Utils.angle_between(v41, -v12)
+            alpha = VectorUtils.angle_between(v12, -v41)
+            beta =  VectorUtils.angle_between(v23, -v12)
+            gamma = VectorUtils.angle_between(v34, -v23)
+            delta = VectorUtils.angle_between(v41, -v12)
             theta = 0.5 * (alpha + gamma)
 
             # quad area using Bretschneider’s formula
@@ -783,7 +781,7 @@ class BlockMesh:
         line = list()
         line.append((p1.tolist()[0], p1.tolist()[1]))
         for i in range(1, len(spacing)):
-            p = p1 + spacing[i] * Utils.unit_vector(vec)
+            p = p1 + spacing[i] * VectorUtils.unit_vector(vec)
             line.append((p.tolist()[0], p.tolist()[1]))
         del line[-1]
         line.append((p2.tolist()[0], p2.tolist()[1]))
@@ -970,7 +968,7 @@ class BlockMesh:
 
             a = np.array([x[i + 1 + iend] - x[i - 1 + istart],
                           y[i + 1 + iend] - y[i - 1 + istart]])
-            e = Utils.unit_vector(a)
+            e = VectorUtils.unit_vector(a)
             n.append([e[1], -e[0]])
             istart = 0
             iend = 0
@@ -1193,11 +1191,11 @@ class BlockMesh:
             f.write('0 5\n')
 
             logger.info('FIRE type mesh saved as {}'.
-                        format(os.path.join(OUTPUTDATA, basename)))
+                        format(os.path.join(OUTPUT, basename)))
 
     @staticmethod
     def writeSU2_nolib(wind_tunnel, name=''):
-        '''Write mesh to SU2 format without using meshio'''
+        '''Write mesh to SU2 format'''
 
         mesh = wind_tunnel.mesh
         vertices, connectivity = mesh
@@ -1265,7 +1263,7 @@ class BlockMesh:
             
         basename = os.path.basename(name)
         logger.info('SU2 type mesh saved as {}'.
-                    format(os.path.join(OUTPUTDATA, basename)))
+                    format(os.path.join(OUTPUT, basename)))
 
     @staticmethod
     def writeVTK_nolib(wind_tunnel, name=''):
@@ -1394,7 +1392,7 @@ class BlockMesh:
 
         basename = os.path.basename(name)
         logger.info('VTK type mesh saved as {}'.
-                    format(os.path.join(OUTPUTDATA, basename)))
+                    format(os.path.join(OUTPUT, basename)))
 
     @staticmethod
     def writeGMSH_nolib(wind_tunnel, name=''):

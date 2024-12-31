@@ -15,25 +15,22 @@ accurate input to the subsequent meshing process.
 import os
 import sys
 import platform
-
-path_of_this_file = os.path.dirname(__file__)
-sys.path.append(path_of_this_file)
-
 import datetime
+
+# Add the directory containing the script to the sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from PySide6 import QtGui, QtCore, QtWidgets
 
+import Settings
 import MenusTools
 import GraphicsView
 import GraphicsScene
 import GuiSlots
 import ContourAnalysis
 import ToolBox
-from Settings import ICONS, LOCALE, EXITONESCAPE, \
-                      OUTPUTDATA, MENUDATA, VIEWSTYLE, LOGDATA
-import Logger
-import ShortCuts
 import BatchMode
+import Logger
 
 
 __appname__ = 'PyAero'
@@ -47,49 +44,61 @@ __email__ = 'andreas.ennemoser@aon.at'
 __status__ = 'Release'
 
 
+
 class MainWindow(QtWidgets.QMainWindow):
     """PyAero's main QT window"""
-    # constructor of MainWindow
+
+    # Initialize the MainWindow
     def __init__(self, app):
         super().__init__()
 
         self.app = app
         self.app.mainwindow = self
         self.platform = platform.system()
+        self.config = Settings.Config(self)
 
         self.airfoil = None
         self.airfoils = []
 
         self.scene = GraphicsScene.GraphicsScene(self)
-        self.view = GraphicsView.GraphicsView(self, self.scene)
-        self.view.viewstyle = VIEWSTYLE
+        self.view = GraphicsView.GraphicsView(self.scene)
+        self.view.viewstyle = self.VIEW_STYLE
 
         self.contourview = ContourAnalysis.ContourAnalysis(canvas=True)
-        self.slots = GuiSlots.Slots(self)
-        self.centralwidget = CentralWidget(self)
+        self.slots = GuiSlots.Slots()
 
-        self.setCentralWidget(self.centralwidget)
+        # The QMainWindow class is designed around a specific architecture that includes
+        # dedicated areas for menus, toolbars, dock widgets, a status bar, and a main content area.
+        # The central widget is the widget that occupies this main content area.
+        self.mainArea = MainContentArea(self)
+        self.setCentralWidget(self.mainArea)
+
         self._setupShortcuts()
-        self.testitems = False
-
         self.checkEnvironment()
         self.init_GUI()
+
         Logger.log(self)
 
     def _setupShortcuts(self):
-        sc = ShortCuts.ShortCuts(self)
-        sc.addShortcut('ALT+m', 'toggleLogDock', 'shortcut')
+        shortcut_message_dock = QtGui.QShortcut(QtGui.QKeySequence('ALT+m'), self)
+        shortcut_message_dock.activated.connect(self.slots.toggleLogDock('shortcut'))
+        shortcut_message_dock.setContext(QtCore.Qt.ApplicationShortcut)
 
     def init_GUI(self):
 
         # window size, position and title
-        # self.setGeometry(700, 100, 1200, 900)
         self.showMaximized()
         title = __appname__ + ' - Airfoil Contour Analysis and CFD Meshing'
         self.setWindowTitle = title
 
+        # decimal separator used in spin boxes, etc.
+        if self.DECIMAL_SEPARATOR == '.':
+            QtCore.QLocale.setDefault(QtCore.QLocale.c())
+        elif self.DECIMAL_SEPARATOR == ',':
+            QtCore.QLocale.setDefault(QtCore.QLocale.German, QtCore.QLocale.Germany)
+
         # create menus and tools of main window
-        menusTools = MenusTools.MenusTools(self)
+        menusTools = MenusTools.MenusTools()
         menusTools.createMenus()
         menusTools.createTools()
         menusTools.createDocks()
@@ -111,25 +120,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
 
     def checkEnvironment(self):
+        """Check if the environment is set up correctly"""
 
         # check if path is correct
-        if not os.path.exists(MENUDATA):
+        if not os.path.exists('resources/Menus'):
             error_message = (
-            f'\n PyAero ERROR: Folder {MENUDATA} does not exist.\n'
-            ' PyAero ERROR: Maybe you are starting PyAero from the wrong location.\n'
+            f'\n PyAero-ERROR: Folder "resources/Menus" does not exist.\n'
+            ' PyAero-ERROR: Either the installation is incomplete or you are starting from the wrong location.\n'
             )
             print(error_message)
             sys.exit()
 
-        # check if output folder does exist
-        if not os.path.exists(OUTPUTDATA):
-            os.mkdir(OUTPUTDATA, mode=0o777)
-            print('Folder %s created.' % (OUTPUTDATA))
+        # Ensure output folder exists
+        os.makedirs(self.OUTPUT, mode=0o777, exist_ok=True)
 
-        # check if logs folder does exist
-        if not os.path.exists(LOGDATA):
-            os.mkdir(LOGDATA, mode=0o777)
-            print('Folder %s created.' % (LOGDATA))
+        # Ensure logs folder exists
+        os.makedirs(self.LOGS, mode=0o777, exist_ok=True)
 
     def keyPressEvent(self, event):
         """Catch keypress events in main window
@@ -140,8 +146,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         key = event.key()
 
-        if key == QtCore.Qt.Key_Escape and EXITONESCAPE:
-            sys.exit(self.app.exit(retcode=0))
+        if key == QtCore.Qt.Key_Escape and self.EXIT_ON_ESCAPE:
+            QtCore.QCoreApplication.quit()
         elif key == QtCore.Qt.Key_Home:
             self.slots.onViewAll()
         else:
@@ -149,28 +155,16 @@ class MainWindow(QtWidgets.QMainWindow):
             super().keyPressEvent(event)
 
 
-class CentralWidget(QtWidgets.QWidget):
+class MainContentArea(QtWidgets.QWidget):
     """
-    CentralWidget is a custom QWidget that serves as the central widget for the main window.
-    It contains a splitter that divides the window into two panes: a toolbox and viewing options pane on the left,
-    and a tabbed widget for different views on the right.
+    MainContentArea is a custom QWidget that serves as the central widget for the main window.
+    
+    It contains a splitter that divides the window into two panes:
+    - a toolbox and viewing options pane on the left
+    - a tabbed widget for different views on the right.
 
-    Attributes:
-        parent (QWidget): The parent widget.
-        splitter (QSplitter): The main splitter dividing the window horizontally.
-        toolbox (ToolBox.Toolbox): A toolbox widget for various tools.
-        viewing_options (QGroupBox): A group box containing viewing options checkboxes.
-        left_pane (QWidget): The left pane containing the toolbox and viewing options.
-        tabs (QTabWidget): The tabbed widget containing different views.
-
-    Methods:
-        __init__(self, parent=None):
-            Initializes the CentralWidget, sets up the layout, and connects signals.
-        
-        viewingOptions(self):
-            Creates and configures the viewing options group box with checkboxes.
     """
-    # call constructor of CentralWidget
+
     def __init__(self, parent=None):
         # call constructor of QWidget
         super().__init__(parent)
@@ -181,7 +175,7 @@ class CentralWidget(QtWidgets.QWidget):
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
         # create QToolBox widget
-        self.toolbox = ToolBox.Toolbox(self.parent)
+        self.toolbox = ToolBox.Toolbox()
 
         # create box where viewing options are placed
         self.viewingOptions()
@@ -269,50 +263,32 @@ class CentralWidget(QtWidgets.QWidget):
 
 
 def main():
-
-    # check if the user is running the program in batch mode
-    batchmode = '-no-gui' in sys.argv
-
-    # run PyAero in batch mode
-    if batchmode:
+    # Check if running in batch mode
+    if '-no-gui' in sys.argv:
         app = QtCore.QCoreApplication(sys.argv)
 
-        # FIXME
-        # FIXME check for proper batch control file
-        # FIXME
         if sys.argv[-1] == '-no-gui':
             print('No batch control file specified.')
             sys.exit()
 
-        # prepare logger
-        Logger.log('file_only')
+        # Prepare logger
+        Logger.log('console')
 
         batch_controlfile = sys.argv[-1]
         batchmode = BatchMode.Batch(app, batch_controlfile, __version__)
         batchmode.run_batch()
-
         return
 
-    # main application (contains the main event loop)
-    # run PyAero in GUI mode
+    # Run in GUI mode
     app = QtWidgets.QApplication(sys.argv)
 
-    # set icon for the application ( upper left window icon and taskbar icon)
-    # and add specialization icons per size
-    # (needed depending on the operating system)
-    app_icon = QtGui.QIcon(os.path.join(ICONS, 'app_image.png'))
-    icon_sizes = [16, 24, 32, 48, 256]
-    for size in icon_sizes:
-        app_icon.addFile(os.path.join(ICONS, f'app_image_{size}x{size}.png'), QtCore.QSize(size, size))
-
+    # Set icon for the application
+    app_icon = QtGui.QIcon('resources/Icons/app_image.png')
+    for size in [24, 256]:
+        app_icon.addFile(f'resources/Icons/app_image_{size}x{size}.png'), QtCore.QSize(size, size)
     app.setWindowIcon(app_icon)
 
-    if LOCALE == 'C':
-        # set default locale to C, so that decimal separator is a
-        # dot in spin boxes, etc.
-        QtCore.QLocale.setDefault(QtCore.QLocale.c())
-
-    # window style set in Settings.py
+    # Window style set in Settings.py
     window = MainWindow(app)
     window.show()
 

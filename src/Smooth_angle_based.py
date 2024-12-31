@@ -10,6 +10,7 @@ from PySide6 import QtGui, QtCore
 import GraphicsItemsCollection as gic
 import GraphicsItem
 import Connect
+from Utils import get_main_window
 import logging
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class SmoothAngleBased:
     def __init__(self, data, data_source='block'):
         
         # get MainWindow instance (overcomes handling parents)
-        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+        self.mw = get_main_window()
 
         # data_source is one of 'block' or 'mesh'
         if data_source == 'block':
@@ -180,7 +181,7 @@ class SmoothAngleBased:
         self.drawlines.append(meshline)
         '''
 
-        # self.mainwindow.scene.createItemGroup(self.drawlines)
+        # self.mw.scene.createItemGroup(self.drawlines)
 
     def smooth(self, iterations=20, tolerance=1.e-4, verbose=False):
 
@@ -284,7 +285,7 @@ class SmoothAngleBased:
             cardinals = self.make_cardinals(smoothed_vertices)
 
         if self.drawlines:
-            self.mainwindow.scene.createItemGroup(self.drawlines)
+            self.mw.scene.createItemGroup(self.drawlines)
 
         return smoothed_vertices
     

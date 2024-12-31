@@ -1,85 +1,50 @@
-# ****************
-# PyAero settings
-# ****************
 
 import os
+import configparser
 
 
-PYAEROPATH = os.getcwd()
+class Config:
+    def __init__(self, mainwindow):
+        self.mw = mainwindow
+        self.load_config()
+        self.set_attributes()
 
-# check if user has set the path via environment variable
-if os.getenv('PYAEROPATH'):
-    PYAEROPATH = os.getenv('PYAEROPATH')
+    def get(self, section, key):
+        return self.config.get(section, key)
 
-# path to data
-DATAPATH = os.path.join(PYAEROPATH, 'data')
+    def getint(self, section, key):
+        return self.config.getint(section, key)
 
-# path to data (e.g. airfoil coordinate files)
-# path can be absolute or relative (to position where starting PyAero)
-AIRFOILDATA = os.path.join(PYAEROPATH, 'data/Airfoils')
+    def getfloat(self, section, key):
+        return self.config.getfloat(section, key)
 
-# modified contours and mesh folder
-OUTPUTDATA = os.path.join(DATAPATH, 'OUTPUT')
+    def getboolean(self, section, key):
+        return self.config.getboolean(section, key)
 
-# path to menu data
-MENUDATA = os.path.join(DATAPATH, 'Menus')
+    def load_config(self):
+        # Read the configuration file
+        self.config_parser = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+        self.config_parser.read(os.path.join(os.getcwd(), 'config/config.ini'))
 
-# path to log files
-LOGDATA = os.path.join(DATAPATH, 'LOGS')
+    def set_attributes(self):
+        # Automatically derive attributes from the config file
+        attributes = {section: self.config_parser.options(section) for section in self.config_parser.sections()}
 
-# set locale
-# can be either 'C' or ''
-# if string is empty then system default locale is used
-# in case of 'C' decimal separator is a dot in spin boxes, etc.
-LOCALE = 'C'
-
-# application can be exited by pressing the escape key
-EXITONESCAPE = True
-
-# airfoil chord length
-CHORDLENGTH = 1.
-
-# path to icons
-ICONS = os.path.join(PYAEROPATH, 'data/Icons')
-ICONS_S = os.path.join(ICONS, '16x16')
-ICONS_L = os.path.join(ICONS, '24x24')
-
-# size of airfoil coordinate markers in pixels
-MARKERSIZE = 3
-
-# default airfoil for fast loading
-DEFAULT_CONTOUR = os.path.join(AIRFOILDATA, 'F1K/hn1033a.dat')
-
-# set the filter for files to be shown in dialogs
-DIALOGFILTER = 'Airfoil contour files (*.dat *.txt)'
-DIALOGFILTER_MESH = 'Mesh files FIRE(*.flma);;Mesh files SU2 (*.su2);;Mesh files GMSH (*.msh)'
-
-# set the filter for files to be shown in the airfoil browser
-FILEFILTER = ['*.dat', '*.txt', '*.su2']
-
-# set anchor for zooming
-# 'mouse' means zooming wrt to mouse pointer location
-# 'center' means zooming wrt to the view center
-ZOOMANCHOR = 'mouse'
-
-# background of graphicsview ('solid', 'gradient')
-VIEWSTYLE = 'solid'
-
-# set zoom limits so that scene is always in meaningful size
-MINZOOM = 10.0
-MAXZOOM = 120000.
-
-# set minimum relative rubberband size
-# i.e. width of zoom rectangle wrt to viewer window width
-# for smaller rectangles zoom is deactivated to avoid accidential zooms
-# valid values between 0.05 and 1.0
-RUBBERBANDSIZE = 0.08
-
-# scale increment (must be >= 1.1)
-SCALEINC = 1.1
-
- # zoom direction (can be inverted by changing the sign)
-ZOOMDIRECTION = -1
-
-# Color for emphasized log messages
-LOGCOLOR = '#1763E7'
+        for section, keys in attributes.items():
+            for key in keys:
+                value = self.config_parser.get(section, key)
+                try:
+                    # Try to convert to int
+                    value = int(value)
+                except ValueError:
+                    try:
+                        # Try to convert to float
+                        value = float(value)
+                    except ValueError:
+                        try:
+                            # Try to convert to boolean
+                            value = self.config_parser.getboolean(section, key)
+                        except ValueError:
+                            # Keep as string if all conversions fail
+                            pass
+                setattr(self.mw, key.upper(), value)

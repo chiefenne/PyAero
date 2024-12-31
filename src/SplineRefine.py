@@ -5,7 +5,7 @@ from scipy import interpolate
 
 from PySide6 import QtGui, QtCore
 
-from Utils import Utils
+from MathUtils import VectorUtils
 import GraphicsItemsCollection as gic
 import GraphicsItem
 
@@ -17,8 +17,8 @@ class SplineRefine:
 
     def __init__(self):
 
-        # get MainWindow instance (overcomes handling parents)
-        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+        # MainWindow instance
+        self.mw = QtCore.QCoreApplication.instance().mainwindow
 
     def doSplineRefine(self, tolerance=172.0, points=150, ref_te=3,
                        ref_te_n=6, ref_te_ratio=3.0):
@@ -26,7 +26,7 @@ class SplineRefine:
         logger.debug('Arrived in doSplineRefine')
 
         # get raw coordinates
-        x, y = self.mainwindow.airfoil.raw_coordinates
+        x, y = self.mw.airfoil.raw_coordinates
 
         # interpolate a spline through the raw contour points
         # constant point distribution used here
@@ -49,7 +49,7 @@ class SplineRefine:
         self.refine_te(ref_te, ref_te_n, ref_te_ratio)
 
         # add spline data to airfoil object
-        self.mainwindow.airfoil.spline_data = self.spline_data
+        self.mw.airfoil.spline_data = self.spline_data
 
     def getCamberThickness(self, spline_data, le_id):
 
@@ -91,9 +91,9 @@ class SplineRefine:
     def makeLeCircle(self, rc, xc, yc, xle, yle):
 
         # delete exitsing LE circle ItemGroup from scene
-        if hasattr(self.mainwindow.airfoil, 'le_circle') and \
-                self.mainwindow.airfoil.le_circle in self.mainwindow.scene.items():
-            self.mainwindow.scene.removeItem(self.mainwindow.airfoil.le_circle)
+        if hasattr(self.mw.airfoil, 'le_circle') and \
+                self.mw.airfoil.le_circle in self.mw.scene.items():
+            self.mw.scene.removeItem(self.mw.airfoil.le_circle)
 
         # put LE circle, center and tangent point in a list
         circles = list()
@@ -131,12 +131,12 @@ class SplineRefine:
         circle = GraphicsItem.GraphicsItem(circle)
         circles.append(circle)
 
-        self.mainwindow.airfoil.le_circle = \
-            self.mainwindow.scene.createItemGroup(circles)
-        self.mainwindow.airfoil.le_circle.setZValue(110)
+        self.mw.airfoil.le_circle = \
+            self.mw.scene.createItemGroup(circles)
+        self.mw.airfoil.le_circle.setZValue(110)
 
-        self.mainwindow.centralwidget.leading_edge_circle_checkbox.setChecked(True)
-        self.mainwindow.centralwidget.leading_edge_circle_checkbox.setEnabled(True)
+        self.mw.mainArea.leading_edge_circle_checkbox.setChecked(True)
+        self.mw.mainArea.leading_edge_circle_checkbox.setEnabled(True)
 
     def spline(self, x, y, points=200, degree=2, evaluate=False):
         """Interpolate spline through given points
@@ -214,7 +214,7 @@ class SplineRefine:
             a = np.array([xx[i], yy[i]])
             b = np.array([xx[i + 1], yy[i + 1]])
             c = np.array([xx[i + 2], yy[i + 2]])
-            angle = Utils.angle_between(a - b, c - b, degree=True)
+            angle = VectorUtils.angle_between(a - b, c - b, degree=True)
 
             if angle < tolerance:
 

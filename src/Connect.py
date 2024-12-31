@@ -8,6 +8,7 @@ from PySide6 import QtCore, QtGui
 
 import GraphicsItemsCollection as gic
 import GraphicsItem
+from Utils import get_main_window
 
 
 class Connect:
@@ -16,7 +17,7 @@ class Connect:
     def __init__(self, progdialog):
 
         # get MainWindow instance (overcomes handling parents)
-        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+        self.mw = get_main_window()
 
         self.progdialog = progdialog
 
@@ -219,22 +220,22 @@ class Connect:
             self.connections.append(marker_item)
             
         # add to the scene
-        self.connections = self.mainwindow.scene. \
+        self.connections = self.mw.scene. \
             createItemGroup(self.connections)
 
     def write_debug(self, unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean):
-
-        dicts = locals()
-        # print('dicts keys', dicts.keys())
-        # print('type', type(dicts))
-        dicts.pop('self')
+        debug_data = {
+            'unconnected': unconnected,
+            'connected': connected,
+            'deleted_nodes': deleted_nodes,
+            'vertices': vertices,
+            'vertices_clean': vertices_clean,
+            'connectivity_clean': connectivity_clean
+        }
 
         folder = 'debug'
-        if not os.path.isdir(folder):
-            os.mkdir(folder)
+        os.makedirs(folder, exist_ok=True)
 
-        # write all data to individual files
-        for listname in dicts:
-            with open(os.path.join(folder, listname + '.txt'), 'w') as f:
-                for item in dicts[listname]:
-                    f.write(str(item) + '\n')
+        for name, data in debug_data.items():
+            with open(os.path.join(folder, f'{name}.txt'), 'w') as f:
+                f.writelines(f'{item}\n' for item in data)

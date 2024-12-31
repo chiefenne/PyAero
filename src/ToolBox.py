@@ -6,15 +6,13 @@ import numpy as np
 from PySide6 import QtGui, QtCore, QtWidgets
 
 import PyAero
-import Airfoil
 import FileDialog
 import FileSystem
-import SvpMethod
 import SplineRefine
 import TrailingEdge
 import Meshing
 import ContourAnalysis as ca
-from Settings import ICONS_L
+from Utils import get_main_window
 
 import logging
 logger = logging.getLogger(__name__)
@@ -22,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class Toolbox(QtWidgets.QToolBox):
 
-    def __init__(self, parent):
+    def __init__(self):
         """Main menus for PyAero functionality.
         Inserted in left pane of splitter window which in turn is the app's
         CentralWidget.
@@ -32,7 +30,8 @@ class Toolbox(QtWidgets.QToolBox):
         """
         super().__init__()
 
-        self.parent = parent
+        # MainWindow instance
+        self.mw = get_main_window()
 
         # set the style (css)
         style = """
@@ -52,7 +51,7 @@ class Toolbox(QtWidgets.QToolBox):
 
         # create toolbox items
         self.itemFileSystem()
-        self.itemAeropython()
+        self.itemAerodynamics()
         self.itemBoundaryCondtions()
         self.itemContourAnalysis()
         self.itemSplineRefine()
@@ -63,22 +62,16 @@ class Toolbox(QtWidgets.QToolBox):
         self.currentChanged.connect(self.toolboxChanged)
 
     def toolboxChanged(self):
-        # tb1 = 'Airfoil Database'
-        # tb2 = 'Contour Splining and Refinement'
-        # tb4 = 'Meshing'
-        # tb6 = 'Aerodynamics Boundary Conditions'
-        # tb5 = 'Aerodynamics (Panel Code)'
-        # tb3 = 'Contour Analysis'
 
         if self.currentIndex() == self.tb1:
-            self.parent.centralwidget.tabs.setCurrentIndex(0)
+            self.mw.mainArea.tabs.setCurrentIndex(0)
 
         if self.currentIndex() == self.tb3:
-            self.parent.centralwidget.tabs.setCurrentIndex(1)
+            self.mw.mainArea.tabs.setCurrentIndex(1)
 
         # update points on airfoil when toolbox changed to meshing
-        if self.currentIndex() == self.tb4 and self.parent.airfoil:
-            pts = len(self.parent.airfoil.spline_data[0][0])
+        if self.currentIndex() == self.tb4 and self.mw.airfoil:
+            pts = len(self.mw.airfoil.spline_data[0][0])
             self.points_on_airfoil.setText(str(pts))
 
     def itemFileSystem(self):
@@ -121,7 +114,7 @@ class Toolbox(QtWidgets.QToolBox):
         layout.addStretch(stretch=2)
         layout.addWidget(self.header)
 
-        self.listwidget = ListWidget(self.parent)
+        self.listwidget = ListWidget(self.mw)
         self.listwidget.setEnabled(False)
         # allow only single selections
         self.listwidget.setSelectionMode(QtWidgets.QAbstractItemView.
@@ -129,7 +122,7 @@ class Toolbox(QtWidgets.QToolBox):
         layout.addWidget(self.listwidget, stretch=5)
         layout.addStretch(stretch=1)
 
-    def itemAeropython(self):
+    def itemAerodynamics(self):
 
         form = QtWidgets.QFormLayout()
 
@@ -158,10 +151,8 @@ class Toolbox(QtWidgets.QToolBox):
         panelMethodButton = QtWidgets.QPushButton('Calculate lift coefficient')
         form.addRow(panelMethodButton)
 
-        self.item_ap = QtWidgets.QGroupBox('AeroPython Panel Method')
+        self.item_ap = QtWidgets.QGroupBox('Aerodynamics')
         self.item_ap.setLayout(form)
-
-        panelMethodButton.clicked.connect(self.runPanelMethod)
 
     def itemBoundaryCondtions(self):
 
@@ -858,7 +849,7 @@ class Toolbox(QtWidgets.QToolBox):
         self.tb4 = self.addItem(self.item_msh, 'Meshing')
         self.tb6 = self.addItem(self.item_abc,
                                 'CFD Boundary Conditions')
-        self.tb5 = self.addItem(self.item_ap, 'Aerodynamics (Panel Code)')
+        self.tb5 = self.addItem(self.item_ap, 'Aerodynamics')
         self.tb3 = self.addItem(self.item_ca, 'Contour Analysis')
 
         self.setItemToolTip(0, 'Airfoil database ' +
@@ -869,17 +860,20 @@ class Toolbox(QtWidgets.QToolBox):
         self.setItemToolTip(3,
                             'Compute aerodynamic boundary conditions based' +
                             ' on Reynolds number and thermodynamics')
-        self.setItemToolTip(4, 'Compute panel based aerodynamic ' +
-                            'coefficients')
+        self.setItemToolTip(4, 'Compute aerodynamic coefficients')
         self.setItemToolTip(5, 'Analyze the curvature of the ' +
                             'selected airfoil')
 
-        self.setItemIcon(0, QtGui.QIcon(os.path.join(ICONS_L, 'airfoil.png')))
-        self.setItemIcon(1, QtGui.QIcon(os.path.join(ICONS_L, 'Pixel editor.png')))
-        self.setItemIcon(2, QtGui.QIcon(os.path.join(ICONS_L, 'mesh.png')))
-        self.setItemIcon(3, QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png')))
-        self.setItemIcon(4, QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png')))
-        self.setItemIcon(5, QtGui.QIcon(os.path.join(ICONS_L, 'Pixel editor.png')))
+        icons = [
+            'resources/Icons/24x24/airfoil.png',
+            'resources/Icons/24x24/Pixel editor.png',
+            'resources/Icons/24x24/mesh.png',
+            'resources/Icons/24x24/Fast delivery.png',
+            'resources/Icons/24x24/Fast delivery.png',
+            'resources/Icons/24x24/Pixel editor.png'
+        ]
+        for i, icon in enumerate(icons):
+            self.setItemIcon(i, QtGui.QIcon(icon))
 
         # preselect airfoil database box
         self.setCurrentIndex(self.tb1)
@@ -900,82 +894,63 @@ class Toolbox(QtWidgets.QToolBox):
 
     def toggleRawPoints(self):
         """Toggle points of raw airfoil contour (on/off)"""
-        if hasattr(self.parent.airfoil, 'polygonMarkersGroup'):
-            visible = self.parent.airfoil.polygonMarkersGroup.isVisible()
-            self.parent.airfoil.polygonMarkersGroup.setVisible(not visible)
+        if hasattr(self.mw.airfoil, 'polygonMarkersGroup'):
+            visible = self.mw.airfoil.polygonMarkersGroup.isVisible()
+            self.mw.airfoil.polygonMarkersGroup.setVisible(not visible)
 
     def toggleRawContour(self):
         """Toggle contour polygon of raw airfoil contour (on/off)"""
-        if hasattr(self.parent.airfoil, 'contourPolygon'):
-            visible = self.parent.airfoil.contourPolygon.isVisible()
-            self.parent.airfoil.contourPolygon.setVisible(not visible)
+        if hasattr(self.mw.airfoil, 'contourPolygon'):
+            visible = self.mw.airfoil.contourPolygon.isVisible()
+            self.mw.airfoil.contourPolygon.setVisible(not visible)
 
     def toggleSplinePoints(self):
         """Toggle points of raw airfoil contour (on/off)"""
-        if hasattr(self.parent.airfoil, 'splineMarkersGroup'):
-            visible = self.parent.airfoil.splineMarkersGroup.isVisible()
-            self.parent.airfoil.splineMarkersGroup.setVisible(not visible)
+        if hasattr(self.mw.airfoil, 'splineMarkersGroup'):
+            visible = self.mw.airfoil.splineMarkersGroup.isVisible()
+            self.mw.airfoil.splineMarkersGroup.setVisible(not visible)
 
     def toggleSpline(self):
-        if hasattr(self.parent.airfoil, 'contourSpline'):
-            visible = self.parent.airfoil.contourSpline.isVisible()
-            self.parent.airfoil.contourSpline.setVisible(not visible)
+        if hasattr(self.mw.airfoil, 'contourSpline'):
+            visible = self.mw.airfoil.contourSpline.isVisible()
+            self.mw.airfoil.contourSpline.setVisible(not visible)
 
     def toggleChord(self):
         """Toggle visibility of the airfoil chord"""
-        if hasattr(self.parent.airfoil, 'chord'):
-            visible = self.parent.airfoil.chord.isVisible()
-            self.parent.airfoil.chord.setVisible(not visible)
+        if hasattr(self.mw.airfoil, 'chord'):
+            visible = self.mw.airfoil.chord.isVisible()
+            self.mw.airfoil.chord.setVisible(not visible)
 
     def toggleMesh(self):
         """Toggle visibility of the mesh lines"""
-        if hasattr(self.parent.airfoil, 'mesh'):
-            visible = self.parent.airfoil.mesh.isVisible()
-            self.parent.airfoil.mesh.setVisible(not visible)
+        if hasattr(self.mw.airfoil, 'mesh'):
+            visible = self.mw.airfoil.mesh.isVisible()
+            self.mw.airfoil.mesh.setVisible(not visible)
 
     def toggleLeCircle(self):
         """Toggle visibility of the leading edge circle"""
-        if hasattr(self.parent.airfoil, 'le_circle'):
-            visible = self.parent.airfoil.le_circle.isVisible()
-            self.parent.airfoil.le_circle.setVisible(not visible)
+        if hasattr(self.mw.airfoil, 'le_circle'):
+            visible = self.mw.airfoil.le_circle.isVisible()
+            self.mw.airfoil.le_circle.setVisible(not visible)
 
     def toggleMeshBlocks(self):
         """Toggle visibility of the mesh blocking structure"""
-        if hasattr(self.parent.airfoil, 'mesh_blocks'):
-            visible = self.parent.airfoil.mesh_blocks.isVisible()
-            self.parent.airfoil.mesh_blocks.setVisible(not visible)
+        if hasattr(self.mw.airfoil, 'mesh_blocks'):
+            visible = self.mw.airfoil.mesh_blocks.isVisible()
+            self.mw.airfoil.mesh_blocks.setVisible(not visible)
 
     def toggleCamberLine(self):
         """Toggle visibility of the airfoil camber line"""
-        if hasattr(self.parent.airfoil, 'camberline'):
-            visible = self.parent.airfoil.camberline.isVisible()
-            self.parent.airfoil.camberline.setVisible(not visible)
-
-    def runPanelMethod(self):
-        """Gui callback to run AeroPython panel method in module PSvpMethod"""
-
-        if self.parent.airfoil:
-            # get coordinates of airfoil (raw data or if available spline)
-            if self.parent.airfoil.spline_data:
-                x, y = self.parent.airfoil.spline_data[0]
-            else:
-                x, y = self.parent.airfoil.raw_coordinates
-
-            u_inf = self.freestream.value()
-            alpha = self.aoaAP.value()
-            panels = self.panels.value()
-            SvpMethod.runSVP(self.parent.airfoil.name,
-                             x, y, u_inf, alpha, panels)
-        else:
-            self.parent.slots.messageBox('No airfoil loaded.')
-            return
+        if hasattr(self.mw.airfoil, 'camberline'):
+            visible = self.mw.airfoil.camberline.isVisible()
+            self.mw.airfoil.camberline.setVisible(not visible)
 
     def spline_and_refine(self):
         """Spline and refine airfoil"""
 
-        if self.parent.airfoil:
+        if self.mw.airfoil:
 
-            self.parent.airfoil.has_TE = False
+            self.mw.airfoil.has_TE = False
 
             refine = SplineRefine.SplineRefine()
             refine.doSplineRefine(tolerance=self.tolerance.value(),
@@ -986,10 +961,10 @@ class Toolbox(QtWidgets.QToolBox):
 
             # add splined and refined contour to the airfoil contourGroup
             # makeSplineMarkers call within makeContourSpline
-            self.parent.airfoil.makeContourSpline()
+            self.mw.airfoil.makeContourSpline()
 
             # get LE radius, etc.
-            spline_data = self.parent.airfoil.spline_data
+            spline_data = self.mw.airfoil.spline_data
             curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
             rc, xc, yc, xle, yle, le_id = \
                 ca.ContourAnalysis.getLeRadius(spline_data, curvature_data)
@@ -998,7 +973,7 @@ class Toolbox(QtWidgets.QToolBox):
             # calculate thickness and camber
             camber = refine.getCamberThickness(spline_data, le_id)
             # draw camber
-            self.parent.airfoil.drawCamber(camber)
+            self.mw.airfoil.drawCamber(camber)
 
             logger.info('Leading edge radius: {:11.8f}'.format(rc))
             logger.info('Leading edge circle tangent at point: {}'.format(le_id))
@@ -1010,18 +985,18 @@ class Toolbox(QtWidgets.QToolBox):
             self.exportContourButton.setEnabled(True)
 
         else:
-            self.parent.slots.messageBox('No airfoil loaded.')
+            self.mw.slots.messageBox('No airfoil loaded.')
             return
 
     def makeTrailingEdge(self):
 
-        if self.parent.airfoil:
+        if self.mw.airfoil:
 
-            self.parent.airfoil.has_TE = True
+            self.mw.airfoil.has_TE = True
 
-            if not hasattr(self.parent.airfoil, 'spline_data'):
+            if not hasattr(self.mw.airfoil, 'spline_data'):
                 message = 'Splining needs to be done first.'
-                self.parent.slots.messageBox(message)
+                self.mw.slots.messageBox(message)
                 return
 
             trailing = TrailingEdge.TrailingEdge()
@@ -1037,26 +1012,26 @@ class Toolbox(QtWidgets.QToolBox):
                                   side='lower')
             self.addTEtoScene()
         else:
-            self.parent.slots.messageBox('No airfoil loaded.')
+            self.mw.slots.messageBox('No airfoil loaded.')
             return
 
     def addTEtoScene(self):
             
         # add modified spline contour to the airfoil contourGroup
         # makeSplineMarkers call within makeContourSpline
-        self.parent.airfoil.makeContourSpline()
-        self.parent.airfoil.contourSpline.brush.setStyle(QtCore.Qt.SolidPattern)
+        self.mw.airfoil.makeContourSpline()
+        self.mw.airfoil.contourSpline.brush.setStyle(QtCore.Qt.SolidPattern)
         color = QtGui.QColor()
         color.setNamedColor('#7c8696')
-        self.parent.airfoil.contourSpline.brush.setColor(color)
+        self.mw.airfoil.contourSpline.brush.setColor(color)
         # FIXME
         # FIXME check if redundant, because already set elsewhere
         # FIXME
-        self.parent.airfoil.polygonMarkersGroup.setZValue(100)
-        self.parent.airfoil.chord.setZValue(99)
-        self.parent.airfoil.camberline.setZValue(99)
+        self.mw.airfoil.polygonMarkersGroup.setZValue(100)
+        self.mw.airfoil.chord.setZValue(99)
+        self.mw.airfoil.camberline.setZValue(99)
 
-        self.parent.view.adjustMarkerSize()
+        self.mw.view.adjustMarkerSize()
 
     def generateMesh(self):
         self.wind_tunnel = Meshing.Windtunnel()
@@ -1065,12 +1040,12 @@ class Toolbox(QtWidgets.QToolBox):
     def analyzeAirfoil(self):
         """Airfoil contour analysis with respect to geometric features"""
 
-        if not self.parent.airfoil:
-            self.parent.slots.messageBox('No airfoil loaded.')
+        if not self.mw.airfoil:
+            self.mw.slots.messageBox('No airfoil loaded.')
             return
 
         # switch tab contour analysis
-        self.parent.centralwidget.tabs.setCurrentIndex(1)
+        self.mw.mainArea.tabs.setCurrentIndex(1)
         # keep tab 'Contour Analysis'
         self.setCurrentIndex(self.tb3)
 
@@ -1078,26 +1053,26 @@ class Toolbox(QtWidgets.QToolBox):
         self.cgb.setEnabled(True)
 
         # analyse contour
-        self.parent.contourview.analyze()
+        self.mw.contourview.analyze()
 
         # connect signals to slots
         # lambda allows to send extra parameters
         self.cpb1.clicked.connect(lambda:
-                                  self.parent.contourview
+                                  self.mw.contourview
                                   .drawContour('gradient'))
         self.cpb2.clicked.connect(lambda:
-                                  self.parent.contourview
+                                  self.mw.contourview
                                   .drawContour('curvature'))
         self.cpb3.clicked.connect(lambda:
-                                  self.parent.contourview
+                                  self.mw.contourview
                                   .drawContour('radius'))
 
     def exportMesh(self):
 
         file_dialog = FileDialog.Dialog()
         file_dialog.setFilter('Mesh files (*.flma *.su2 *.msh *.inp *.cgns *.vtk)')
-        filename, extension = os.path.splitext(self.parent.airfoil.name)
-        filename, _ = file_dialog.saveFilename(filename)
+        filename, extension = os.path.splitext(self.mw.airfoil.name)
+        filename, _ = file_dialog.save_filename(filename)
 
         if not filename:
             logger.info('No file selected. Nothing saved.')
@@ -1131,15 +1106,15 @@ class Toolbox(QtWidgets.QToolBox):
 
         file_dialog = FileDialog.Dialog()
         file_dialog.setFilter('Airfoil contour files (*.dat *.txt)')
-        filename, _ = file_dialog.saveFilename(self.parent.airfoil.name)
+        filename, _ = file_dialog.save_filename(self.mw.airfoil.name)
 
         if not filename:
             logger.info('No file selected. Nothing saved.')
             return
 
         # get coordinates of modified contour
-        x, y = self.parent.airfoil.spline_data[0]
-        airfoil_name = self.parent.airfoil.name
+        x, y = self.mw.airfoil.spline_data[0]
+        airfoil_name = self.mw.airfoil.name
 
         try:
             # export modified contour
@@ -1167,13 +1142,13 @@ class ListWidget(QtWidgets.QListWidget):
     """
     def __init__(self, parent):
         super().__init__()
-        self.parent = parent
+        self.mw = parent
 
         self.itemClicked.connect(self.listItemClicked)
         self.itemDoubleClicked.connect(self.listItemDoubleClicked)
 
         # get MainWindow instance (overcomes handling parents)
-        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+        self.mw = get_main_window()
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -1183,10 +1158,10 @@ class ListWidget(QtWidgets.QListWidget):
             row = self.row(item)
             self.takeItem(row)
 
-            for airfoil in self.parent.airfoils:
+            for airfoil in self.mw.airfoils:
                 if item.text() == airfoil.name:
                     name = airfoil.name
-                    self.parent.slots.removeAirfoil(name=name)
+                    self.mw.slots.removeAirfoil(name=name)
                     break
 
         # call original implementation of QListWidget keyPressEvent handler
@@ -1198,16 +1173,16 @@ class ListWidget(QtWidgets.QListWidget):
 
     def listItemDoubleClicked(self, item):
         """make double clicked name in listwidget new active airfoil"""
-        for airfoil in self.parent.airfoils:
+        for airfoil in self.mw.airfoils:
             if airfoil.name == item.text():
                 # first clear all items from the scene
-                self.parent.scene.clear()
+                self.mw.scene.clear()
                 # activate double clicked airfoil
                 airfoil.makeAirfoil()
                 # add all airfoil items (contour markers) to the scene
-                airfoil.addToScene(self.parent.scene)
+                airfoil.addToScene(self.mw.scene)
                 # make double clicked airfoil the currently active airfoil
-                self.parent.airfoil = airfoil
+                self.mw.airfoil = airfoil
                 # adjust the marker size again
-                self.mainwindow.view.adjustMarkerSize()
+                self.mw.view.adjustMarkerSize()
                 break

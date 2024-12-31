@@ -1,20 +1,23 @@
 
 import os
 
-from Settings import DIALOGFILTER, OUTPUTDATA, AIRFOILDATA
-
 from PySide6 import QtWidgets
 
+from Utils import get_main_window
 
 class Dialog:
 
-    def __init__(self, filter=DIALOGFILTER):
+    def __init__(self):
+
+        # get MainWindow instance (overcomes handling parents)
+        self.mw = get_main_window()
 
         self.names = []
-        # DIALOGFILTER = 'Airfoil contour files (*.dat *.txt)'
-        self.filter = filter
 
-    def saveFilename(self, filename=None):
+        # DIALOG_FILTER = 'Airfoil contour files (*.dat *.txt)'
+        self.filter = self.mw.DIALOG_FILTER
+
+    def save_filename(self, filename=None):
         """Summary
 
         Args:
@@ -25,7 +28,7 @@ class Dialog:
             string: filename inlcuding path to filename
             string: filter which was selected
         """
-        path = os.path.join(OUTPUTDATA, filename)
+        path = os.path.join(self.mw.OUTPUT, filename)
         filename, selected_filter = QtWidgets.QFileDialog.getSaveFileName(
             None,
             'Save File As',
@@ -35,7 +38,7 @@ class Dialog:
 
         return filename, selected_filter
 
-    def openFilename(self, directory=AIRFOILDATA):
+    def open_filename(self):
         """Summary
 
 
@@ -46,7 +49,7 @@ class Dialog:
         filename, selected_filter = QtWidgets.QFileDialog.getOpenFileName(
             None,
             'Open File',
-            directory,
+            self.mw.AIRFOILS,
             self.filter,
             '')
 

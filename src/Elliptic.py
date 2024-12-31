@@ -3,7 +3,7 @@ import copy
 
 import numpy as np
 
-from Utils import Utils
+from MathUtils import VectorUtils
 
 import logging
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class Elliptic:
 
             a = np.array([x[i + 1 + iend] - x[i - 1 + istart],
                           y[i + 1 + iend] - y[i - 1 + istart]])
-            e = Utils.unit_vector(a)
+            e = VectorUtils.unit_vector(a)
             n.append([e[1], -e[0]])
             istart = 0
             iend = 0

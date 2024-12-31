@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QPushButton
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 from PySide6.QtGui import QPainter
 
+from Utils import get_main_window
 import logging
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class ContourAnalysis(QFrame):
         super().__init__()
 
         # get MainWindow instance (overcomes handling parents)
-        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+        self.mw = get_main_window()
 
         # run the gui part only when canvas set to true
         if canvas:
@@ -154,23 +155,23 @@ class ContourAnalysis(QFrame):
     def analyze(self):
         """get specific curve properties"""
 
-        if not self.mainwindow.airfoil.spline_data:
-            self.mainwindow.slots.messageBox('Please do splining first')
+        if not self.mw.airfoil.spline_data:
+            self.mw.slots.messageBox('Please do splining first')
             return
 
-        spline_data = self.mainwindow.airfoil.spline_data
-        curvature_data = ContourAnalysis.getCurvature(spline_data)
+        spline_data = self.mw.airfoil.spline_data
+        curvature_data = self.getCurvature(spline_data)
 
         # add new attributes to airfoil instance
-        self.mainwindow.airfoil.curvature_data = curvature_data
+        self.mw.airfoil.curvature_data = curvature_data
 
         self.drawContour()
 
     def drawContour(self, quantity='gradient'):
         """quantity is one of 'gradient', 'curvature', 'radius' """
 
-        spline_data = self.mainwindow.airfoil.spline_data
-        curvature_data = self.mainwindow.airfoil.curvature_data
+        spline_data = self.mw.airfoil.spline_data
+        curvature_data = self.mw.airfoil.curvature_data
 
         selector = {'gradient': 0, 'curvature': 1, 'radius': 2}
 

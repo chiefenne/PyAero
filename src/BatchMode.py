@@ -6,7 +6,6 @@ import SplineRefine
 import TrailingEdge
 import Meshing
 import Connect
-from Settings import DATAPATH
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,7 +27,6 @@ class Batch:
         print(message)
         logger.info(message)
         print(message_stars + '\n')
-
 
     def load_batch_control(self, batch_controlfile):
         with open(batch_controlfile, 'r') as f:
@@ -163,10 +161,7 @@ class Batch:
                 extension = {'FLMA': '.flma',
                              'SU2': '.su2',
                              'GMSH': '.msh',
-                             'VTK': '.vtk',
-                             'CGNS': '.cgns',
-                             'ABAQUS': '.inp',
-                             'OBJ': '.obj'}
+                             'VTK': '.vtk'}
                 mesh_name = os.path.join(mesh_path, basename + extension[output_format])
                 getattr(Meshing.BlockMesh, 'write'+output_format)(wind_tunnel, name=mesh_name)
 

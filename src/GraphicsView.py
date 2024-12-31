@@ -1,16 +1,12 @@
 import os
-import math
 
 from PySide6 import QtGui, QtCore, QtWidgets
 
-from Settings import ZOOMANCHOR, SCALEINC, MINZOOM, MAXZOOM, \
-                      MARKERSIZE, RUBBERBANDSIZE, VIEWSTYLE, ZOOMDIRECTION
+from Utils import get_main_window
+import Settings
 import logging
 logger = logging.getLogger(__name__)
 
-# put constraints on rubberband zoom (relative rectangle wdith)
-RUBBERBANDSIZE = min(RUBBERBANDSIZE, 1.0)
-RUBBERBANDSIZE = max(RUBBERBANDSIZE, 0.05)
 
 
 class GraphicsView(QtWidgets.QGraphicsView):
@@ -19,21 +15,16 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     Attributes:
         origin (QPoint): stores location of mouse press
-        parent (QMainWindow): mainwindow instance
         rubberband (QRubberBand): an instance of the custom rubberband class
                            used for zooming and selecting
         sceneview (QRectF): stores current view in scene coordinates
     """
-    def __init__(self, parent=None, scene=None):
-        """Default settings for graphicsview instance
-
-        Args:
-            parent (QMainWindow, optional): mainwindow instance
-        """
+    def __init__(self, scene=None):
+        """Default settings for graphicsview instance"""
 
         super().__init__(scene)
 
-        self.parent = parent
+        self.mw = get_main_window()
 
         self._leftMousePressed = False
 
@@ -54,7 +45,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
 
         # view behaviour when zooming
-        if ZOOMANCHOR == 'mouse':
+        if self.mw.ZOOM_ANCHOR == 'mouse':
             # point under mouse pointer stays fixed during zoom
             self.setTransformationAnchor(
                 QtWidgets.QGraphicsView.AnchorUnderMouse)
@@ -75,7 +66,11 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.getSceneFromView()
 
         # set background style and color for view
-        self.setBackground(VIEWSTYLE)
+        self.setBackground(self.mw.VIEW_STYLE)
+
+        # put constraints on rubberband zoom (relative rectangle wdith)
+        self.mw.RUBBERBAND_MIN = min(self.mw.RUBBERBAND_MIN, 1.0)
+        self.mw.RUBBERBAND_MIN = max(self.mw.RUBBERBAND_MIN, 0.05)
 
     def setBackground(self, styletype):
         """Switches between gradient and simple background using style sheets.
@@ -220,8 +215,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
             damping = 0.0
 
         # Determine the scale factor based on the wheel direction
-        factor = SCALEINC - damping
-        scale_factor = 1.0 / factor if delta * ZOOMDIRECTION > 0 else factor
+        factor = self.mw.SCALE_INCREMENT - damping
+        scale_factor = 1.0 / factor if delta * self.mw.ZOOM_DIRECTION > 0 else factor
 
         # Apply the scaling
         self.scaleView(scale_factor)
@@ -237,7 +232,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         key = event.key()
 
         if key == QtCore.Qt.Key_Plus or key == QtCore.Qt.Key_PageDown:
-            f = SCALEINC
+            f = self.mw.SCALE_INCREMENT
             # if scaling with the keys, the do not use mouse as zoom anchor
             anchor = self.transformationAnchor()
             self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
@@ -251,7 +246,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
                 return
 
         elif key == QtCore.Qt.Key_Minus or key == QtCore.Qt.Key_PageUp:
-            f = 1.0 / SCALEINC
+            f = 1.0 / self.mw.SCALE_INCREMENT
             # if scaling with the keys, the do not use mouse as zoom anchor
             anchor = self.transformationAnchor()
             self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
@@ -265,10 +260,10 @@ class GraphicsView(QtWidgets.QGraphicsView):
                 return
 
         elif key == QtCore.Qt.Key_Home:
-            self.parent.slots.onViewAll()
+            self.mw.slots.onViewAll()
         elif key == QtCore.Qt.Key_Delete:
             # removes all selected airfoils
-            self.parent.slots.removeAirfoil()
+            self.mw.slots.removeAirfoil()
 
         # call corresponding base class method
         super().keyPressEvent(event)
@@ -300,7 +295,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         for url in event.mimeData().urls():
             path = url.toLocalFile()
             if os.path.isfile(path):
-                self.parent.slots.loadAirfoil(path, comment='#')
+                self.mw.slots.loadAirfoil(path, comment='#')
 
     def scaleView(self, factor):
 
@@ -308,8 +303,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # m11 = x-scaling
         sx = self.transform().m11()
 
-        too_big = sx > MAXZOOM and factor > 1.0
-        too_small = sx < MINZOOM and factor < 1.0
+        too_big = sx > self.mw.MAX_ZOOM and factor > 1.0
+        too_small = sx < self.mw.MIN_ZOOM and factor < 1.0
 
         if too_big or too_small:
             return
@@ -325,7 +320,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def adjustMarkerSize(self):
         """Adjust marker size during zoom. Marker items are circles
-        which are otherwise affected by zoom. Using MARKERSIZE from
+        which are otherwise affected by zoom. Using MARKER_SIZE from
         Settings a fixed markersize (e.g. 3 pixels) can be kept.
         This method immitates the behaviour of pen.setCosmetic()
         """
@@ -334,31 +329,31 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # FIXME this fixes an accidential call of this method
         # FIXME should be fixed by checking when called
         # FIXME
-        if not self.parent.airfoil:
+        if not self.mw.airfoil:
             return
         
         # 
         current_zoom = self.transform().m11()
-        scale_marker = 1. + 3. * (current_zoom - MINZOOM) / (MAXZOOM - MINZOOM)
+        scale_marker = 1. + 3. * (current_zoom - self.mw.MIN_ZOOM) / (self.mw.MAX_ZOOM - self.mw.MIN_ZOOM)
         # scale_marker = 100.
         # logger.info(f'Current zoom value {current_zoom}')
         # logger.info(f'Scale factor for markers {scale_marker}')
 
         # markers are drawn in GraphicsItem using scene coordinates
         # in order to keep them constant size, also when zooming
-        # a fixed pixel size (MARKERSIZE from settings) is mapped to
+        # a fixed pixel size (MARKER_SIZE from settings) is mapped to
         # scene coordinates
         # depending on the zoom, this leads to always different
         # scene coordinates
-        # map a square with side length of MARKERSIZE to the scene coords
+        # map a square with side length of MARKER_SIZE to the scene coords
 
         mappedMarker = self.mapToScene(
-            QtCore.QRect(0, 0, MARKERSIZE*scale_marker, MARKERSIZE*scale_marker))
+            QtCore.QRect(0, 0, self.mw.MARKER_SIZE*scale_marker, self.mw.MARKER_SIZE*scale_marker))
         mappedMarkerWidth = mappedMarker.boundingRect().width()
 
-        if self.parent.airfoil.contourPolygon:
-            markers = self.parent.airfoil.polygonMarkers
-            x, y = self.parent.airfoil.raw_coordinates
+        if self.mw.airfoil.contourPolygon:
+            markers = self.mw.airfoil.polygonMarkers
+            x, y = self.mw.airfoil.raw_coordinates
             for i, marker in enumerate(markers):
                 # in case of circle, args is a QRectF
                 marker.args = [QtCore.QRectF(x[i] - mappedMarkerWidth,
@@ -366,10 +361,10 @@ class GraphicsView(QtWidgets.QGraphicsView):
                                              2. * mappedMarkerWidth,
                                              2. * mappedMarkerWidth)]
 
-        # if self.parent.airfoil.contourSpline:
-        if hasattr(self.parent.airfoil, 'contourSpline'):
-            markers = self.parent.airfoil.splineMarkers
-            x, y = self.parent.airfoil.spline_data[0]
+        # if self.mw.airfoil.contourSpline:
+        if hasattr(self.mw.airfoil, 'contourSpline'):
+            markers = self.mw.airfoil.splineMarkers
+            x, y = self.mw.airfoil.spline_data[0]
             for i, marker in enumerate(markers):
                 # in case of circle, args is a QRectF
                 marker.args = [QtCore.QRectF(x[i] - mappedMarkerWidth,
@@ -426,14 +421,14 @@ class GraphicsView(QtWidgets.QGraphicsView):
         action = menu.exec_(self.mapToGlobal(event.pos()))
 
         if action == togglebg:
-            self.parent.slots.onBackground()
+            self.mw.slots.onBackground()
         elif action == fitairfoil:
-            self.parent.slots.fitAirfoilInView()
+            self.mw.slots.fitAirfoilInView()
         elif action == fitall:
-            self.parent.slots.onViewAll()
+            self.mw.slots.onViewAll()
         # remove all selected items from the scene
         elif action == delitems:
-            self.parent.slots.removeAirfoil()
+            self.mw.slots.removeAirfoil()
 
         # call corresponding base class method
         super().contextMenuEvent(event)
@@ -477,10 +472,10 @@ class RubberBand(QtWidgets.QRubberBand):
         self.pen.setWidthF(1.5)
         self.pen.setStyle(QtCore.Qt.DotLine)
 
-        # zoom rect must be at least RUBBERBANDSIZE % of view to allow zoom
-        if (QPaintEvent.rect().width() < RUBBERBANDSIZE * self.view.width()) \
+        # zoom rect must be at least RUBBERBAND_MIN % of view to allow zoom
+        if (QPaintEvent.rect().width() < RUBBERBAND_MIN * self.view.width()) \
             or \
-           (QPaintEvent.rect().height() < RUBBERBANDSIZE * self.view.height()):
+           (QPaintEvent.rect().height() < RUBBERBAND_MIN * self.view.height()):
 
             self.brush.setStyle(QtCore.Qt.NoBrush)
 

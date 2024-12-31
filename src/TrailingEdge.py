@@ -3,16 +3,16 @@ import copy
 import numpy as np
 
 from PySide6 import QtGui, QtCore
-from Utils import Utils
+from MathUtils import VectorUtils
 import ContourAnalysis as ca
-
+from Utils import get_main_window
 
 class TrailingEdge:
 
     def __init__(self):
 
         # get MainWindow instance (overcomes handling parents)
-        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+        self.mw = get_main_window()
 
     def getUpperLower(self):
         """Split contour in upper and lower parts
@@ -22,7 +22,7 @@ class TrailingEdge:
         """
         # leading edge radius
         # get LE radius, etc.
-        spline_data = self.mainwindow.airfoil.spline_data
+        spline_data = self.mw.airfoil.spline_data
         curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
         rc, xc, yc, xle, yle, le_id = ca.ContourAnalysis.getLeRadius(spline_data,
                                                                curvature_data)
@@ -65,7 +65,7 @@ class TrailingEdge:
                                      side='lower')
         xt = np.concatenate([xnu, xnl[1:]])
         yt = np.concatenate([ynu, ynl[1:]])
-        self.mainwindow.airfoil.spline_data[0] = (xt, yt)
+        self.mw.airfoil.spline_data[0] = (xt, yt)
 
     def trailing(self, xx, yy, blend, ex, thickness, side='upper'):
         xmin = np.min(xx)
@@ -81,7 +81,7 @@ class TrailingEdge:
         elif side == 'lower':
             signum = -1.0
             a = np.array([x[-2] - x[-1], y[-2] - y[-1]])
-        e = Utils.unit_vector(a)
+        e = VectorUtils.unit_vector(a)
         n = np.array([e[1], -e[0]])
         shift = 0.5 * thickness
         for i in blend_points:

@@ -28,8 +28,8 @@ class Airfoil:
 
     def __init__(self, name):
 
-        # get MainWindow instance (overcomes handling parents)
-        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+        # MainWindow instance
+        self.mw = QtCore.QCoreApplication.instance().mainwindow
 
         self.name = name
         self.chord = None
@@ -108,9 +108,9 @@ class Airfoil:
 
         # Activate checkboxes for contour points, polygon, and chord in viewing options.
         checkboxes = [
-            self.mainwindow.centralwidget.airfoil_points_checkbox,
-            self.mainwindow.centralwidget.airfoil_raw_contour_checkbox,
-            self.mainwindow.centralwidget.airfoil_chord_checkbox,
+            self.mw.mainArea.airfoil_points_checkbox,
+            self.mw.mainArea.airfoil_raw_contour_checkbox,
+            self.mw.mainArea.airfoil_chord_checkbox,
         ]
         for checkbox in checkboxes:
             checkbox.setChecked(True)
@@ -213,20 +213,20 @@ class Airfoil:
 
         # remove items from iterated uses of spline/refine and trailing edge
         if hasattr(self, 'contourSpline') and \
-                self.contourSpline in self.mainwindow.scene.items():
-            self.mainwindow.scene.removeItem(self.contourSpline)
+                self.contourSpline in self.mw.scene.items():
+            self.mw.scene.removeItem(self.contourSpline)
         self.contourSpline = GraphicsItem.GraphicsItem(splinecontour)
-        self.mainwindow.scene.addItem(self.contourSpline)
+        self.mw.scene.addItem(self.contourSpline)
 
         # remove items from iterated uses of spline/refine and trailing edge
         if hasattr(self, 'splineMarkersGroup') and \
-                self.splineMarkersGroup in self.mainwindow.scene.items():
-            self.mainwindow.scene.removeItem(self.splineMarkersGroup)
+                self.splineMarkersGroup in self.mw.scene.items():
+            self.mw.scene.removeItem(self.splineMarkersGroup)
         self.makeSplineMarkers()
-        self.splineMarkersGroup = self.mainwindow.scene. \
+        self.splineMarkersGroup = self.mw.scene. \
             createItemGroup(self.splineMarkers)
 
-        self.mainwindow.airfoil.contourSpline.brush. \
+        self.mw.airfoil.contourSpline.brush. \
             setStyle(QtCore.Qt.SolidPattern)
         color = QtGui.QColor()
         color.setNamedColor('#7c8696')
@@ -235,20 +235,20 @@ class Airfoil:
 
         # switch off raw contour and toogle corresponding checkbox
         if self.polygonMarkersGroup.isVisible():
-            self.mainwindow.centralwidget.airfoil_points_checkbox.click()
+            self.mw.mainArea.airfoil_points_checkbox.click()
         if self.contourPolygon.isVisible():
-            self.mainwindow.centralwidget.airfoil_raw_contour_checkbox.click()
+            self.mw.mainArea.airfoil_raw_contour_checkbox.click()
 
         # Activate checkboxes for contour points and chord in viewing options.
         checkboxes = [
-            self.mainwindow.centralwidget.airfoil_spline_points_checkbox,
-            self.mainwindow.centralwidget.airfoil_spline_contour_checkbox,
+            self.mw.mainArea.airfoil_spline_points_checkbox,
+            self.mw.mainArea.airfoil_spline_contour_checkbox,
         ]
         for checkbox in checkboxes:
             checkbox.setChecked(True)
             checkbox.setEnabled(True)
 
-        self.mainwindow.view.adjustMarkerSize()
+        self.mw.view.adjustMarkerSize()
 
     def makeSplineMarkers(self):
         """Create marker for polygon contour"""
@@ -294,14 +294,14 @@ class Airfoil:
 
         # remove items from iterated uses of spline/refine and trailing edge
         if hasattr(self, 'camberline') and \
-                self.camberline in self.mainwindow.scene.items():
-            self.mainwindow.scene.removeItem(self.camberline)
+                self.camberline in self.mw.scene.items():
+            self.mw.scene.removeItem(self.camberline)
         self.camberline = GraphicsItem.GraphicsItem(camberline)
         self.camberline.setAcceptHoverEvents(False)
         self.camberline.setZValue(99)
-        self.mainwindow.scene.addItem(self.camberline)
-        self.mainwindow.centralwidget.airfoil_camber_line_checkbox.setChecked(True)
-        self.mainwindow.centralwidget.airfoil_camber_line_checkbox.setEnabled(True)
+        self.mw.scene.addItem(self.camberline)
+        self.mw.mainArea.airfoil_camber_line_checkbox.setChecked(True)
+        self.mw.mainArea.airfoil_camber_line_checkbox.setEnabled(True)
 
     def setPenColor(self, r, g, b, a):
         self.pencolor = QtGui.QColor(r, g, b, a)

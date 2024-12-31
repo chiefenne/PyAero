@@ -10,9 +10,8 @@ from Settings import *
 
 
 class IconProvider(QtWidgets.QFileIconProvider):
-    # call constructor of IconProvider
     def __init__(self):
-        # call constructor of QFileIconProvider
+        # constructor of QFileIconProvider
         super().__init__()
 
     # overwrite icon method of QFileIconProvider
@@ -20,12 +19,12 @@ class IconProvider(QtWidgets.QFileIconProvider):
 
         if isinstance(icontype, QtCore.QFileInfo):
             if icontype.isDir():
-                return QtGui.QIcon(os.path.join(ICONS_L, 'Folder.png'))
+                return QtGui.QIcon('resources/Icons/24x24/airfoil.png/Folder.png')
             if icontype.isFile():
-                return QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png'))
+                return QtGui.QIcon('resources/Icons/24x24/airfoil.png/Fast delivery.png')
         if icontype == QtGui.QFileIconProvider.Folder:
-            return QtGui.QIcon(os.path.join(ICONS_L, 'Folder.png'))
+            return QtGui.QIcon('resources/Icons/24x24/airfoil.png/Folder.png')
         if icontype == QtGui.QFileIconProvider.File:
-            return QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png'))
+            return QtGui.QIcon('resources/Icons/24x24/airfoil.png/Fast delivery.png')
 
         return super().icon(icontype)

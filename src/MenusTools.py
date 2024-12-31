@@ -7,8 +7,7 @@ import xml.etree.ElementTree as etree
 
 from PySide6 import QtGui, QtCore, QtWidgets
 
-from Settings import ICONS_S, ICONS_L, MENUDATA
-
+from Utils import get_main_window
 import logging
 logger = logging.getLogger(__name__)
 
@@ -16,17 +15,17 @@ logger = logging.getLogger(__name__)
 class MenusTools:
     # call constructor of MenusTools
 
-    def __init__(self, parent=None):
+    def __init__(self):
 
-        self.parent = parent
+        # MainWindow instance
+        self.mw = get_main_window()
 
     def getMenuData(self):
-        """get all menus and pulldowns from the external XML file"""
+        """populate menus and pulldowns from the external XML file"""
 
         menudata = list()
 
-        xml_file = os.path.join(MENUDATA, 'PMenu.xml')
-        xml = etree.parse(xml_file)
+        xml = etree.parse('resources/Menus/PMenu.xml')
         menu_structure = xml.getroot()
 
         for menu in menu_structure.findall('Menubar'):
@@ -37,7 +36,7 @@ class MenusTools:
 
         # attach available pulldowns to the mainwindow
         # so it can be used elsewhere (e.g. Guislots)
-        self.parent.menudata = menudata
+        self.mw.menudata = menudata
         return tuple(menudata)
 
     def getPullDownData(self, items):
@@ -61,7 +60,7 @@ class MenusTools:
         """create the menubar and populate it automatically"""
         # create a menu bar
         # self.menubar = QtWidgets.QMenuBar()
-        self.menubar = self.parent.menuBar()
+        self.menubar = self.mw.menuBar()
 
         # for MacOS in order that the menu stays with the window
         pltf = platform.system()
@@ -84,13 +83,13 @@ class MenusTools:
                 menu.addSeparator()
                 continue
 
-            icon = QtGui.QIcon(os.path.join(ICONS_S, icon))
+            icon = QtGui.QIcon(os.path.join('resources/Icons/16x16', icon))
 
             logger.debug('HANDLER: {}'.format(handler))
 
-            handler = 'self.parent.slots.' + handler
+            handler = 'self.mw.slots.' + handler
 
-            action = QtGui.QAction(icon, name, self.parent,
+            action = QtGui.QAction(icon, name, self.mw,
                                        shortcut=short, statusTip=tip,
                                        triggered=eval(handler))
 
@@ -102,8 +101,7 @@ class MenusTools:
     def getToolbarData(self):
         """get all menus and submenus from the external XML file"""
 
-        xml_file = os.path.join(MENUDATA, 'PToolBar.xml')
-        xml = etree.parse(xml_file)
+        xml = etree.parse('resources/Menus/PToolBar.xml')
         tool_structure = xml.getroot()
 
         tooldata = list()
@@ -126,19 +124,19 @@ class MenusTools:
         """
         # create a toolbar
         self.toolbar = QtWidgets.QToolBar('Toolbar')
-        self.parent.addToolBar(self.toolbar)
+        self.mw.addToolBar(self.toolbar)
 
         for tip, icon, handler in self.getToolbarData():
             if len(tip) == 0:
                 self.toolbar.addSeparator()
                 continue
-            icon = QtGui.QIcon(os.path.join(ICONS_L, icon))
+            icon = QtGui.QIcon(os.path.join('resources/Icons/24x24', icon))
 
             # guislot converts to:
-            # self.parent.slots.slotMethod()
-            guislot = getattr(self.parent.slots, handler)
+            # self.mw.slots.slotMethod()
+            guislot = getattr(self.mw.slots, handler)
 
-            action = QtGui.QAction(icon, tip, parent=self.parent)
+            action = QtGui.QAction(icon, tip, parent=self.mw)
             # action.setIcon(icon)
             # action.setToolTip(tip)
             action.triggered.connect(guislot)
@@ -146,29 +144,24 @@ class MenusTools:
             self.toolbar.addAction(action)
 
     def createDocks(self):
-        self.parent.messagedock = QtWidgets.QDockWidget(self.parent)
-        self.parent.messagedock. \
-            setFeatures(QtWidgets.QDockWidget.DockWidgetMovable |
-                        QtWidgets.QDockWidget.DockWidgetFloatable)
-        self.parent.messagedock.setWindowTitle('Messages')
-        self.parent.messagedock.setMinimumSize(100, 50)
-        # connect messagedock to slot
-        self.parent.messagedock.topLevelChanged.connect(
-            self.parent.slots.onLevelChanged)
+        messagedock = QtWidgets.QDockWidget(self.mw)
+        messagedock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable |
+                                QtWidgets.QDockWidget.DockWidgetFloatable)
+        messagedock.setWindowTitle('Messages')
+        messagedock.setMinimumSize(100, 50)
+        messagedock.topLevelChanged.connect(self.mw.slots.onLevelChanged)
 
-        self.parent.messages = QtWidgets.QTextEdit(self.parent)
-        self.parent.messages. \
-            setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse |
-                                    QtCore.Qt.TextSelectableByKeyboard)
-        # connect messages to scrollhandler
-        self.parent.messages.textChanged.connect(
-            self.parent.slots.onTextChanged)
+        self.mw.messages = QtWidgets.QTextEdit(self.mw)
+        self.mw.messages.setTextInteractionFlags(
+            QtCore.Qt.TextSelectableByMouse | QtCore.Qt.TextSelectableByKeyboard
+        )
+        self.mw.messages.setAcceptRichText(True)
+        self.mw.messages.textChanged.connect(self.mw.slots.onTextChanged)
 
-        self.parent.messagedock.setWidget(self.parent.messages)
+        messagedock.setWidget(self.mw.messages)
+        self.mw.addDockWidget(QtCore.Qt.BottomDockWidgetArea, messagedock)
 
-        place = QtCore.Qt.BottomDockWidgetArea
-        self.parent.addDockWidget(
-            QtCore.Qt.DockWidgetArea(place), self.parent.messagedock)
+        self.mw.messagedock = messagedock
 
     def onPass(self):
         pass

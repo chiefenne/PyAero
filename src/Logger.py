@@ -2,7 +2,7 @@ import os
 import logging
 import datetime
 
-from Settings import LOGDATA
+import Settings
 
 
 class GuiHandler(logging.Handler):
@@ -14,28 +14,22 @@ class GuiHandler(logging.Handler):
     logger_instance = logging.getLogger('')
 
     def __init__(self, parent=None, *args):
-         # Initialize the Handler
-         super().__init__(*args)
+        # Initialize the Handler
+        super().__init__(*args)
+        self.parent = parent
 
-         self.parent = parent
-
-         # make the logger send data to this class
-         self.logger_instance.addHandler(self)
+        # Make the logger send data to this class
+        self.logger_instance.addHandler(self)
 
     def emit(self, record):
         """ Overload of logging.Handler method """
-
-        record = self.format(record)
-
-        self.parent.slots.onMessage(record)
+        formatted_record = self.format(record)
+        self.parent.slots.onMessage(formatted_record)
 
 
-def log(mainwindow):
+def log(main_window):
 
-    useGUI = True
-
-    if mainwindow == 'file_only':
-        useGUI = False
+    useGUI = main_window != 'console'
 
     logging.basicConfig(level=logging.INFO)
     # logging.getLogger('') gets the 'root' logger
@@ -44,7 +38,7 @@ def log(mainwindow):
     stdout_handler = logging.getLogger('').handlers[0]
 
     format = 'PyAero_%Y-%m-%d____h%H-m%M-s%S.log'
-    logfile = os.path.join(LOGDATA, datetime.datetime.now().strftime(format))
+    logfile = os.path.join(main_window.LOGS, datetime.datetime.now().strftime(format))
 
     # create a file handler
     file_handler = logging.FileHandler(logfile)
@@ -56,7 +50,7 @@ def log(mainwindow):
 
     # create a gui handler (for writing to the message dock window)
     if useGUI:
-        gui_handler = GuiHandler(parent=mainwindow)
+        gui_handler = GuiHandler(parent=main_window)
         gui_handler.setLevel(logging.INFO)
 
     # create specific logging formats

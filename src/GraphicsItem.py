@@ -1,5 +1,6 @@
 from PySide6 import QtGui, QtCore, QtWidgets
 
+from Utils import get_main_window
 
 class GraphicsItem(QtWidgets.QGraphicsItem):
     """
@@ -19,9 +20,9 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         super().__init__()
 
         # get MainWindow instance (overcomes handling parents)
-        self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
+        self.mw = get_main_window()
 
-        self.scene = self.mainwindow.scene
+        self.scene = self.mw.scene
 
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
@@ -64,23 +65,15 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
                 # from Graphicstest. These are not listed in MyListWidget
                 return
 
-            centralwidget = self.mainwindow.centralwidget
-            itms = centralwidget.toolbox.listwidget. \
-                findItems(self.name, QtCore.Qt.MatchExactly)
+            listwidget = self.mw.mainArea.toolbox.listwidget
+            items = listwidget.findItems(self.name, QtCore.Qt.MatchExactly)
 
-            if self.isSelected():
-                for itm in itms:
-                    itm.setSelected(True)
-                    # centralwidget.toolbox.listwidget. \
-                    #     setItemSelected(itm, True)
-            else:
-                for itm in itms:
-                    itm.setSelected(False)
-                    # centralwidget.toolbox.listwidget. \
-                    #     setItemSelected(itm, False)
+            for item in items:
+                item.setSelected(self.isSelected())
+
             # give focus to listwidget so that highlighting works
             # (at least for short period until mouse is moved)
-            centralwidget.toolbox.listwidget.setFocus()
+            listwidget.setFocus()
 
         return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 
