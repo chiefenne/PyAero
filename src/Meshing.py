@@ -12,6 +12,7 @@ import Elliptic
 import Connect
 from Smooth_angle_based import SmoothAngleBased
 from Utils import scalar_to_rgb, get_main_window
+from MathUtils import VectorUtils
 import logging
 logger = logging.getLogger(__name__)
 
