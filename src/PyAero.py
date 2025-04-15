@@ -142,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
         key = event.key()
 
         if key == QtCore.Qt.Key_Escape and EXITONESCAPE:
-            sys.exit(self.app.exit(retcode=0))
+            self.app.exit(0)
         elif key == QtCore.Qt.Key_Home:
             self.slots.onViewAll()
         else:
@@ -167,7 +167,7 @@ class CentralWidget(QtWidgets.QWidget):
     Methods:
         __init__(self, parent=None):
             Initializes the CentralWidget, sets up the layout, and connects signals.
-        
+
         viewingOptions(self):
             Creates and configures the viewing options group box with checkboxes.
     """
