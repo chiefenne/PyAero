@@ -27,6 +27,12 @@ MENUDATA = os.path.join(DATAPATH, 'Menus')
 # path to log files
 LOGDATA = os.path.join(DATAPATH, 'LOGS')
 
+# path to su2 master-config
+SU2CONFIG = os.path.join(DATAPATH, "Config")
+
+# path to SU2 executable
+SU2EXEC = "SU2_CFD"  # this should work if it's in PATH, otherwise just put the full path here
+
 # set locale
 # can be either 'C' or ''
 # if string is empty then system default locale is used
