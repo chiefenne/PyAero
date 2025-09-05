@@ -42,7 +42,7 @@ __credits__ = 'Internet and open source'
 year = str(datetime.date.today().strftime("%Y"))
 __copyright__ = '2014-' + year + ' ' + __author__
 __license__ = 'MIT'
-__version__ = '2.1.7'
+__version__ = '2.1.9'
 __email__ = 'andreas.ennemoser@aon.at'
 __status__ = 'Release'
 
@@ -167,7 +167,7 @@ class CentralWidget(QtWidgets.QWidget):
     Methods:
         __init__(self, parent=None):
             Initializes the CentralWidget, sets up the layout, and connects signals.
-        
+
         viewingOptions(self):
             Creates and configures the viewing options group box with checkboxes.
     """
