@@ -340,6 +340,11 @@ class Slots:
             information(self.parent, 'Information',
                         message, QtWidgets.QMessageBox.Ok)
 
+    @QtCore.Slot(str)
+    def yesnocancelQuestionBox(self, question):
+        return QtWidgets.QMessageBox.information(self.parent, 'Confirm?', question,
+                                                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Cancel)
+
     @QtCore.Slot()
     def onKeyBd(self):
         # automatically populate shortcuts from PMenu.xml

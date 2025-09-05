@@ -1,20 +1,29 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
+import sys
+import time
 import numpy as np
+import pandas as pd
+import signal
 
 from PySide6 import QtGui, QtCore, QtWidgets
+from PySide6.QtCore import QTimer
 
 import PyAero
 import Airfoil
 import FileDialog
 import FileSystem
 import SvpMethod
+import su2
 import SplineRefine
 import TrailingEdge
 import Meshing
 import ContourAnalysis as ca
-from Settings import ICONS_L
+import MatplotlibWindow
+from Settings import ICONS_L, SU2CONFIG, OUTPUTDATA, SU2EXEC
+import queue
 
 import logging
 logger = logging.getLogger(__name__)
@@ -53,6 +62,7 @@ class Toolbox(QtWidgets.QToolBox):
         # create toolbox items
         self.itemFileSystem()
         self.itemAeropython()
+        self.itemSU2()
         self.itemBoundaryCondtions()
         self.itemContourAnalysis()
         self.itemSplineRefine()
@@ -162,6 +172,100 @@ class Toolbox(QtWidgets.QToolBox):
         self.item_ap.setLayout(form)
 
         panelMethodButton.clicked.connect(self.runPanelMethod)
+
+    def itemSU2(self):
+
+        form = QtWidgets.QFormLayout()
+
+        label1 = QtWidgets.QLabel(u'Angle of attack (°)')
+        self.aoaSU2 = QtWidgets.QDoubleSpinBox()
+        self.aoaSU2.setSingleStep(0.1)
+        self.aoaSU2.setDecimals(1)
+        self.aoaSU2.setRange(-10.0, 10.0)
+        self.aoaSU2.setValue(0.0)
+        form.addRow(label1, self.aoaSU2)
+
+        label2 = QtWidgets.QLabel('Reynolds number')
+        self.reynolds_su2 = QtWidgets.QDoubleSpinBox()
+        self.reynolds_su2.setSingleStep(1e2)
+        self.reynolds_su2.setDecimals(0)
+        self.reynolds_su2.setRange(1, 1e8)
+        self.reynolds_su2.setValue(1e6)
+        form.addRow(label2, self.reynolds_su2)
+
+        label2 = QtWidgets.QLabel('Freestream Mach number')
+        self.freestreamSU2 = QtWidgets.QDoubleSpinBox()
+        self.freestreamSU2.setSingleStep(0.1)
+        self.freestreamSU2.setDecimals(2)
+        self.freestreamSU2.setRange(0.0, 100.0)
+        self.freestreamSU2.setValue(0.4)
+        form.addRow(label2, self.freestreamSU2)
+
+        label3 = QtWidgets.QLabel('Mesh file')
+        self.meshfile = QtWidgets.QLineEdit('msh.su2')
+        form.addRow(label3, self.meshfile)
+
+        label4 = QtWidgets.QLabel(u'Number of cores')
+        self.n_cores = QtWidgets.QSpinBox()
+        self.n_cores.setSingleStep(1)
+        self.n_cores.setRange(1, 64)
+        self.n_cores.setValue(1)
+        form.addRow(label4, self.n_cores)
+
+        label4 = QtWidgets.QLabel(u'Restart-file write frequency')
+        self.n_restartfreq = QtWidgets.QDoubleSpinBox()
+        self.n_restartfreq.setSingleStep(1)
+        self.n_restartfreq.setDecimals(0)
+        self.n_restartfreq.setRange(1, 500)  # TODO: allow this to be 0, meaning no restart file
+        self.n_restartfreq.setValue(100)
+        form.addRow(label4, self.n_restartfreq)
+
+        label5 = QtWidgets.QLabel(u'Flow-field write frequency')
+        self.n_flowfreq = QtWidgets.QDoubleSpinBox()
+        self.n_flowfreq.setSingleStep(1)
+        self.n_flowfreq.setDecimals(0)
+        self.n_flowfreq.setRange(1, 500)  # TODO: allow this to be 0, meaning no flow file (for whatever reason)
+        self.n_flowfreq.setValue(5)
+        form.addRow(label5, self.n_flowfreq)
+
+        n_col = 3
+        options = ['"CD"', '"CL"', '"rms[RhoU]"', '"rms[RhoE]"']  # TODO: add others?
+        self.residuals_cbs = {}
+        label = QtWidgets.QLabel('Residuals / Quantities to live-plot')
+        label.setToolTip('Check quantities to plot live')
+        grid = QtWidgets.QGridLayout()
+        grid.addWidget(label, 0, 0)
+        for i, var in enumerate(options):
+            cb = QtWidgets.QCheckBox(var)
+            self.residuals_cbs[var] = cb
+            cb.setChecked(True)
+            grid.addWidget(cb, i // n_col + 2, i % n_col + 1)
+        form.addRow(grid)
+
+        label6 = QtWidgets.QLabel(u'Moving-average samples')
+        self.n_residuals_movingavg = QtWidgets.QDoubleSpinBox()
+        self.n_residuals_movingavg.setSingleStep(1)
+        self.n_residuals_movingavg.setDecimals(0)
+        self.n_residuals_movingavg.setRange(0, 20)
+        self.n_residuals_movingavg.setValue(5)
+        form.addRow(label6, self.n_residuals_movingavg)
+
+        runSU2Button = QtWidgets.QPushButton('Run solver')
+        form.addRow(runSU2Button)
+        abortSU2Button = QtWidgets.QPushButton('Abort solver')
+        form.addRow(abortSU2Button)
+
+        self.residuals_canvas = MatplotlibWindow.MplCanvas()
+        self.residuals_canvas.setMinimumSize(400, 300)
+        # self.residuals_canvas.setSizePolicy(Q)
+        form.addRow(self.residuals_canvas)
+
+        self.item_su2 = QtWidgets.QGroupBox('SU2')
+        self.item_su2.setLayout(form)
+
+        self.simulation_initialised = False
+        runSU2Button.clicked.connect(self.runSU2)
+        abortSU2Button.clicked.connect(self.abortSU2)
 
     def itemBoundaryCondtions(self):
 
@@ -639,30 +743,20 @@ class Toolbox(QtWidgets.QToolBox):
         header_2.setStyleSheet('font-weight: bold;')
         self.form_bnd.addRow(header_1, header_2)
 
-        label = QtWidgets.QLabel('Airfoil')
-        label.setToolTip('Name of the boundary definition for the airfoil')
-        self.lineedit_airfoil = QtWidgets.QLineEdit('Airfoil')
-        self.form_bnd.addRow(label, self.lineedit_airfoil)
-
-        label = QtWidgets.QLabel('Inlet (C-arc)')
-        label.setToolTip('Name of the boundary definition for the inlet')
-        self.lineedit_inlet = QtWidgets.QLineEdit('Inlet')
-        self.form_bnd.addRow(label, self.lineedit_inlet)
-
-        label = QtWidgets.QLabel('Outlet')
-        label.setToolTip('Name of the boundary definition for the outlet')
-        self.lineedit_outlet = QtWidgets.QLineEdit('Outlet')
-        self.form_bnd.addRow(label, self.lineedit_outlet)
-
-        label = QtWidgets.QLabel('Top')
-        label.setToolTip('Name of the boundary definition for the top of the windtunnel')
-        self.lineedit_top = QtWidgets.QLineEdit('Top')
-        self.form_bnd.addRow(label, self.lineedit_top)
-
-        label = QtWidgets.QLabel('Bottom')
-        label.setToolTip('Name of the boundary definition for the bottom of the windtunnel')
-        self.lineedit_bottom = QtWidgets.QLineEdit('Bottom')
-        self.form_bnd.addRow(label, self.lineedit_bottom)
+        self.lineedits_boundarymarkers = {}
+        gui_labels = {
+            "airfoil": "Airfoil",
+            "inlet": "Inlet (C-arc)",
+            "outlet": "Outlet",
+            "top": "Top of Windtunnel",
+            "bottom": "Bottom of Windtunnel"
+        }
+        for boundary, label in gui_labels.items():
+            label = QtWidgets.QLabel(label.split(None, 1)[0])
+            label.setToolTip(f'Name of the boundary definition for the {label}')
+            edit = QtWidgets.QLineEdit(boundary)
+            self.lineedits_boundarymarkers[boundary] = edit
+            self.form_bnd.addRow(label, edit)
 
         self.check_FIRE = QtWidgets.QCheckBox('AVL FIRE')
         self.check_SU2 = QtWidgets.QCheckBox('SU2')
@@ -859,6 +953,7 @@ class Toolbox(QtWidgets.QToolBox):
         self.tb6 = self.addItem(self.item_abc,
                                 'CFD Boundary Conditions')
         self.tb5 = self.addItem(self.item_ap, 'Aerodynamics (Panel Code)')
+        self.tb7 = self.addItem(self.item_su2, 'Aerodynamics (SU2)')
         self.tb3 = self.addItem(self.item_ca, 'Contour Analysis')
 
         self.setItemToolTip(0, 'Airfoil database ' +
@@ -871,7 +966,8 @@ class Toolbox(QtWidgets.QToolBox):
                             ' on Reynolds number and thermodynamics')
         self.setItemToolTip(4, 'Compute panel based aerodynamic ' +
                             'coefficients')
-        self.setItemToolTip(5, 'Analyze the curvature of the ' +
+        self.setItemToolTip(5, 'Compute aerodynamic coefficients with SU2')
+        self.setItemToolTip(6, 'Analyze the curvature of the ' +
                             'selected airfoil')
 
         self.setItemIcon(0, QtGui.QIcon(os.path.join(ICONS_L, 'airfoil.png')))
@@ -879,7 +975,8 @@ class Toolbox(QtWidgets.QToolBox):
         self.setItemIcon(2, QtGui.QIcon(os.path.join(ICONS_L, 'mesh.png')))
         self.setItemIcon(3, QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png')))
         self.setItemIcon(4, QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png')))
-        self.setItemIcon(5, QtGui.QIcon(os.path.join(ICONS_L, 'Pixel editor.png')))
+        self.setItemIcon(5, QtGui.QIcon(os.path.join(ICONS_L, 'Fast delivery.png')))
+        self.setItemIcon(6, QtGui.QIcon(os.path.join(ICONS_L, 'Pixel editor.png')))
 
         # preselect airfoil database box
         self.setCurrentIndex(self.tb1)
@@ -969,6 +1066,128 @@ class Toolbox(QtWidgets.QToolBox):
         else:
             self.parent.slots.messageBox('No airfoil loaded.')
             return
+
+    def runSU2(self):
+        """Gui callback to run SU2"""
+        if self.simulation_initialised:
+            self.parent.slots.messageBox("Simulation already initialised!")
+            return
+
+        self.timer = QTimer()  # this will be the timer for the live-plot
+
+        sample = {
+            "aoa": self.aoaSU2.value(),
+            "Re": self.reynolds_su2.value(),
+            "Ma": self.freestreamSU2.value(),
+            "y_TE": 0.,  # FIXME: get this value from airfoil instead! and then add a user message that it will be subtracted
+        }
+
+        # TODO: allow user to change the working directory?
+        paths = {"work_subdir": OUTPUTDATA, "template_dir": SU2CONFIG,
+                 "su2_executable": SU2EXEC}
+
+        self.residuals_canvas.clear()
+
+        # Below is code that would find the latest file in the folder. But there is no guarantee,
+        # that this was run with the CURRENT settings in the GUI! So we would need to store something, e.g.
+        # a hash of su2 config and su2 mesh, to ensure that the user actually wanted to continue the existing simulation.
+        # Or just ask the user with a messagebox?
+        restart_sol = su2.SU2instance.get_restarts(paths['work_subdir'])
+        if restart_sol:
+            answer = self.parent.slots.yesnocancelQuestionBox(f'Use restart-flow file at iteration {restart_sol} (Yes), '
+                                                              f'or start a new simulation (No)?')
+            if answer.name == "Cancel":
+                return
+            elif answer.name == "No":
+                restart_sol = 0
+
+        settings = {
+            "restart_file_freq": self.n_restartfreq.value(),
+            "flowfield_freq": self.n_flowfreq.value(),
+        }
+
+        deviations = {
+            "MESH_FILENAME": self.meshfile.text()
+        }
+
+        self.su2_handler = su2.SU2instance(sample, paths, restart_from=restart_sol, deviations=deviations, settings=settings)
+
+        # from this moment on, the abortSU2-method has everything it needs, so we consider it initialised
+        self.simulation_initialised = True  
+        
+        self.su2_handler.run(self.n_cores.value())
+
+        prev_hist = self.su2_handler.get_history()
+
+        while True:  # block until at least one iteration has been written
+            try:
+                if len(self.su2_handler.get_history()) != len(prev_hist):
+                    break
+            except (FileNotFoundError, pd.errors.EmptyDataError):
+                time.sleep(0.1)
+
+        self.restart_lines = [0]
+
+        self.timer.timeout.connect(self.poll_residuals)
+        self.timer.start(100)  # check every 100 ms
+
+    def poll_residuals(self):  # apparently this needs to be a method of the main GUI, otherwise plot doesn't update...
+        # N.B.: this starts to behave strangely if the user does strange things like manually (re)moving certain
+        # restart- or history files. In short, this method assumes that the various history.csv are consistent!
+        sim_status = self.su2_handler.is_done()
+        if sim_status != "Running":
+            self.timer.stop()  # timeout.disconnect(self.poll_residuals)
+            self.parent.slots.messageBox(f"SU2 exit code: {sim_status}")
+            return
+
+        try:
+            df = self.su2_handler.queue.get_nowait()  # the is_done() method above puts something into the queue
+        except queue.Empty:
+            return
+        if len(df) == 0:
+            return
+
+        df = df.set_index('"Time_Iter"')
+        ymax = -np.inf
+        ymin = np.inf
+        for var, cb in self.residuals_cbs.items():
+            if not cb.isChecked():
+                continue
+            kwargs = {
+                f"{var}_trend": self.n_residuals_movingavg.value(),  # if 0, it will not plot it
+            }
+            _ = self.residuals_canvas.update_plot(var, df[f'{var}'], **kwargs)
+            ymax = max(ymax, df[f'{var}'].max())
+            ymin = min(ymin, df[f'{var}'].min())
+            # note: self.residual_canvas is an object of a custom class
+        self.residuals_canvas.ax.relim()
+        self.residuals_canvas.ax.autoscale_view()
+        # now we draw a dashed, grey, vertical line at every restart
+        freq = self.n_restartfreq.value()
+        if freq > 0:
+            current_iter = df.index.max()
+            next_restart_index = current_iter // freq + 1
+            if next_restart_index > max(self.restart_lines):
+                _ = self.residuals_canvas.ax.plot([(next_restart_index)*freq]*2, [ymin, ymax], "k--", alpha=0.5)[0]
+                self.restart_lines.append(next_restart_index)
+
+        self.residuals_canvas.fig.tight_layout()
+        self.residuals_canvas.draw()
+
+    def abortSU2(self):
+        if not self.simulation_initialised:
+            return
+        if self.su2_handler.process.poll() is None:
+            if sys.platform != 'win32':
+                self.su2_handler.process.send_signal(signal.SIGKILL)
+            else:
+                self.su2_handler.process.kill()
+            stdout, stderr = self.su2_handler.process.communicate()
+            self.parent.slots.messageBox(f"Terminated SU2.")
+        # TODO: use exit_request flags instead;
+        #  https://stackoverflow.com/questions/323972/is-there-any-way-to-kill-a-thread
+        self.timer.stop()
+        self.simulation_initialised = False
 
     def spline_and_refine(self):
         """Spline and refine airfoil"""
@@ -1107,12 +1326,9 @@ class Toolbox(QtWidgets.QToolBox):
         filename, extension = os.path.splitext(filename)
 
         # add boundary definition attributes to mesh object
-        self.wind_tunnel.boundary_airfoil = self.lineedit_airfoil.text()
-        self.wind_tunnel.boundary_inlet = self.lineedit_inlet.text()
-        self.wind_tunnel.boundary_outlet = self.lineedit_outlet.text()
-        self.wind_tunnel.boundary_top = self.lineedit_top.text()
-        self.wind_tunnel.boundary_bottom = self.lineedit_bottom.text()
+        self.wind_tunnel.boundary_tags_names = {boundary: edit.text() for boundary, edit in self.lineedits_boundarymarkers.items()}
 
+        name = "msh.su2"
         if self.check_FIRE.isChecked():
             name = filename + '.flma'
             Meshing.BlockMesh.writeFLMA(self.wind_tunnel,
@@ -1126,6 +1342,8 @@ class Toolbox(QtWidgets.QToolBox):
         if self.check_VTK.isChecked():
             name = filename + '.vtu'
             Meshing.BlockMesh.writeVTK_nolib(self.wind_tunnel, name=name)
+
+        self.meshfile.setText(name)
 
     def exportContour(self):
 
