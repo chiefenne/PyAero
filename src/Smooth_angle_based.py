@@ -1,7 +1,5 @@
 
 import copy
-from distutils.debug import DEBUG
-from types import prepare_class
 
 import numpy as np
 
@@ -12,6 +10,7 @@ import GraphicsItem
 import Connect
 import logging
 logger = logging.getLogger(__name__)
+
 
 class SmoothAngleBased:
     """Mesh smoothing based on the paper:
@@ -27,11 +26,11 @@ class SmoothAngleBased:
     Therefore also the depicted derivatives are wrong as well as
     the inverse Hessian for the Newton optimization iterations.
 
-    This class contains the corrected equations. 
+    This class contains the corrected equations.
     """
 
     def __init__(self, data, data_source='block'):
-        
+
         # get MainWindow instance (overcomes handling parents)
         self.mainwindow = QtCore.QCoreApplication.instance().mainwindow
 
@@ -63,41 +62,41 @@ class SmoothAngleBased:
 
         return self.lvc
 
-    def make_stencil(self, lvc, verbose=False):     
+    def make_stencil(self, lvc, verbose=False):
         # lvc is a dictionary
         self.stencils = dict()
         for idx in range(len(lvc)):
             v, c = np.unique(lvc[idx], return_counts=True)
             vertices_quad = v[np.argwhere(c==1)]
             vertices_star = v[np.argwhere(c==2)]
-    
+
             cells_with_common_edges = list()
             if len(vertices_star) != 4:
                 continue
-            
+
             for vertex in vertices_star:
                 mask = np.isin(lvc[idx], [vertex[0], idx])
                 mask1 = np.count_nonzero(mask, axis=1) == 2
                 cells_with_common_edges.append(np.array(lvc[idx])[mask1])
 
             if idx == 6 and verbose:
-            
+
                 for cells in cells_with_common_edges:
                     mask2 = np.isin(cells, np.append(vertices_star.flatten(), idx))
-    
+
             corresponding_corners = list()
             for cells in cells_with_common_edges:
                 mask2 = np.isin(cells, np.append(vertices_star.flatten(), idx))
                 corresponding_corners.append(cells[~mask2])
-    
+
             self.stencils[idx] = corresponding_corners
-    
+
         return self.stencils
 
     def make_cardinals(self, vertices):
 
         cardinals = dict()
-        
+
         for stencil in self.stencils:
             s = self.stencils[stencil]
 
@@ -187,12 +186,12 @@ class SmoothAngleBased:
         # iterations=1
 
         vertices, _ = self.mesh
-    
+
         cardinals = self.make_cardinals(vertices)
 
         smoothed_vertices = copy.deepcopy(vertices)
         smoothed_vertices_old = copy.deepcopy(vertices)
-    
+
         corner = False
         omega = 1
         if corner:
@@ -236,7 +235,7 @@ class SmoothAngleBased:
 
                 # derivatives of alpha contributions (including position control)
                 ca = np.sum(omega / ( (a1**2 + b1**2 - 2*a1*xold + xold**2 - 2*b1*yold + yold**2) * \
-                                      (a2**2 + b2**2 - 2*a2*xold + xold**2 - 2*b2*yold + yold**2) + 1.e-9))                
+                                      (a2**2 + b2**2 - 2*a2*xold + xold**2 - 2*b2*yold + yold**2) + 1.e-9))
                 dTdx_alpha = np.sum(-(a1*a2 + b1*b2 - a1*x - a2*x + x**2 - b1*y - b2*y + y**2) * \
                                 (a1 + a2 - 2.*x) - (a1 + a1 + a1 + a1 - 4.*x) * sigma)
                 dTdy_alpha = np.sum(-(a1*a2 + b1*b2 - a1*x - a2*x + x**2 - b1*y - b2*y + y**2) * \
@@ -287,7 +286,7 @@ class SmoothAngleBased:
             self.mainwindow.scene.createItemGroup(self.drawlines)
 
         return smoothed_vertices
-    
+
     def mapToUlines(self, smoothed_vertices):
 
         self.new_ulines = list()
