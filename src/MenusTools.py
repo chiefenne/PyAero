@@ -1,12 +1,9 @@
-
-
-
-import os
 import platform
 import xml.etree.ElementTree as etree
 
 from PySide6 import QtGui, QtCore, QtWidgets
 
+import Icons
 from Utils import get_main_window
 import logging
 logger = logging.getLogger(__name__)
@@ -15,10 +12,10 @@ logger = logging.getLogger(__name__)
 class MenusTools:
     # call constructor of MenusTools
 
-    def __init__(self):
+    def __init__(self, mainwindow=None):
 
         # MainWindow instance
-        self.mw = get_main_window()
+        self.mw = mainwindow or get_main_window()
 
     def getMenuData(self):
         """populate menus and pulldowns from the external XML file"""
@@ -53,7 +50,6 @@ class MenusTools:
             handler = sub.attrib['handler']
             pulldowns.append((sname, tip, shortcut, icon, handler))
 
-
         return pulldowns
 
     def createMenus(self):
@@ -83,20 +79,36 @@ class MenusTools:
                 menu.addSeparator()
                 continue
 
-            icon = QtGui.QIcon(os.path.join('resources/Icons/16x16', icon))
-
             logger.debug('HANDLER: {}'.format(handler))
-
-            handler = 'self.mw.slots.' + handler
-
-            action = QtGui.QAction(icon, name, self.mw,
-                                       shortcut=short, statusTip=tip,
-                                       triggered=eval(handler))
-
-            action.setStatusTip(tip)
-            action.setShortcut(short)
-            # action.triggered.connect(eval(handler))
+            action = self.createAction(
+                text=name,
+                tip=tip,
+                shortcut=short,
+                icon_name=icon,
+                handler_name=handler,
+            )
+            if action is None:
+                continue
             menu.addAction(action)
+
+    def createAction(self, text, tip, shortcut, icon_name, handler_name):
+        handler = getattr(self.mw.slots, handler_name, None)
+        if handler is None:
+            logger.error('No slot named %s found for action %s',
+                         handler_name, text)
+            return None
+
+        if icon_name and icon_name.strip():
+            icon = Icons.icon(icon_name)
+            action = QtGui.QAction(icon, text, self.mw)
+        else:
+            action = QtGui.QAction(text, self.mw)
+
+        action.setStatusTip(tip)
+        if shortcut and shortcut.strip():
+            action.setShortcut(shortcut)
+        action.triggered.connect(handler)
+        return action
 
     def getToolbarData(self):
         """get all menus and submenus from the external XML file"""
@@ -124,26 +136,28 @@ class MenusTools:
         """
         # create a toolbar
         self.toolbar = QtWidgets.QToolBar('Toolbar')
+        self.toolbar.setIconSize(QtCore.QSize(20, 20))
         self.mw.addToolBar(self.toolbar)
 
         for tip, icon, handler in self.getToolbarData():
             if len(tip) == 0:
                 self.toolbar.addSeparator()
                 continue
-            icon = QtGui.QIcon(os.path.join('resources/Icons/24x24', icon))
-
-            # guislot converts to:
-            # self.mw.slots.slotMethod()
-            guislot = getattr(self.mw.slots, handler)
-
-            action = QtGui.QAction(icon, tip, parent=self.mw)
-            # action.setIcon(icon)
-            # action.setToolTip(tip)
-            action.triggered.connect(guislot)
-
+            action = self.createAction(
+                text=tip,
+                tip=tip,
+                shortcut='',
+                icon_name=icon,
+                handler_name=handler,
+            )
+            if action is None:
+                continue
             self.toolbar.addAction(action)
 
     def createDocks(self):
+        if hasattr(self.mw, 'messagedock') and hasattr(self.mw, 'messages'):
+            return
+
         messagedock = QtWidgets.QDockWidget(self.mw)
         messagedock.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable |
                                 QtWidgets.QDockWidget.DockWidgetFloatable)

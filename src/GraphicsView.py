@@ -42,6 +42,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
                             QtGui.QPainter.TextAntialiasing)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
         self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
+        self.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.setLineWidth(0)
 
         # view behaviour when zooming
         if self.mw.ZOOM_ANCHOR == 'mouse':
@@ -78,8 +80,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
         if styletype == 'gradient':
             style = """
-            border-style:solid; border-color: lightgrey;
-            border-width: 1px; background-color: QLinearGradient(x1: 0.0, y1: 0.0,
+            background-color: QLinearGradient(x1: 0.0, y1: 0.0,
             x2: 0.0, y2: 1.0, stop: 0.3 white, stop: 1.0 #263a5a);
             """
 
@@ -87,8 +88,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
             # stop: 0.3 white, stop: 0.6 #4b73b4, stop: 1.0 #263a5a); } """)
         else:
             style = ("""
-            border-style:solid; border-color: lightgrey; \
-            border-width: 1px; background-color: white;""")
+            background-color: white;""")
 
         self.setStyleSheet(style)
 
@@ -324,19 +324,12 @@ class GraphicsView(QtWidgets.QGraphicsView):
         This method immitates the behaviour of pen.setCosmetic()
         """
 
-        # FIXME
-        # FIXME this fixes an accidential call of this method
-        # FIXME should be fixed by checking when called
-        # FIXME
-        if not self.mw.airfoil:
+        airfoil = getattr(self.mw, 'airfoil', None)
+        if airfoil is None:
             return
-        
-        # 
+
         current_zoom = self.transform().m11()
         scale_marker = 1. + 3. * (current_zoom - self.mw.MIN_ZOOM) / (self.mw.MAX_ZOOM - self.mw.MIN_ZOOM)
-        # scale_marker = 100.
-        # logger.info(f'Current zoom value {current_zoom}')
-        # logger.info(f'Scale factor for markers {scale_marker}')
 
         # markers are drawn in GraphicsItem using scene coordinates
         # in order to keep them constant size, also when zooming
@@ -350,9 +343,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
             QtCore.QRect(0, 0, self.mw.MARKER_SIZE*scale_marker, self.mw.MARKER_SIZE*scale_marker))
         mappedMarkerWidth = mappedMarker.boundingRect().width()
 
-        if self.mw.airfoil.contourPolygon:
-            markers = self.mw.airfoil.polygonMarkers
-            x, y = self.mw.airfoil.raw_coordinates
+        if airfoil.contourPolygon is not None and airfoil.raw_coordinates is not None:
+            markers = airfoil.polygonMarkers
+            x, y = airfoil.raw_coordinates
             for i, marker in enumerate(markers):
                 # in case of circle, args is a QRectF
                 marker.args = [QtCore.QRectF(x[i] - mappedMarkerWidth,
@@ -360,10 +353,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
                                              2. * mappedMarkerWidth,
                                              2. * mappedMarkerWidth)]
 
-        # if self.mw.airfoil.contourSpline:
-        if hasattr(self.mw.airfoil, 'contourSpline'):
-            markers = self.mw.airfoil.splineMarkers
-            x, y = self.mw.airfoil.spline_data[0]
+        if (
+            airfoil.has_spline and
+            airfoil.contourSpline is not None and
+            airfoil.spline_data is not None
+        ):
+            markers = airfoil.splineMarkers
+            x, y = airfoil.spline_data[0]
             for i, marker in enumerate(markers):
                 # in case of circle, args is a QRectF
                 marker.args = [QtCore.QRectF(x[i] - mappedMarkerWidth,
@@ -443,6 +439,7 @@ class RubberBand(QtWidgets.QRubberBand):
         super().__init__(*args, **kwargs)
 
         self.view = args[1]
+        self.mw = getattr(self.view, 'mw', get_main_window())
 
         # set pen and brush (filling)
         self.pen = QtGui.QPen()
@@ -464,31 +461,31 @@ class RubberBand(QtWidgets.QRubberBand):
         self.allow_zoom = False
 
     def paintEvent(self, QPaintEvent):
+        painter = QtGui.QPainter()
+        if not painter.begin(self):
+            return
 
-        painter = QtGui.QPainter(self)
+        try:
+            self.pen.setColor(QtGui.QColor(80, 80, 100))
+            self.pen.setWidthF(1.5)
+            self.pen.setStyle(QtCore.Qt.DotLine)
 
-        self.pen.setColor(QtGui.QColor(80, 80, 100))
-        self.pen.setWidthF(1.5)
-        self.pen.setStyle(QtCore.Qt.DotLine)
+            minimum_width = self.mw.RUBBERBAND_MIN * self.view.width()
+            minimum_height = self.mw.RUBBERBAND_MIN * self.view.height()
+            rect = QPaintEvent.rect()
 
-        # zoom rect must be at least RUBBERBAND_MIN % of view to allow zoom
-        if (QPaintEvent.rect().width() < self.mw.RUBBERBAND_MIN * self.view.width()) \
-            or \
-           (QPaintEvent.rect().height() < self.mw.RUBBERBAND_MIN * self.view.height()):
+            # Zoom rect must be at least RUBBERBAND_MIN % of the view size.
+            if rect.width() < minimum_width or rect.height() < minimum_height:
+                self.brush.setStyle(QtCore.Qt.NoBrush)
+                self.allow_zoom = False
+            else:
+                color = QtGui.QColor(10, 30, 140, 45)
+                self.brush.setColor(color)
+                self.brush.setStyle(QtCore.Qt.SolidPattern)
+                self.allow_zoom = True
 
-            self.brush.setStyle(QtCore.Qt.NoBrush)
-
-            # set boolean for allowing zoom
-            self.allow_zoom = False
-        else:
-            # if rubberband rect is big enough indicate this by fill color
-            color = QtGui.QColor(10, 30, 140, 45)
-            self.brush.setColor(color)
-            self.brush.setStyle(QtCore.Qt.SolidPattern)
-
-            # set boolean for allowing zoom
-            self.allow_zoom = True
-
-        painter.setBrush(self.brush)
-        painter.setPen(self.pen)
-        painter.drawRect(QPaintEvent.rect())
+            painter.setBrush(self.brush)
+            painter.setPen(self.pen)
+            painter.drawRect(rect)
+        finally:
+            painter.end()

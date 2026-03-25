@@ -55,26 +55,6 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         self.setBoundingRect()
 
     def itemChange(self, change, value):
-        if change == QtWidgets.QGraphicsItem.ItemSelectedHasChanged:
-            # when selecting an airfoil item in the graphics view
-            # select the respective item in Toolbox/MyListWidget
-            # which contains a list of loaded airfoils
-
-            if not hasattr(self, 'name'):
-                # return if no name, e.g. when test items are loaded
-                # from Graphicstest. These are not listed in MyListWidget
-                return
-
-            listwidget = self.mw.mainArea.toolbox.listwidget
-            items = listwidget.findItems(self.name, QtCore.Qt.MatchExactly)
-
-            for item in items:
-                item.setSelected(self.isSelected())
-
-            # give focus to listwidget so that highlighting works
-            # (at least for short period until mouse is moved)
-            listwidget.setFocus()
-
         return QtWidgets.QGraphicsItem.itemChange(self, change, value)
 
     def mousePressEvent(self, event):

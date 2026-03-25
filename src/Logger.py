@@ -1,8 +1,7 @@
 import os
 import logging
 import datetime
-
-import Settings
+import configparser
 
 
 class GuiHandler(logging.Handler):
@@ -28,17 +27,20 @@ class GuiHandler(logging.Handler):
 
 
 def log(main_window):
-
     useGUI = main_window != 'console'
+    root_logger = logging.getLogger('')
+    root_logger.setLevel(logging.INFO)
 
-    logging.basicConfig(level=logging.INFO)
-    # logging.getLogger('') gets the 'root' logger
-    # stdout is the only handler initially
-    # see https://stackoverflow.com/a/6459613/2264936
-    stdout_handler = logging.getLogger('').handlers[0]
+    for handler in list(root_logger.handlers):
+        root_logger.removeHandler(handler)
 
-    format = 'PyAero_%Y-%m-%d____h%H-m%M-s%S.log'
-    logfile = os.path.join(main_window.LOGS, datetime.datetime.now().strftime(format))
+    log_format = 'PyAero_%Y-%m-%d____h%H-m%M-s%S.log'
+    log_dir = _resolve_log_directory(main_window)
+    os.makedirs(log_dir, mode=0o777, exist_ok=True)
+    logfile = os.path.join(
+        log_dir,
+        datetime.datetime.now().strftime(log_format),
+    )
 
     # create a file handler
     file_handler = logging.FileHandler(logfile)
@@ -66,18 +68,24 @@ def log(main_window):
         gui_handler.setFormatter(gui_formatter)
 
     # add the handlers to the root logger
-    logging.getLogger('').addHandler(file_handler)
-    logging.getLogger('').addHandler(console_handler)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
     if useGUI:
-        logging.getLogger('').addHandler(gui_handler)
-
-    # remove the standard handler from the root logger
-    # it would log everything to the console automatically
-    # see https://stackoverflow.com/a/6459613/2264936
-    logging.getLogger('').removeHandler(stdout_handler)
+        root_logger.addHandler(gui_handler)
 
     # getLogger with __name__ retruns a logger for the current module (here Logger)
     # example log message of level INFO preceeded by module name
     # 2018-09-30 18:18:47,559 - Logger - INFO - Starting to log
     logger = logging.getLogger(__name__)
     logger.info('Starting to log')
+
+
+def _resolve_log_directory(main_window):
+    if main_window != 'console':
+        return main_window.LOGS
+
+    parser = configparser.ConfigParser(
+        interpolation=configparser.ExtendedInterpolation()
+    )
+    parser.read(os.path.join(os.getcwd(), 'config/config.ini'))
+    return parser.get('Paths', 'LOGS', fallback='data/LOGS')

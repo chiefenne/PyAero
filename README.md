@@ -39,7 +39,6 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
    - Mesh multiple airfoils and export the meshes in multiple formats in one run without user interaction
    - Using the ``-no-gui`` option and a [control file](data/Batch/batch_control.json) in json format
    - Example command: ``python src/PyAero.py -no-gui data/Batch/batch_control.json``
- - Simple aerodynamic analysis using [AeroPython](http://nbviewer.ipython.org/github/barbagroup/AeroPython/blob/master/lessons/11_Lesson11_vortexSourcePanelMethod.ipynb)
  - Airfoil contour analysis (gradient, curvature and curvature circle)
  - NOT YET IMPLEMENTED:
    - Decent smoothing algorithm for the mesh regions outside the orthogonal blocks
@@ -203,7 +202,7 @@ Short online research revealed to me that meanwhile Qt themselves are developing
 
 Distributed under the MIT license. See [LICENSE](https://raw.githubusercontent.com/chiefenne/PyAero/master/LICENSE) for more information.
 
-2024 Andreas Ennemoser – andreas.ennemoser@aon.at
+2026 Andreas Ennemoser – andreas.ennemoser@aon.at
 
 ## Stargazers over time
 

@@ -5,6 +5,7 @@ from PySide6 import QtGui, QtCore
 
 import GraphicsItemsCollection as gic
 import GraphicsItem
+from Shape import Polygon, Polyline
 
 import logging
 logger = logging.getLogger(__name__)
@@ -26,22 +27,98 @@ class Airfoil:
         raw_coordinates (numpy array): list of contour points as tuples
     """
 
-    def __init__(self, name):
+    def __init__(self, name, mainwindow=None):
 
         # MainWindow instance
-        self.mw = QtCore.QCoreApplication.instance().mainwindow
+        self.mw = mainwindow or QtCore.QCoreApplication.instance().mainwindow
 
         self.name = name
         self.chord = None
         self.has_TE = False
         self.contourPolygon = None
-        # self.contourSpline = None
+        self.contourSpline = None
+        self.polygonMarkersGroup = None
+        self.splineMarkersGroup = None
+        self.camberline = None
+        self.le_circle = None
+        self.mesh = None
+        self.mesh_blocks = None
+        self.mesh_quality = None
+        self.mesh_model = None
+        self.domain_model = None
+        self.curvature_data = None
         self.spline_data = None
+        self.spline_fill_enabled = False
         self.raw_coordinates = None
-        self.pencolor = QtGui.QColor(0, 20, 255, 255)
-        self.penwidth = 4.0
-        self.brushcolor = QtGui.QColor()
-        self.brushcolor.setNamedColor('#7c8696')
+        self.source_path = None
+        self.polygonMarkers = []
+        self.splineMarkers = []
+        self.pencolor = QtGui.QColor('#6f7f90')
+        self.penwidth = 2.4
+        self.brushcolor = QtGui.QColor(219, 229, 238, 36)
+
+    def _display_palette(self):
+        return {
+            'raw_pen': QtGui.QColor('#6f7f90'),
+            'raw_fill': QtGui.QColor(219, 229, 238, 36),
+            'raw_marker_pen': QtGui.QColor('#4e6277'),
+            'raw_marker_fill': QtGui.QColor('#e07a94'),
+            'spline_pen': QtGui.QColor('#3a7ea1'),
+            'spline_fill': QtGui.QColor(58, 126, 161, 34),
+            'spline_marker_pen': QtGui.QColor('#35556f'),
+            'spline_marker_fill': QtGui.QColor('#93c83e'),
+            'chord_pen': QtGui.QColor('#94a4b5'),
+            'camber_pen': QtGui.QColor('#d07c4d'),
+        }
+
+    def _apply_spline_fill_style(self):
+        if self.contourSpline is None:
+            return
+
+        palette = self._display_palette()
+        self.contourSpline.brush.setColor(palette['spline_fill'])
+        if self.spline_fill_enabled:
+            self.contourSpline.brush.setStyle(QtCore.Qt.SolidPattern)
+        else:
+            self.contourSpline.brush.setStyle(QtCore.Qt.NoBrush)
+        self.contourSpline.update()
+        if hasattr(self.mw, 'scene') and self.mw.scene is not None:
+            self.mw.scene.update()
+            for view in self.mw.scene.views():
+                view.viewport().update()
+
+    def setSplineFillEnabled(self, enabled):
+        self.spline_fill_enabled = bool(enabled)
+        self._apply_spline_fill_style()
+
+    @classmethod
+    def from_file(cls, filename, comment='#', mainwindow=None):
+        fileinfo = QtCore.QFileInfo(filename)
+        airfoil = cls(fileinfo.fileName(), mainwindow=mainwindow)
+        airfoil.source_path = fileinfo.absoluteFilePath()
+        if airfoil.readContour(filename, comment):
+            return airfoil
+        return None
+
+    @property
+    def has_spline(self):
+        return self.spline_data is not None
+
+    def current_contour(self, prefer_spline=True):
+        if prefer_spline and self.spline_data is not None:
+            return self.spline_data[0]
+        return self.raw_coordinates
+
+    def to_shape(self, prefer_spline=True, closed=True):
+        contour = self.current_contour(prefer_spline=prefer_spline)
+        if contour is None:
+            return None
+
+        points = list(zip(*contour))
+        label = f'{self.name} contour'
+        if closed:
+            return Polygon(points, name=label)
+        return Polyline(points, closed=False, name=label)
  
     def readContour(self, filename, comment):
 
@@ -122,9 +199,13 @@ class Airfoil:
         scene.addItem(self.chord)
         self.polygonMarkersGroup = scene. \
             createItemGroup(self.polygonMarkers)
+        self.contourPolygon.setZValue(20)
+        self.chord.setZValue(30)
+        self.polygonMarkersGroup.setZValue(120)
 
     def makeContourPolygon(self):
         """Add airfoil points as GraphicsItem to the scene"""
+        palette = self._display_palette()
 
         # instantiate a graphics item
         contour = gic.GraphicsCollection()
@@ -132,27 +213,31 @@ class Airfoil:
         points = [QtCore.QPointF(x, y) for x, y in zip(*self.raw_coordinates)]
         contour.Polygon(QtGui.QPolygonF(points), self.name)
         # set its properties
-        contour.pen.setColor(self.pencolor)
+        contour.pen.setColor(palette['raw_pen'])
         contour.pen.setWidthF(self.penwidth)
         # no pen thickness change when zoomed
         contour.pen.setCosmetic(True)
-        contour.brush.setColor(self.brushcolor)
+        contour.brush.setColor(palette['raw_fill'])
+        contour.brush.setStyle(QtCore.Qt.NoBrush)
 
         self.contourPolygon = GraphicsItem.GraphicsItem(contour)
+        self.contourPolygon.setAcceptHoverEvents(False)
 
     def makePolygonMarkers(self):
         """Create marker for polygon contour"""
+        palette = self._display_palette()
 
         self.polygonMarkers = list()
 
         for x, y in zip(*self.raw_coordinates):
 
             marker = gic.GraphicsCollection()
-            marker.pen.setColor(QtGui.QColor(60, 60, 80, 255))
-            marker.pen.setWidthF(1.6)
+            marker.pen.setColor(palette['raw_marker_pen'])
+            marker.pen.setWidthF(1.35)
             # no pen thickness change when zoomed
             marker.pen.setCosmetic(True)
-            marker.brush.setColor(QtGui.QColor(217, 63, 122, 255))
+            marker.brush.setColor(palette['raw_marker_fill'])
+            marker.brush.setStyle(QtCore.Qt.SolidPattern)
             # circle size doesn't do anything here
             # this is indirectly deactivated because we don't want to change
             # marker size during zoom
@@ -167,19 +252,21 @@ class Airfoil:
             self.polygonMarkers.append(markerItem)
 
     def makeChord(self):
+        palette = self._display_palette()
         line = gic.GraphicsCollection()
-        color = QtGui.QColor(52, 235, 122, 255)
+        color = palette['chord_pen']
         line.pen.setColor(color)
-        line.pen.setWidthF(2.5)
+        line.pen.setWidthF(2.1)
         # no pen thickness change when zoomed
         line.pen.setCosmetic(True)
+        line.pen.setCapStyle(QtCore.Qt.RoundCap)
         # setting CustomDashLine not needed as it will be set
         # implicitely by Qt when CustomDashLine is applied
         # put it just for completeness
         line.pen.setStyle(QtCore.Qt.CustomDashLine)
-        stroke = 10
-        dot = 1
-        space = 5
+        stroke = 14
+        dot = 3
+        space = 7
         line.pen.setDashPattern([stroke, space, dot, space])
         index_min = np.argmin(self.raw_coordinates[0])
         index_max = np.argmax(self.raw_coordinates[0])
@@ -190,15 +277,16 @@ class Airfoil:
         line.Line(x1, y1, x2, y2)
 
         self.chord = GraphicsItem.GraphicsItem(line)
-        self.chord.setZValue(99)
+        self.chord.setZValue(30)
         self.chord.setAcceptHoverEvents(False)
 
     def makeContourSpline(self):
         """Add splined and refined airfoil points as GraphicsItem to
         the scene
         """
-        self.pencolor = QtGui.QColor(80, 80, 220, 255)
-        self.penwidth = 4.0
+        palette = self._display_palette()
+        self.pencolor = palette['spline_pen']
+        self.penwidth = 2.7
 
         # instantiate a graphics item
         splinecontour = gic.GraphicsCollection()
@@ -210,12 +298,16 @@ class Airfoil:
         splinecontour.pen.setWidthF(self.penwidth)
         # no pen thickness change when zoomed
         splinecontour.pen.setCosmetic(True)
+        splinecontour.brush.setColor(palette['spline_fill'])
 
         # remove items from iterated uses of spline/refine and trailing edge
         if hasattr(self, 'contourSpline') and \
                 self.contourSpline in self.mw.scene.items():
             self.mw.scene.removeItem(self.contourSpline)
         self.contourSpline = GraphicsItem.GraphicsItem(splinecontour)
+        self.contourSpline.setAcceptHoverEvents(False)
+        self.contourSpline.setZValue(40)
+        self._apply_spline_fill_style()
         self.mw.scene.addItem(self.contourSpline)
 
         # remove items from iterated uses of spline/refine and trailing edge
@@ -225,13 +317,9 @@ class Airfoil:
         self.makeSplineMarkers()
         self.splineMarkersGroup = self.mw.scene. \
             createItemGroup(self.splineMarkers)
+        self.splineMarkersGroup.setZValue(140)
 
-        self.mw.airfoil.contourSpline.brush. \
-            setStyle(QtCore.Qt.SolidPattern)
-        color = QtGui.QColor()
-        color.setNamedColor('#7c8696')
-        self.contourSpline.brush.setColor(color)
-        self.polygonMarkersGroup.setZValue(100)
+        self.polygonMarkersGroup.setZValue(120)
 
         # switch off raw contour and toogle corresponding checkbox
         if self.polygonMarkersGroup.isVisible():
@@ -252,6 +340,7 @@ class Airfoil:
 
     def makeSplineMarkers(self):
         """Create marker for polygon contour"""
+        palette = self._display_palette()
 
         self.splineMarkers = list()
 
@@ -259,11 +348,12 @@ class Airfoil:
 
             # put airfoil contour points as graphicsitem
             splinemarker = gic.GraphicsCollection()
-            splinemarker.pen.setColor(QtGui.QColor(60, 60, 80, 255))
-            splinemarker.pen.setWidthF(1.6)
+            splinemarker.pen.setColor(palette['spline_marker_pen'])
+            splinemarker.pen.setWidthF(1.35)
             # no pen thickness change when zoomed
             splinemarker.pen.setCosmetic(True)
-            splinemarker.brush.setColor(QtGui.QColor(203, 250, 72, 255))
+            splinemarker.brush.setColor(palette['spline_marker_fill'])
+            splinemarker.brush.setStyle(QtCore.Qt.SolidPattern)
 
             splinemarker.Circle(x, y, 0.004)
 
@@ -272,9 +362,10 @@ class Airfoil:
             self.splineMarkers.append(splineMarkerItem)
 
     def drawCamber(self, camber):
+        palette = self._display_palette()
 
-        self.pencolor = QtGui.QColor(220, 80, 80, 255)
-        self.penwidth = 3.5
+        self.pencolor = palette['camber_pen']
+        self.penwidth = 2.3
 
         # instantiate a graphics item
         camberline = gic.GraphicsCollection()
@@ -284,8 +375,9 @@ class Airfoil:
         # set its properties
         camberline.pen.setColor(self.pencolor)
         camberline.pen.setWidthF(self.penwidth)
-        # camberline.pen.setStyle(QtCore.Qt.DashLine)
-        camberline.pen.setStyle(QtCore.Qt.DotLine)
+        camberline.pen.setStyle(QtCore.Qt.CustomDashLine)
+        camberline.pen.setCapStyle(QtCore.Qt.RoundCap)
+        camberline.pen.setDashPattern([1.2, 6.8])
         # no pen thickness change when zoomed
         camberline.pen.setCosmetic(True)
         camberline.brush.setColor(self.brushcolor)
@@ -298,7 +390,7 @@ class Airfoil:
             self.mw.scene.removeItem(self.camberline)
         self.camberline = GraphicsItem.GraphicsItem(camberline)
         self.camberline.setAcceptHoverEvents(False)
-        self.camberline.setZValue(99)
+        self.camberline.setZValue(35)
         self.mw.scene.addItem(self.camberline)
         self.mw.mainArea.airfoil_camber_line_checkbox.setChecked(True)
         self.mw.mainArea.airfoil_camber_line_checkbox.setEnabled(True)

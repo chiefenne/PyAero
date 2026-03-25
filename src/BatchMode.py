@@ -63,8 +63,16 @@ class Batch:
 
             # load airfoil
             basename = os.path.splitext(airfoil)[0]
-            self.airfoil = Airfoil.Airfoil(basename)
-            self.airfoil.readContour(os.path.join(airfoil_path, airfoil), '#')
+            self.airfoil = Airfoil.Airfoil.from_file(
+                os.path.join(airfoil_path, airfoil),
+                comment='#',
+                mainwindow=self,
+            )
+            if self.airfoil is None:
+                message = f'Failed to load airfoil {airfoil}'
+                print(message)
+                logger.error(message)
+                continue
 
             # spline and refine
             refinement = self.batch_control['Airfoil contour refinement']
@@ -136,17 +144,8 @@ class Batch:
             connect = Connect.Connect(None)
             vertices, connectivity, _ = connect.connectAllBlocks(wind_tunnel.blocks)
 
-            # add mesh to Wind-tunnel instance
-            wind_tunnel.mesh = vertices, connectivity
-
-            # generate cell to edge connectivity from mesh
-            wind_tunnel.makeLCE()
-
-            # generate cell to edge connectivity from mesh
-            wind_tunnel.makeLCE()
-
-            # generate boundaries from mesh connectivity
-            wind_tunnel.makeBoundaries()
+            wind_tunnel.setMesh(vertices, connectivity)
+            wind_tunnel.publishMeshArtifacts(airfoil=self.airfoil)
 
             message = f'Finished batch meshing for airfoil {airfoil}'
             print(message)
@@ -161,9 +160,9 @@ class Batch:
                 extension = {'FLMA': '.flma',
                              'SU2': '.su2',
                              'GMSH': '.msh',
-                             'VTK': '.vtk'}
+                             'VTK': '.vtu'}
                 mesh_name = os.path.join(mesh_path, basename + extension[output_format])
-                getattr(Meshing.BlockMesh, 'write'+output_format)(wind_tunnel, name=mesh_name)
+                wind_tunnel.export_mesh(output_format, name=mesh_name)
 
                 message = f'Finished mesh export for airfoil {airfoil} to {mesh_name}'
                 print(message)

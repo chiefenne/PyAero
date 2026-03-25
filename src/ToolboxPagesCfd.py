@@ -1,0 +1,155 @@
+from PySide6 import QtWidgets
+
+from ToolboxWidgets import configure_form_layout, make_page_label, right_aligned_row
+
+
+def build_aerodynamics_panel(toolbox):
+    form = QtWidgets.QFormLayout()
+    configure_form_layout(form)
+
+    label1 = make_page_label(u'AoA (°)')
+    toolbox.aoaAP = QtWidgets.QDoubleSpinBox()
+    toolbox.aoaAP.setSingleStep(0.1)
+    toolbox.aoaAP.setDecimals(1)
+    toolbox.aoaAP.setRange(-10.0, 10.0)
+    toolbox.aoaAP.setValue(0.0)
+    form.addRow(label1, toolbox.aoaAP)
+
+    label2 = make_page_label('Velocity (m/s)')
+    toolbox.freestream = QtWidgets.QDoubleSpinBox()
+    toolbox.freestream.setSingleStep(0.1)
+    toolbox.freestream.setDecimals(2)
+    toolbox.freestream.setRange(0.0, 100.0)
+    toolbox.freestream.setValue(10.0)
+    form.addRow(label2, toolbox.freestream)
+
+    label3 = make_page_label('Panels')
+    toolbox.panels = QtWidgets.QSpinBox()
+    toolbox.panels.setRange(10, 500)
+    toolbox.panels.setValue(40)
+    form.addRow(label3, toolbox.panels)
+
+    panel_method_button = QtWidgets.QPushButton('Calculate lift coefficient')
+    panel_method_button.setObjectName('pagePrimaryActionButton')
+    button_row = right_aligned_row(panel_method_button)
+
+    layout = QtWidgets.QVBoxLayout()
+    layout.addLayout(form)
+    layout.addLayout(button_row)
+
+    toolbox.item_ap = QtWidgets.QGroupBox('Quick Lift Estimate')
+    toolbox.item_ap.setLayout(layout)
+
+
+def build_boundary_conditions_panel(toolbox):
+    form = QtWidgets.QFormLayout()
+    configure_form_layout(form)
+
+    label = make_page_label(u'Reynolds')
+    toolbox.reynolds = QtWidgets.QDoubleSpinBox()
+    toolbox.reynolds.setSingleStep(10000.0)
+    toolbox.reynolds.setDecimals(2)
+    toolbox.reynolds.setRange(0.0, 1.0e10)
+    toolbox.reynolds.setValue(100000.0)
+    toolbox.reynolds.valueChanged.connect(toolbox.valuechange)
+    form.addRow(label, toolbox.reynolds)
+
+    label = make_page_label(u'Chord (m)')
+    toolbox.chord = QtWidgets.QDoubleSpinBox()
+    toolbox.chord.setSingleStep(0.01)
+    toolbox.chord.setDecimals(2)
+    toolbox.chord.setRange(0.0, 1.0e10)
+    toolbox.chord.setValue(1.0)
+    toolbox.chord.valueChanged.connect(toolbox.valuechange)
+    form.addRow(label, toolbox.chord)
+
+    label = make_page_label(u'AoA from (°)')
+    toolbox.aoaf = QtWidgets.QDoubleSpinBox()
+    toolbox.aoaf.setSingleStep(0.1)
+    toolbox.aoaf.setDecimals(2)
+    toolbox.aoaf.setRange(-90.0, 90.0)
+    toolbox.aoaf.setValue(-10.0)
+    form.addRow(label, toolbox.aoaf)
+
+    label = make_page_label(u'AoA to (°)')
+    toolbox.aoat = QtWidgets.QDoubleSpinBox()
+    toolbox.aoat.setSingleStep(0.1)
+    toolbox.aoat.setDecimals(2)
+    toolbox.aoat.setRange(-90.0, 90.0)
+    toolbox.aoat.setValue(10.0)
+    form.addRow(label, toolbox.aoat)
+
+    label = make_page_label(u'AoA step (°)')
+    toolbox.aoas = QtWidgets.QDoubleSpinBox()
+    toolbox.aoas.setSingleStep(0.1)
+    toolbox.aoas.setDecimals(2)
+    toolbox.aoas.setRange(0.0, 90.0)
+    toolbox.aoas.setValue(1.0)
+    form.addRow(label, toolbox.aoas)
+
+    toolbox.aoaf.valueChanged.connect(toolbox.valuechange)
+    toolbox.aoat.valueChanged.connect(toolbox.valuechange)
+    toolbox.aoas.valueChanged.connect(toolbox.valuechange)
+
+    label = make_page_label(u'Turbulence (%)')
+    toolbox.turbulence = QtWidgets.QDoubleSpinBox()
+    toolbox.turbulence.setSingleStep(0.1)
+    toolbox.turbulence.setDecimals(2)
+    toolbox.turbulence.setRange(0.0, 100.0)
+    toolbox.turbulence.setValue(2.0)
+    toolbox.turbulence.valueChanged.connect(toolbox.valuechange)
+    form.addRow(label, toolbox.turbulence)
+
+    label = make_page_label(u'Length scale (m)')
+    toolbox.length_sc = QtWidgets.QDoubleSpinBox()
+    toolbox.length_sc.setSingleStep(0.01)
+    toolbox.length_sc.setDecimals(3)
+    toolbox.length_sc.setRange(1.e-6, 1.0e10)
+    toolbox.length_sc.setValue(0.05)
+    toolbox.length_sc.valueChanged.connect(toolbox.valuechange)
+    form.addRow(label, toolbox.length_sc)
+
+    label = make_page_label(u'Pressure (Pa)')
+    toolbox.pressure = QtWidgets.QDoubleSpinBox()
+    toolbox.pressure.setSingleStep(1000.0)
+    toolbox.pressure.setDecimals(2)
+    toolbox.pressure.setRange(0.0, 1.0e10)
+    toolbox.pressure.setValue(101325.0)
+    toolbox.pressure.valueChanged.connect(toolbox.valuechange)
+    form.addRow(label, toolbox.pressure)
+
+    label = make_page_label(u'Temp (°C)')
+    toolbox.temperature = QtWidgets.QDoubleSpinBox()
+    toolbox.temperature.setSingleStep(1.0)
+    toolbox.temperature.setDecimals(2)
+    toolbox.temperature.setRange(-273.15, 1.0e10)
+    toolbox.temperature.setValue(20.0)
+    toolbox.temperature.valueChanged.connect(toolbox.valuechange)
+    form.addRow(label, toolbox.temperature)
+
+    label = make_page_label(u'Flat plate y+')
+    toolbox.yplus = QtWidgets.QDoubleSpinBox()
+    toolbox.yplus.setSingleStep(1.0)
+    toolbox.yplus.setDecimals(2)
+    toolbox.yplus.setRange(1e-6, 1.0e10)
+    toolbox.yplus.setValue(30.0)
+    toolbox.yplus.valueChanged.connect(toolbox.valuechange)
+    form.addRow(label, toolbox.yplus)
+
+    toolbox.textedit = QtWidgets.QTextEdit()
+    toolbox.textedit.setObjectName('pageTextPanel')
+    toolbox.textedit.setReadOnly(True)
+    toolbox.textedit.selectionChanged.connect(toolbox.copy_to_clipboard)
+    toolbox.valuechange()
+
+    copy_button = QtWidgets.QPushButton('Copy to clipboard')
+    copy_button.setObjectName('pageSecondaryActionButton')
+    copy_button.clicked.connect(toolbox.copy_all_to_clipboard)
+
+    layout = QtWidgets.QVBoxLayout()
+    layout.addLayout(form)
+    layout.addWidget(toolbox.textedit)
+    layout.addLayout(right_aligned_row(copy_button))
+
+    toolbox.item_abc = QtWidgets.QGroupBox('CFD Inputs')
+    toolbox.item_abc.setLayout(layout)

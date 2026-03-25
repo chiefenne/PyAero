@@ -5,24 +5,23 @@
 -->
 <PyAero>
     <Toolbar name='Toolbar'>
-        <Tool tip='Open airfoil contour file' icon='Documents.png' handler='onOpen'></Tool>
-        <Tool tip='Save airfoil contour file' icon='Save.png' handler='onSave'></Tool>
-        <Tool tip='Save airfoil contour file with different name' icon='Save as.png' handler='onSaveAs'></Tool>
+        <Tool tip='Open airfoil contour file' icon='open' handler='onOpen'></Tool>
+        <Tool tip='Save airfoil contour file' icon='save' handler='onSave'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
-        <Tool tip='Print current view' icon='Print.png' handler='onPrint'></Tool>
-        <Tool tip='Print preview' icon='Print preview.png' handler='onPreview'></Tool>
+        <Tool tip='Print current view' icon='print' handler='onPrint'></Tool>
+        <Tool tip='Print preview' icon='print-preview' handler='onPreview'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
-        <Tool tip='Open predefined airfoil contour' icon='profil.png' handler='onOpenPredefined'></Tool>
+        <Tool tip='Open predefined airfoil contour' icon='airfoil-library' handler='onOpenPredefined'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
-        <Tool tip='Delete selected airfoil(s)' icon='Erase.png' handler='removeAirfoil'></Tool>
+        <Tool tip='Delete selected airfoil(s)' icon='delete' handler='removeAirfoil'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
-        <Tool tip='Fit airfoil in view' icon='Fit airfoil.png' handler='fitAirfoilInView'></Tool>
-        <Tool tip='Fit all in view' icon='Fit in view.png' handler='onViewAll'></Tool>
+        <Tool tip='Fit airfoil in view' icon='fit-airfoil' handler='fitAirfoilInView'></Tool>
+        <Tool tip='Fit all in view' icon='fit-all' handler='onViewAll'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
-        <Tool tip='Autorun (for testing)' icon='Scenario.png' handler='runCommands'></Tool>
+        <Tool tip='Autorun (for testing)' icon='autorun' handler='runCommands'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
-        <Tool tip='About' icon='About.png' handler='onAbout'></Tool>
+        <Tool tip='About' icon='about' handler='onAbout'></Tool>
         <Tool tip='' icon='' handler='onPass'></Tool>
-        <Tool tip='Shut down PyAero' icon='Exit.png' handler='onExit'></Tool>
+        <Tool tip='Shut down PyAero' icon='exit' handler='onExit'></Tool>
     </Toolbar>
 </PyAero>

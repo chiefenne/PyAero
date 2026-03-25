@@ -31,6 +31,8 @@ class ContourAnalysis(QFrame):
             self.initUI()
 
     def initUI(self):
+        self.setFrameShape(QFrame.NoFrame)
+
         self.lineSeries = QLineSeries()
         # legend name
         # self.lineSeries.setName("trend")
@@ -56,6 +58,8 @@ class ContourAnalysis(QFrame):
         self.chart_view.setRenderHint(QPainter.Antialiasing)
         self.chart_view.setRubberBand(QChartView.RectangleRubberBand)
         self.chart_view.setDragMode(QChartView.ScrollHandDrag)
+        self.chart_view.setFrameShape(QFrame.NoFrame)
+        self.chart_view.setStyleSheet('background: transparent; border: none;')
 
         vlayout = QVBoxLayout()
         vlayout.addWidget(self.chart_view)

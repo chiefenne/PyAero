@@ -1,6 +1,8 @@
 import sys
 import copy
 import webbrowser
+import html
+from pathlib import Path
 import numpy as np
 import scipy
 
@@ -25,11 +27,11 @@ class Slots:
     @QtCore.Slot() decorator.
     """
 
-    def __init__(self):
+    def __init__(self, mainwindow=None):
         """Constructor for Slots class"""
 
         # MainWindow instance
-        self.mw = get_main_window()
+        self.mw = mainwindow or get_main_window()
 
     @QtCore.Slot()
     def onOpen(self):
@@ -58,21 +60,18 @@ class Slots:
 
     @QtCore.Slot(str, str)
     def loadAirfoil(self, filename, comment='#'):
-        fileinfo = QtCore.QFileInfo(filename)
-        name = fileinfo.fileName()
-
-        airfoil = Airfoil.Airfoil(name)
-        loaded = airfoil.readContour(filename, comment)
-
-        if not loaded:
+        airfoil = Airfoil.Airfoil.from_file(
+            filename,
+            comment=comment,
+            mainwindow=self.mw,
+        )
+        if airfoil is None:
             logger.error(f'Failed to load airfoil from {filename}')
             return
 
-        self._clearScene()
-        self._addAirfoilToScene(airfoil)
-        self._updateAirfoilList(name)
-        self.fitAirfoilInView()
-        logger.info(f'Airfoil {name} loaded')
+        self._registerAirfoil(airfoil)
+        self.activateAirfoil(airfoil)
+        logger.info(f'Airfoil {airfoil.name} loaded')
 
     def _clearScene(self):
         self.mw.scene.clear()
@@ -81,13 +80,34 @@ class Slots:
         airfoil.makeAirfoil()
         airfoil.addToScene(self.mw.scene)
         self.mw.airfoil = airfoil
-        self.mw.airfoils.append(airfoil)
 
-    def _updateAirfoilList(self, name):
+    def _registerAirfoil(self, airfoil):
+        self.mw.airfoils = [airfoil]
         toolbox = self.mw.mainArea.toolbox
-        toolbox.header.setEnabled(True)
-        toolbox.listwidget.setEnabled(True)
-        toolbox.listwidget.addItem(name)
+        toolbox.refreshAirfoilLibrary()
+        toolbox.selectAirfoilLibraryPath(getattr(airfoil, 'source_path', None))
+        toolbox.refreshWorkflowState()
+
+    def _removeAirfoilListEntry(self, name):
+        toolbox = self.mw.mainArea.toolbox
+        toolbox.refreshAirfoilLibrary()
+        toolbox.selectAirfoilLibraryPath(None)
+        toolbox.refreshWorkflowState()
+
+    def _selectAirfoilInList(self, airfoil):
+        self.mw.mainArea.toolbox.selectAirfoilLibraryPath(
+            getattr(airfoil, 'source_path', None)
+        )
+
+    def activateAirfoil(self, airfoil):
+        if airfoil is None:
+            return
+
+        self._clearScene()
+        self._addAirfoilToScene(airfoil)
+        self._selectAirfoilInList(airfoil)
+        self.mw.mainArea.toolbox.refreshWorkflowState()
+        self.fitAirfoilInView()
 
     @QtCore.Slot(str)
     def loadSU2(self, filename):
@@ -110,11 +130,13 @@ class Slots:
     @QtCore.Slot()
     def fitAirfoilInView(self):
 
-        if len(self.mw.airfoils) == 0:
+        if not self.mw.airfoil:
             return
 
         # get bounding rect in scene coordinates
         item = self.mw.airfoil.contourPolygon
+        if item is None:
+            return
         rectf = item.boundingRect()
         rf = copy.deepcopy(rectf)
 
@@ -161,9 +183,9 @@ class Slots:
 
     @QtCore.Slot()
     def onSave(self):
-        (fname, thefilter) = QtWidgets.QFileDialog. \
-            getSaveFileNameAndFilter(self.mw,
-                                     'Save file', '.', filter=self.mw.DIALOG_FILTER)
+        file_dialog = FileDialog.Dialog()
+        file_dialog.setFilter(self.mw.DIALOG_FILTER)
+        fname, _thefilter = file_dialog.save_filename()
         if not fname:
             return
 
@@ -172,10 +194,9 @@ class Slots:
 
     @QtCore.Slot()
     def onSaveAs(self):
-        (fname, thefilter) = QtGui. \
-            QFileDialog.getSaveFileNameAndFilter(
-            self.mw, 'Save file as ...', '.',
-            filter=self.mw.DIALOG_FILTER)
+        file_dialog = FileDialog.Dialog()
+        file_dialog.setFilter(self.mw.DIALOG_FILTER)
+        fname, _thefilter = file_dialog.save_filename()
         if not fname:
             return
         with open(fname, 'w') as f:
@@ -204,19 +225,21 @@ class Slots:
         # render QGraphicsView
         self.mw.view.render(QtGui.QPainter(printer))
 
-    @QtCore.Slot(str)
-    def toggleLogDock(self, _sender):
+    def toggleLogDock(self, _sender=None):
         """Switch message log window on/off"""
 
         # check if self.mw.messagedock exists
         if not hasattr(self.mw, 'messagedock'):
             return
         visible = self.mw.messagedock.isVisible()
-        self.mw.messagedock.setVisible(not visible)
+        if hasattr(self.mw.mainArea, 'setMessagePanelVisible'):
+            self.mw.mainArea.setMessagePanelVisible(not visible)
+        else:
+            self.mw.messagedock.setVisible(not visible)
 
         # update the checkbox if toggling is done via keyboard shortcut
         if _sender == 'shortcut':
-            # variable message_window_checkbox is defined in viewingOptions()
+            # variable message_window_checkbox is defined in the viewer controls panel
             checkbox = self.mw.mainArea.message_window_checkbox
             checkbox.setChecked(not checkbox.isChecked())
 
@@ -229,46 +252,36 @@ class Slots:
 
     @QtCore.Slot()
     def removeAirfoil(self, name=None):
-        """Remove all selected airfoils from the scene"""
+        """Remove the current working airfoil."""
 
-        # look also at toolbox listwidget
-        mainArea = self.mw.mainArea
-        listwidget = mainArea.toolbox.listwidget
-
-        # the name parameter is only set when coming from listwidget
-        # and the deleting is done via DEL key
         if name:
-            airfoil = self.getAirfoilByName(name)
-        # FIXME:
-        # FIXME: this does not work
-        # FIXME: needs to delete the selected airfoil from the listwidget
-        # FIXME:
-        elif len(listwidget.selectedItems()) > 0:
-            name = listwidget.selectedItems()[0].text()
             airfoil = self.getAirfoilByName(name)
         elif self.mw.airfoil:
             airfoil = self.mw.airfoil
         else:
-            print('No airfoil selected for deletion')
+            logger.info('No airfoil selected for deletion')
             return
 
-        # remove airfoil from the list in the list widget
-        self.mw.airfoils.remove(airfoil)
+        if airfoil is None:
+            logger.info('No matching airfoil found for deletion')
+            return
 
-        # remove from scene only if active airfoil was chosen
-        if airfoil.name == self.mw.airfoil.name:
-            # removes all items from the scene (polygon, chord, mesh, etc.)
+        is_active_airfoil = airfoil == self.mw.airfoil
+
+        if airfoil in self.mw.airfoils:
+            self.mw.airfoils.remove(airfoil)
+
+        if is_active_airfoil:
             self.mw.scene.clear()
+            self.mw.airfoil = None
+        self._removeAirfoilListEntry(airfoil.name)
 
-        # remove also listwidget entry
-        itms = listwidget.findItems(
-            self.mw.airfoil.name, QtCore.Qt.MatchExactly)
-        for itm in itms:
-            row = listwidget.row(itm)
-            listwidget.takeItem(row)
+        if is_active_airfoil:
+            return
 
-        # fit all remaining scene items into the view
-        self.onViewAll()
+        # keep the current scene and view unchanged when removing
+        # a non-active airfoil entry
+        self.mw.mainArea.toolbox.refreshWorkflowState()
 
     @QtCore.Slot(str)
     def onMessage(self, msg):
@@ -298,7 +311,7 @@ class Slots:
     @QtCore.Slot()
     def onLevelChanged(self):
         """Change size of message window when floating """
-        if self.mw.messagedock.isFloating():
+        if hasattr(self.mw.messagedock, 'isFloating') and self.mw.messagedock.isFloating():
             self.mw.messagedock.resize(600, 300)
 
     @QtCore.Slot()
@@ -310,17 +323,17 @@ class Slots:
         if vbar:
             vbar.triggerAction(QtWidgets.QAbstractSlider.SliderToMaximum)
 
-    @QtCore.Slot()
-    def onTabChanged(self):
+    @QtCore.Slot(int)
+    def onTabChanged(self, _index=None):
         """Sync tabs and toolboxes """
         tabs = self.mw.mainArea.tabs
-        tab_text = self.mw.mainArea.tabs.tabText(tabs.currentIndex())
+        self.mw.mainArea.updateWorkspaceChrome(tabs.currentIndex())
         toolbox = self.mw.mainArea.toolbox
 
-        if tab_text == 'Airfoil Viewer':
-            toolbox.setCurrentIndex(toolbox.tb1)
-        if tab_text == 'Contour Analysis':
+        if tabs.currentIndex() == self.mw.mainArea.WORKSPACE_ANALYSIS_INDEX:
             toolbox.setCurrentIndex(toolbox.tb3)
+        elif toolbox.currentIndex() == toolbox.tb3:
+            toolbox.setCurrentIndex(toolbox.lastWorkflowIndex())
 
     @QtCore.Slot(str)
     def messageBox(self, message):
@@ -351,7 +364,7 @@ class Slots:
                         </tr> \
                         '
         text += '</table>'
- 
+
         textedit = QtWidgets.QTextEdit()
         textedit.setReadOnly(True)
         # textedit.setStyleSheet('font-family: Courier; font-size: 14px; ')
@@ -360,7 +373,7 @@ class Slots:
         # buttons = QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
         buttons = QtWidgets.QDialogButtonBox.Ok
         buttonBox = QtWidgets.QDialogButtonBox(buttons)
-        
+
         # make a dialog to carry the textedit and button widget
         dlg = QtWidgets.QDialog(self.mw)
         dlg.setWindowTitle('Keyboard shortcuts')
@@ -382,8 +395,8 @@ class Slots:
 
         This feature is mainly used during tesing, as it runs the whole workflow
         automatically.
-        
-        '''        
+
+        '''
         # load the predefined airfoil
         self.onOpenPredefined()
         # spline and refine the contour with defaults
@@ -408,24 +421,305 @@ class Slots:
         QtWidgets.QApplication.aboutQt()
 
     @QtCore.Slot()
+    def onIconPreview(self):
+        import IconPreview
+
+        dialog = IconPreview.IconPreviewDialog(self.mw)
+        dialog.exec()
+
+    def _readBundledText(self, relative_path, fallback=''):
+        root = Path(__file__).resolve().parent.parent
+        try:
+            return (root / relative_path).read_text(encoding='utf-8').strip()
+        except OSError:
+            return fallback
+
+    def _addAboutStat(self, layout, row, label, value):
+        key = QtWidgets.QLabel(label)
+        key.setObjectName('aboutStatKey')
+        layout.addWidget(key, row, 0)
+
+        val = QtWidgets.QLabel(value)
+        val.setObjectName('aboutStatValue')
+        val.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        layout.addWidget(val, row, 1)
+
+    def _aboutDetailsHtml(self):
+        mit_license = self._readBundledText(
+            'LICENSE',
+            'PyAero is distributed under the MIT License.',
+        )
+        lucide_license = self._readBundledText(
+            'resources/Icons/lucide/LICENSE',
+            'Lucide icons are distributed under the ISC License.',
+        )
+
+        return f"""
+            <html>
+                <head>
+                    <style>
+                        body {{
+                            color: #243447;
+                            font-family: "SF Pro Text", "Segoe UI", sans-serif;
+                            font-size: 13px;
+                            line-height: 1.5;
+                        }}
+                        h2 {{
+                            color: #1b3148;
+                            font-size: 17px;
+                            margin: 0 0 8px 0;
+                        }}
+                        p {{
+                            margin: 0 0 12px 0;
+                        }}
+                        a {{
+                            color: #2f5f93;
+                            text-decoration: none;
+                        }}
+                        .section {{
+                            margin-top: 14px;
+                        }}
+                        .license-card {{
+                            margin-top: 14px;
+                            padding: 14px;
+                            border: 1px solid #d7e1ec;
+                            border-radius: 12px;
+                            background: #f8fbfd;
+                        }}
+                        .license-title {{
+                            color: #17324a;
+                            font-size: 14px;
+                            font-weight: 700;
+                            margin-bottom: 4px;
+                        }}
+                        .license-subtitle {{
+                            color: #66788c;
+                            font-size: 12px;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                            letter-spacing: 0.06em;
+                            margin-bottom: 10px;
+                        }}
+                        pre {{
+                            margin: 0;
+                            white-space: pre-wrap;
+                            font-family: "SF Mono", "Menlo", "Monaco", monospace;
+                            font-size: 12px;
+                            color: #324558;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <h2>What PyAero Does</h2>
+                    <p><b>{html.escape(PyAero.__appname__)}</b> is used for 2D CFD mesh generation and contour analysis for airfoils.</p>
+                    <p>Questions or feedback: <a href="mailto:{html.escape(PyAero.__email__)}">{html.escape(PyAero.__email__)}</a></p>
+
+                    <div class="section">
+                        <h2>Licenses</h2>
+                        <p>The following bundled license texts apply to this build.</p>
+                    </div>
+
+                    <div class="license-card">
+                        <div class="license-title">PyAero</div>
+                        <div class="license-subtitle">MIT License</div>
+                        <pre>{html.escape(mit_license)}</pre>
+                    </div>
+
+                    <div class="license-card">
+                        <div class="license-title">Lucide Icons</div>
+                        <div class="license-subtitle">ISC License and Bundled Notices</div>
+                        <pre>{html.escape(lucide_license)}</pre>
+                    </div>
+                </body>
+            </html>
+        """
+
+    @QtCore.Slot()
     def onAbout(self):
-        QtWidgets.QMessageBox. \
-            about(self.mw, "About " + PyAero.__appname__,
-                  "<b>" + PyAero.__appname__ +
-                  "</b> is used for "
-                  "2D CFD mesh generation for airfoils.\
-                  <br><br>"
-                  "<b>" + PyAero.__appname__ + "</b> code under " +
-                  PyAero.__license__ +
-                  " license. (c) " +
-                  PyAero.__copyright__ + "<br><br>"
-                  "email to: " + PyAero.__email__ + "<br><br>"
-                  + "<b>VERSIONS:</b>" + "<br>"
-                  + PyAero.__appname__ + ": " + PyAero.__version__ +
-                  "<br>"
-                  + "Python: %s" % (sys.version.split()[0]) + "<br>"
-                  + "Numpy: %s" % (np.__version__) + "<br>"
-                  + "Scipy: %s" % (scipy.__version__) + "<br>"
-                  + "Qt for Python: %s" % (PySide6.__version__) + "<br>"
-                  + "Qt: %s" % (PySide6.QtCore.__version__)
-                  )
+        dialog = QtWidgets.QDialog(self.mw)
+        dialog.setWindowTitle('About ' + PyAero.__appname__)
+        dialog.setWindowIcon(self.mw.windowIcon())
+        dialog.setModal(True)
+        dialog.resize(760, 720)
+        dialog.setMinimumSize(700, 620)
+        dialog.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
+        dialog.setStyleSheet(
+            """
+            QDialog {
+                background: #eef3f8;
+            }
+            QFrame#aboutHero {
+                background: qlineargradient(
+                    x1: 0, y1: 0, x2: 1, y2: 1,
+                    stop: 0 #ffffff,
+                    stop: 1 #edf5fb
+                );
+                border: 1px solid #d6e3ef;
+                border-radius: 18px;
+            }
+            QLabel#aboutEyebrow {
+                color: #6b7f92;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            QLabel#aboutTitle {
+                color: #182c41;
+                font-size: 30px;
+                font-weight: 700;
+            }
+            QLabel#aboutSubtitle {
+                color: #4d6072;
+                font-size: 14px;
+                line-height: 1.4em;
+            }
+            QLabel#aboutBadge {
+                background: #ffffff;
+                border: 1px solid #d6e3ef;
+                border-radius: 999px;
+                color: #24415e;
+                font-size: 11px;
+                font-weight: 700;
+                padding: 4px 10px;
+            }
+            QFrame#aboutCard {
+                background: #ffffff;
+                border: 1px solid #d6e0ea;
+                border-radius: 16px;
+            }
+            QLabel#aboutSectionTitle {
+                color: #5d7287;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            QLabel#aboutStatKey {
+                color: #627789;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            QLabel#aboutStatValue {
+                color: #1d3148;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            QTextBrowser#aboutDetails {
+                background: #ffffff;
+                border: 1px solid #d6e0ea;
+                border-radius: 16px;
+                padding: 10px;
+            }
+            QDialogButtonBox QPushButton {
+                background: #ffffff;
+                border: 1px solid #c7d5e3;
+                border-radius: 10px;
+                color: #1e334b;
+                font-weight: 600;
+                min-width: 96px;
+                padding: 8px 14px;
+            }
+            QDialogButtonBox QPushButton:hover {
+                background: #f4f8fb;
+                border-color: #9eb8d4;
+            }
+            """
+        )
+
+        layout = QtWidgets.QVBoxLayout(dialog)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(14)
+
+        hero = QtWidgets.QFrame()
+        hero.setObjectName('aboutHero')
+        hero_layout = QtWidgets.QHBoxLayout(hero)
+        hero_layout.setContentsMargins(20, 20, 20, 20)
+        hero_layout.setSpacing(18)
+
+        logo = QtWidgets.QLabel()
+        logo.setFixedSize(84, 84)
+        logo.setAlignment(QtCore.Qt.AlignCenter)
+        logo_pixmap = QtGui.QPixmap('resources/Icons/app_image_256x256.png')
+        if not logo_pixmap.isNull():
+            logo.setPixmap(
+                logo_pixmap.scaled(
+                    72,
+                    72,
+                    QtCore.Qt.KeepAspectRatio,
+                    QtCore.Qt.SmoothTransformation,
+                )
+            )
+        hero_layout.addWidget(logo, 0, QtCore.Qt.AlignTop)
+
+        hero_text = QtWidgets.QVBoxLayout()
+        hero_text.setSpacing(8)
+
+        eyebrow = QtWidgets.QLabel('2D Airfoil CFD Meshes')
+        eyebrow.setObjectName('aboutEyebrow')
+        hero_text.addWidget(eyebrow)
+
+        title = QtWidgets.QLabel(PyAero.__appname__)
+        title.setObjectName('aboutTitle')
+        hero_text.addWidget(title)
+
+        subtitle = QtWidgets.QLabel(
+            'Modern airfoil contour analysis and 2D CFD meshing in a focused desktop workspace.'
+        )
+        subtitle.setObjectName('aboutSubtitle')
+        subtitle.setWordWrap(True)
+        hero_text.addWidget(subtitle)
+
+        badge_row = QtWidgets.QHBoxLayout()
+        badge_row.setSpacing(8)
+        for text in (
+            f'Version {PyAero.__version__}',
+            'PyAero MIT',
+            'Lucide ISC',
+        ):
+            badge = QtWidgets.QLabel(text)
+            badge.setObjectName('aboutBadge')
+            badge_row.addWidget(badge)
+        badge_row.addStretch(1)
+        hero_text.addLayout(badge_row)
+
+        hero_layout.addLayout(hero_text, 1)
+        layout.addWidget(hero)
+
+        stats_card = QtWidgets.QFrame()
+        stats_card.setObjectName('aboutCard')
+        stats_layout = QtWidgets.QVBoxLayout(stats_card)
+        stats_layout.setContentsMargins(18, 18, 18, 18)
+        stats_layout.setSpacing(12)
+
+        stats_title = QtWidgets.QLabel('Runtime')
+        stats_title.setObjectName('aboutSectionTitle')
+        stats_layout.addWidget(stats_title)
+
+        stats_grid = QtWidgets.QGridLayout()
+        stats_grid.setHorizontalSpacing(20)
+        stats_grid.setVerticalSpacing(10)
+        self._addAboutStat(stats_grid, 0, 'Contact', PyAero.__email__)
+        self._addAboutStat(stats_grid, 1, PyAero.__appname__, PyAero.__version__)
+        self._addAboutStat(stats_grid, 2, 'Python', sys.version.split()[0])
+        self._addAboutStat(stats_grid, 3, 'NumPy', np.__version__)
+        self._addAboutStat(stats_grid, 4, 'SciPy', scipy.__version__)
+        self._addAboutStat(stats_grid, 5, 'Qt for Python', PySide6.__version__)
+        self._addAboutStat(stats_grid, 6, 'Qt', PySide6.QtCore.__version__)
+        stats_grid.setColumnStretch(1, 1)
+        stats_layout.addLayout(stats_grid)
+        layout.addWidget(stats_card)
+
+        details = QtWidgets.QTextBrowser()
+        details.setObjectName('aboutDetails')
+        details.setOpenExternalLinks(True)
+        details.setReadOnly(True)
+        details.setHtml(self._aboutDetailsHtml())
+        layout.addWidget(details, 1)
+
+        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
+        buttons.rejected.connect(dialog.reject)
+        buttons.accepted.connect(dialog.accept)
+        layout.addWidget(buttons)
+
+        dialog.exec()

@@ -35,14 +35,11 @@ import Logger
 
 __appname__ = 'PyAero'
 __author__ = 'Andreas Ennemoser'
-__credits__ = 'Internet and open source'
 year = str(datetime.date.today().strftime("%Y"))
 __copyright__ = '2014-' + year + ' ' + __author__
 __license__ = 'MIT'
 __version__ = '3.0.0'
 __email__ = 'andreas.ennemoser@aon.at'
-__status__ = 'Release'
-
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -65,7 +62,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view.viewstyle = self.VIEW_STYLE
 
         self.contourview = ContourAnalysis.ContourAnalysis(canvas=True)
-        self.slots = GuiSlots.Slots()
+        self.slots = GuiSlots.Slots(self)
 
         # The QMainWindow class is designed around a specific architecture that includes
         # dedicated areas for menus, toolbars, dock widgets, a status bar, and a main content area.
@@ -80,16 +77,20 @@ class MainWindow(QtWidgets.QMainWindow):
         Logger.log(self)
 
     def _setupShortcuts(self):
-        shortcut_message_dock = QtGui.QShortcut(QtGui.QKeySequence('ALT+m'), self)
-        shortcut_message_dock.activated.connect(self.slots.toggleLogDock('shortcut'))
-        shortcut_message_dock.setContext(QtCore.Qt.ApplicationShortcut)
+        self.shortcut_message_dock = QtGui.QShortcut(
+            QtGui.QKeySequence('ALT+m'), self
+        )
+        self.shortcut_message_dock.activated.connect(
+            lambda: self.slots.toggleLogDock('shortcut')
+        )
+        self.shortcut_message_dock.setContext(QtCore.Qt.ApplicationShortcut)
 
     def init_GUI(self):
 
         # window size, position and title
         self.showMaximized()
         title = __appname__ + ' - Airfoil Contour Analysis and CFD Meshing'
-        self.setWindowTitle = title
+        self.setWindowTitle(title)
 
         # decimal separator used in spin boxes, etc.
         if self.DECIMAL_SEPARATOR == '.':
@@ -98,7 +99,7 @@ class MainWindow(QtWidgets.QMainWindow):
             QtCore.QLocale.setDefault(QtCore.QLocale.German, QtCore.QLocale.Germany)
 
         # create menus and tools of main window
-        menusTools = MenusTools.MenusTools()
+        menusTools = MenusTools.MenusTools(self)
         menusTools.createMenus()
         menusTools.createTools()
         menusTools.createDocks()
@@ -158,108 +159,410 @@ class MainWindow(QtWidgets.QMainWindow):
 class MainContentArea(QtWidgets.QWidget):
     """
     MainContentArea is a custom QWidget that serves as the central widget for the main window.
-    
+
     It contains a splitter that divides the window into two panes:
-    - a toolbox and viewing options pane on the left
-    - a tabbed widget for different views on the right.
+    - a workflow sidebar on the left
+    - a viewer workspace on the right.
 
     """
+
+    WORKSPACE_VIEWER_INDEX = 0
+    WORKSPACE_ANALYSIS_INDEX = 1
 
     def __init__(self, parent=None):
         # call constructor of QWidget
         super().__init__(parent)
 
         self.parent = parent
+        self._applyWorkspaceStyles()
 
         # split main window horizontally into two panes
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
-        # create QToolBox widget
+        # create workflow sidebar widget
         self.toolbox = ToolBox.Toolbox()
-
-        # create box where viewing options are placed
-        self.viewingOptions()
-
-        horizontal_line = QtWidgets.QFrame()
-        horizontal_line.setFrameShape(QtWidgets.QFrame.HLine)
-        horizontal_line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
         self.left_pane = QtWidgets.QWidget()
         vbox = QtWidgets.QVBoxLayout()
+        vbox.setContentsMargins(0, 0, 0, 0)
+        vbox.setSpacing(0)
         vbox.addWidget(self.toolbox)
-        vbox.addStretch(5)
-        vbox.addWidget(horizontal_line)
-        vbox.addSpacing(15)
-        vbox.addWidget(self.viewing_options)
         self.left_pane.setLayout(vbox)
+        self.left_pane.setMinimumWidth(420)
 
-        # create tabbed windows for viewing
-        self.tabs = QtWidgets.QTabWidget()
-        self.tabs.addTab(self.parent.view, 'Airfoil Viewer')
-        self.tabs.addTab(self.parent.contourview, 'Contour Analysis')
+        self.createWorkspacePanel()
+        self.createMessagePanel()
+        self.createViewerControlsPanel()
 
-        # connect tab changed signal to slot
-        self.tabs.currentChanged.connect(self.parent.slots.onTabChanged)
+        self.utility_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.utility_splitter.setChildrenCollapsible(False)
+        self.utility_splitter.addWidget(self.message_panel)
+        self.utility_splitter.addWidget(self.viewer_controls_panel)
+        self.utility_splitter.setStretchFactor(0, 1)
+        self.utility_splitter.setStretchFactor(1, 1)
+        self.utility_splitter.setSizes([560, 560])
+
+        self.right_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        self.right_splitter.setChildrenCollapsible(True)
+        self.right_splitter.addWidget(self.viewer_panel)
+        self.right_splitter.addWidget(self.utility_splitter)
+        self.right_splitter.setStretchFactor(0, 1)
+        self.right_splitter.setStretchFactor(1, 0)
+        self.right_splitter.setSizes([900, 170])
+
+        self.right_pane = QtWidgets.QWidget()
+        right_layout = QtWidgets.QVBoxLayout()
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
+        right_layout.addWidget(self.right_splitter)
+        self.right_pane.setLayout(right_layout)
 
         # add splitter panes
         self.splitter.addWidget(self.left_pane)
-        self.splitter.addWidget(self.tabs)
-        self.splitter.setSizes([100, 1300])  # initial hint for splitter spacing
+        self.splitter.addWidget(self.right_pane)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setSizes([420, 1180])
 
         # put splitter in a layout box
         hbox = QtWidgets.QHBoxLayout()
+        hbox.setContentsMargins(0, 0, 0, 0)
         hbox.addWidget(self.splitter)
         self.setLayout(hbox)
 
-    def viewingOptions(self):
-        self.viewing_options = QtWidgets.QGroupBox('Viewing Options')
+        self.updateWorkspaceChrome(self.tabs.currentIndex())
 
-        # Set font size via CSS workaround
-        font = self.viewing_options.font()
-        font.setPointSize(13)
-        self.viewing_options.setFont(font)
+    def _applyWorkspaceStyles(self):
+        self.setStyleSheet(
+            """
+            QFrame[chromePanel="true"] {
+                background: #f7f8fa;
+                border: 1px solid #dbe3ee;
+                border-radius: 8px;
+            }
+            QLabel[chromeLabel="true"] {
+                color: #6b7788;
+                font-size: 14px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+            }
+            QFrame[chromeInner="true"] {
+                background: #ffffff;
+                border: 1px solid #d6dfeb;
+                border-radius: 6px;
+            }
+            QLabel[workspaceHint="true"] {
+                color: #6b7788;
+                font-size: 12px;
+                line-height: 1.4em;
+            }
+            QTextEdit#messageTextEdit {
+                background: transparent;
+                border: none;
+                font-family: "Menlo", "Monaco", "Courier New";
+                font-size: 12px;
+                padding: 0px;
+            }
+            QToolButton[workspaceMode="true"] {
+                background: transparent;
+                border: 1px solid transparent;
+                border-radius: 4px;
+                color: #425468;
+                font-weight: 600;
+                padding: 6px 10px;
+            }
+            QToolButton[workspaceMode="true"]:hover {
+                background: #eef3f8;
+                border-color: #d6dfeb;
+            }
+            QToolButton[workspaceMode="true"]:checked {
+                background: #e8eef5;
+                border-color: #b8c8db;
+                color: #223041;
+            }
+            QToolButton[viewToggle="true"] {
+                background: #ffffff;
+                border: 1px solid #d6dfeb;
+                border-radius: 4px;
+                color: #223041;
+                font-weight: 600;
+                padding: 7px 10px;
+            }
+            QToolButton[viewToggle="true"]:hover {
+                background: #f3f6fa;
+                border-color: #9fb7d7;
+            }
+            QToolButton[viewToggle="true"]:checked {
+                background: #e7edf4;
+                border-color: #7e95b4;
+                color: #1c2c40;
+            }
+            QToolButton[viewAction="true"] {
+                background: #f8fafc;
+                border: 1px solid #d6dfeb;
+                border-radius: 4px;
+                color: #425468;
+                font-weight: 600;
+                padding: 7px 10px;
+            }
+            QToolButton[viewAction="true"]:hover {
+                background: #f3f6fa;
+                border-color: #b8c8db;
+            }
+            """
+        )
 
-        # Layouts for organizing checkboxes
-        hbox = QtWidgets.QHBoxLayout()
-        vbox1 = QtWidgets.QVBoxLayout()
-        vbox2 = QtWidgets.QVBoxLayout()
-        self.viewing_options.setLayout(hbox)
+    def _createChromePanel(self, title, object_name):
+        panel = QtWidgets.QFrame()
+        panel.setObjectName(object_name)
+        panel.setProperty('chromePanel', 'true')
 
-        # Checkboxes for viewing options
-        checkboxes = [
-            ('Message Window', True, True, self.parent.slots.toggleLogDock, 'tick'),
-            ('Airfoil Points', False, False, self.toolbox.toggleRawPoints),
-            ('Airfoil Raw Contour', False, False, self.toolbox.toggleRawContour),
-            ('Airfoil Spline Points', False, False, self.toolbox.toggleSplinePoints),
-            ('Airfoil Spline Contour', False, False, self.toolbox.toggleSpline),
-            ('Airfoil Chord', False, False, self.toolbox.toggleChord),
-            ('Mesh', False, False, self.toolbox.toggleMesh),
-            ('Leading Edge Circle', False, False, self.toolbox.toggleLeCircle),
-            ('Mesh Blocks', False, False, self.toolbox.toggleMeshBlocks),
-            ('Airfoil Camber Line', False, False, self.toolbox.toggleCamberLine)
+        panel_layout = QtWidgets.QVBoxLayout()
+        panel_layout.setContentsMargins(14, 12, 14, 12)
+        panel_layout.setSpacing(8)
+        panel.setLayout(panel_layout)
+
+        header = QtWidgets.QWidget()
+        header_layout = QtWidgets.QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(8)
+        header.setLayout(header_layout)
+
+        label = QtWidgets.QLabel(title)
+        label.setProperty('chromeLabel', 'true')
+        header_layout.addWidget(label)
+        panel_layout.addWidget(header)
+
+        inner = QtWidgets.QFrame()
+        inner.setProperty('chromeInner', 'true')
+        inner_layout = QtWidgets.QVBoxLayout()
+        inner_layout.setContentsMargins(12, 12, 12, 12)
+        inner_layout.setSpacing(10)
+        inner.setLayout(inner_layout)
+        panel_layout.addWidget(inner, stretch=1)
+
+        return panel, header_layout, inner_layout
+
+    def createWorkspacePanel(self):
+        self.viewer_panel, header_layout, inner_layout = self._createChromePanel(
+            'VIEWER',
+            'viewerPanel',
+        )
+
+        self.viewer_workspace_button = self._makeWorkspaceModeButton('Viewer')
+        self.analysis_workspace_button = self._makeWorkspaceModeButton(
+            'Contour Analysis'
+        )
+        self.viewer_workspace_button.clicked.connect(
+            lambda: self.tabs.setCurrentIndex(0)
+        )
+        self.analysis_workspace_button.clicked.connect(
+            lambda: self.tabs.setCurrentIndex(1)
+        )
+        header_layout.addSpacing(10)
+        header_layout.addWidget(self.viewer_workspace_button)
+        header_layout.addWidget(self.analysis_workspace_button)
+        header_layout.addStretch(1)
+
+        self.tabs = QtWidgets.QStackedWidget()
+        self.tabs.setObjectName('workspaceStack')
+        self.tabs.addWidget(self.parent.view)
+        self.tabs.addWidget(self.parent.contourview)
+        self.tabs.currentChanged.connect(self.parent.slots.onTabChanged)
+        inner_layout.addWidget(self.tabs, stretch=1)
+
+    def createMessagePanel(self):
+        self.message_panel, header_layout, inner_layout = self._createChromePanel(
+            'MESSAGES',
+            'messagePanel',
+        )
+        self.message_panel.setMinimumHeight(120)
+        self.message_panel.setMinimumWidth(320)
+        header_layout.addStretch(1)
+
+        self.parent.messages = QtWidgets.QTextEdit(self.parent)
+        self.parent.messages.setObjectName('messageTextEdit')
+        self.parent.messages.setTextInteractionFlags(
+            QtCore.Qt.TextSelectableByMouse | QtCore.Qt.TextSelectableByKeyboard
+        )
+        self.parent.messages.setAcceptRichText(True)
+        self.parent.messages.textChanged.connect(self.parent.slots.onTextChanged)
+        inner_layout.addWidget(self.parent.messages, stretch=1)
+
+        self.parent.messagedock = self.message_panel
+
+    def createViewerControlsPanel(self):
+        self.viewer_controls_panel, header_layout, inner_layout = self._createChromePanel(
+            'VIEWER CONTROLS',
+            'viewerControlsPanel',
+        )
+        self.viewer_controls_panel.setMinimumWidth(360)
+        header_layout.addStretch(1)
+
+        self.viewer_controls_stack = QtWidgets.QStackedWidget()
+        inner_layout.addWidget(self.viewer_controls_stack, stretch=1)
+
+        controls_page = QtWidgets.QWidget()
+        controls_page_layout = QtWidgets.QVBoxLayout()
+        controls_page_layout.setContentsMargins(0, 0, 0, 0)
+        controls_page_layout.setSpacing(0)
+        controls_grid = QtWidgets.QGridLayout()
+        controls_grid.setContentsMargins(0, 0, 0, 0)
+        controls_grid.setHorizontalSpacing(8)
+        controls_grid.setVerticalSpacing(8)
+        controls_page_layout.addLayout(controls_grid)
+        controls_page_layout.addStretch(1)
+        controls_page.setLayout(controls_page_layout)
+        controls_columns = 4
+
+        controls = [
+            ('Messages', 'message_window_checkbox', True, True,
+             self.parent.slots.toggleLogDock, 'Message Window', 'tick'),
+            ('Raw Pts', 'airfoil_points_checkbox', False, False,
+             self.toolbox.toggleRawPoints, 'Airfoil Points'),
+            ('Raw', 'airfoil_raw_contour_checkbox', False, False,
+             self.toolbox.toggleRawContour, 'Airfoil Raw Contour'),
+            ('Spline Pts', 'airfoil_spline_points_checkbox', False, False,
+             self.toolbox.toggleSplinePoints, 'Airfoil Spline Points'),
+            ('Spline', 'airfoil_spline_contour_checkbox', False, False,
+             self.toolbox.toggleSpline, 'Airfoil Spline Contour'),
+            ('Fill', 'airfoil_spline_fill_checkbox', False, False,
+             self.toolbox.toggleSplineFill, 'Spline Preview Fill'),
+            ('Chord', 'airfoil_chord_checkbox', False, False,
+             self.toolbox.toggleChord, 'Airfoil Chord'),
+            ('Mesh', 'mesh_checkbox', False, False,
+             self.toolbox.toggleMesh, 'Mesh'),
+            ('LE Circle', 'leading_edge_circle_checkbox', False, False,
+             self.toolbox.toggleLeCircle, 'Leading Edge Circle'),
+            ('Blocks', 'mesh_blocks_checkbox', False, False,
+             self.toolbox.toggleMeshBlocks, 'Mesh Blocks'),
+            ('Camber', 'airfoil_camber_line_checkbox', False, False,
+             self.toolbox.toggleCamberLine, 'Airfoil Camber Line'),
         ]
 
-        # Create and add checkboxes to layouts
-        for i, (label, checked, enabled, slot, *args) in enumerate(checkboxes):
-            checkbox = QtWidgets.QCheckBox(label)
-            checkbox.setChecked(checked)
-            checkbox.setEnabled(enabled)
-            if args:
-                checkbox.clicked.connect(lambda _, s=slot, a=args[0]: s(a))
-            else:
-                checkbox.clicked.connect(slot)
-            if i == 0:
-                vbox2.addWidget(checkbox)
-            else:
-                vbox1.addWidget(checkbox)
+        for index, control in enumerate(controls):
+            short_label, attribute_name, checked, enabled, slot, tooltip, *args = control
+            button = self._makeViewerToggleButton(
+                short_label,
+                checked=checked,
+                enabled=enabled,
+                slot=slot,
+                tooltip=tooltip,
+                argument=args[0] if args else None,
+            )
+            setattr(self, attribute_name, button)
+            controls_grid.addWidget(button, index // controls_columns, index % controls_columns)
 
-            # Set attribute for each checkbox with a meaningful name
-            attribute_name = label.lower().replace(' ', '_') + '_checkbox'
-            setattr(self, attribute_name, checkbox)
+        fit_button = self._makeViewerActionButton(
+            'Fit View',
+            self.parent.slots.onViewAll,
+        )
+        background_button = self._makeViewerActionButton(
+            'Background',
+            self.parent.slots.onBackground,
+        )
+        action_index = len(controls)
+        controls_grid.addWidget(
+            fit_button,
+            action_index // controls_columns,
+            action_index % controls_columns,
+        )
+        action_index += 1
+        controls_grid.addWidget(
+            background_button,
+            action_index // controls_columns,
+            action_index % controls_columns,
+        )
 
-        hbox.addLayout(vbox1)
-        hbox.addLayout(vbox2)
-        hbox.setAlignment(QtCore.Qt.AlignTop)
+        placeholder_page = QtWidgets.QWidget()
+        placeholder_layout = QtWidgets.QVBoxLayout()
+        placeholder_layout.setContentsMargins(0, 0, 0, 0)
+        placeholder_layout.setSpacing(8)
+        placeholder_page.setLayout(placeholder_layout)
+
+        placeholder_label = QtWidgets.QLabel(
+            'Switch back to Airfoil Viewer to adjust contour, mesh, and view overlays.'
+        )
+        placeholder_label.setProperty('workspaceHint', 'true')
+        placeholder_label.setWordWrap(True)
+        placeholder_layout.addWidget(placeholder_label)
+        placeholder_layout.addStretch(1)
+
+        self.viewer_controls_stack.addWidget(controls_page)
+        self.viewer_controls_stack.addWidget(placeholder_page)
+
+    def _makeWorkspaceModeButton(self, text):
+        button = QtWidgets.QToolButton()
+        button.setText(text)
+        button.setCheckable(True)
+        button.setProperty('workspaceMode', 'true')
+        button.setCursor(QtCore.Qt.PointingHandCursor)
+        return button
+
+    def _makeViewerToggleButton(self, text, checked, enabled, slot, tooltip, argument=None):
+        button = QtWidgets.QToolButton()
+        button.setText(text)
+        button.setToolTip(tooltip)
+        button.setCheckable(True)
+        button.setChecked(checked)
+        button.setEnabled(enabled)
+        button.setProperty('viewToggle', 'true')
+        button.setCursor(QtCore.Qt.PointingHandCursor)
+        button.setSizePolicy(
+            QtWidgets.QSizePolicy.Fixed,
+            QtWidgets.QSizePolicy.Fixed,
+        )
+        button.setMinimumWidth(94)
+        button.setMaximumWidth(116)
+        if argument is None:
+            button.clicked.connect(slot)
+        else:
+            button.clicked.connect(lambda _, s=slot, a=argument: s(a))
+        return button
+
+    def _makeViewerActionButton(self, text, slot):
+        button = QtWidgets.QToolButton()
+        button.setText(text)
+        button.setProperty('viewAction', 'true')
+        button.setCursor(QtCore.Qt.PointingHandCursor)
+        button.setSizePolicy(
+            QtWidgets.QSizePolicy.Fixed,
+            QtWidgets.QSizePolicy.Fixed,
+        )
+        button.setMinimumWidth(94)
+        button.setMaximumWidth(116)
+        button.clicked.connect(slot)
+        return button
+
+    def updateWorkspaceChrome(self, tab_index=None):
+        if tab_index is None:
+            tab_index = self.tabs.currentIndex()
+        viewer_tab = tab_index == self.WORKSPACE_VIEWER_INDEX
+
+        for index, button in enumerate(
+            (self.viewer_workspace_button, self.analysis_workspace_button)
+        ):
+            blocker = QtCore.QSignalBlocker(button)
+            button.setChecked(index == tab_index)
+            del blocker
+
+        self.viewer_controls_stack.setCurrentIndex(0 if viewer_tab else 1)
+
+    def setMessagePanelVisible(self, visible):
+        self.message_panel.setVisible(visible)
+        utility_width = max(self.utility_splitter.width(), 1)
+        if visible:
+            self.utility_splitter.setSizes([utility_width // 2, utility_width // 2])
+        else:
+            self.utility_splitter.setSizes([0, utility_width])
+
+        total_height = max(self.right_splitter.height(), 1)
+        utility_height = min(170, max(128, total_height // 5))
+        self.right_splitter.setSizes([total_height - utility_height, utility_height])
+
+
+class MessagePanel(QtWidgets.QFrame):
+    def isFloating(self):
+        return False
 
 
 def main():
@@ -285,7 +588,10 @@ def main():
     # Set icon for the application
     app_icon = QtGui.QIcon('resources/Icons/app_image.png')
     for size in [24, 256]:
-        app_icon.addFile(f'resources/Icons/app_image_{size}x{size}.png'), QtCore.QSize(size, size)
+        app_icon.addFile(
+            f'resources/Icons/app_image_{size}x{size}.png',
+            QtCore.QSize(size, size),
+        )
     app.setWindowIcon(app_icon)
 
     # Window style set in Settings.py

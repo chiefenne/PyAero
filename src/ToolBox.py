@@ -1,881 +1,923 @@
 # -*- coding: utf-8 -*-
 
 import os
-import numpy as np
+import shutil
 
-from PySide6 import QtGui, QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
-import PyAero
-import FileDialog
 import FileSystem
-import SplineRefine
-import TrailingEdge
+import FileDialog
+import Icons
 import Meshing
-import ContourAnalysis as ca
+import MeshBuilders
+import ToolboxBoundaryConditions
+import ToolboxPages
+import ToolboxServices
+from ToolboxWidgets import PAGE_BODY_WIDTH, WorkflowStepButton
 from Utils import get_main_window
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class Toolbox(QtWidgets.QToolBox):
+class Toolbox(QtWidgets.QWidget):
+    currentChanged = QtCore.Signal(int)
 
     def __init__(self):
-        """Main menus for PyAero functionality.
-        Inserted in left pane of splitter window which in turn is the app's
-        CentralWidget.
-
-        Args:
-            parent (QWidget): MainWindow from PyAero.py
-        """
+        """Workflow-oriented sidebar for PyAero."""
         super().__init__()
 
-        # MainWindow instance
         self.mw = get_main_window()
+        self.wind_tunnel = None
+        self.workflow = None
+        self._current_index = -1
+        self._last_workflow_index = 0
+        self._page_titles = []
+        self._page_descriptions = []
+        self._page_buttons = []
 
-        # set the style (css)
+        self._buildShell()
+
+        ToolboxPages.build_file_system_panel(self)
+        ToolboxPages.build_aerodynamics_panel(self)
+        ToolboxPages.build_boundary_conditions_panel(self)
+        ToolboxPages.build_contour_analysis_panel(self)
+        ToolboxPages.build_spline_refine_panel(self)
+        ToolboxPages.build_meshing_panel(self)
+
+        self.makeToolbox()
+        self.workflow = ToolboxServices.ToolboxWorkflowController(self, self.mw)
+
+        self.currentChanged.connect(self.toolboxChanged)
+        self.refreshWorkflowState()
+
+    def _buildShell(self):
         style = """
-            QToolBox::tab {
-                border: 3px;
-                background-color: #DDDDDD;
-                color: black;
+            QWidget {
+                color: #1f2933;
             }
-            QToolBox::tab:pressed {
-                background-color: #CCCCCD;
+            QLabel#sectionTitle,
+            QLabel#summaryEyebrow,
+            QLabel#pageTitle {
+                color: #6b7788;
+                font-size: 14px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
             }
-            QToolBox::tab:selected {
-                font: bold;
+            QFrame#workflowSummaryCard {
+                background: #fbfcfe;
+                border: 1px solid #dbe6f0;
+                border-radius: 12px;
+            }
+            QFrame#summaryNameCard {
+                background: #f2f7fb;
+                border: 1px solid #d7e4ef;
+                border-radius: 10px;
+            }
+            QLabel#summaryName {
+                color: #203244;
+                font-size: 13px;
+                font-weight: 600;
+            }
+            QLabel#summaryMeta {
+                color: #5f6c78;
+                font-size: 12px;
+            }
+            QLabel#summaryStatus {
+                color: #314154;
+                font-size: 12px;
+            }
+            QPushButton#summaryActionButton {
+                background: #ffffff;
+                border: 1px solid #d8e3ee;
+                border-radius: 8px;
+                color: #223041;
+                font-weight: 600;
+                padding: 6px 10px;
+            }
+            QPushButton#summaryActionButton:hover {
+                background: #f6fafc;
+                border-color: #abc3d9;
+            }
+            QPushButton#summaryActionButton:disabled {
+                color: #8a97a8;
+                background: #f5f7fa;
+                border-color: #e5ebf1;
+            }
+            QFrame#workflowNavCard {
+                background: #f8fbfd;
+                border: 1px solid #dbe7ef;
+                border-radius: 12px;
+            }
+            QPushButton[navRole="step"] {
+                background: transparent;
+                border: none;
+                border-radius: 8px;
+                border-left: 0px solid transparent;
+                color: #6b7788;
+                font-weight: 600;
+                text-align: left;
+                padding: 11px 12px 11px 18px;
+            }
+            QPushButton[navRole="step"]:hover {
+                background: rgba(255, 255, 255, 0.72);
+            }
+            QPushButton[navRole="step"]:checked {
+                background: #f2f8fc;
+                border-top: 1px solid #d3e4ef;
+                border-right: 1px solid #d3e4ef;
+                border-bottom: 1px solid #d3e4ef;
+                border-left: 10px solid #6ea2c6;
+                color: #6b7788;
+                font-weight: 700;
+                padding: 11px 12px 11px 10px;
+            }
+            QPushButton[navRole="step"][workflowStatus="disabled"] {
+                color: #6b7788;
+            }
+            QFrame#workflowPageCard {
+                background: #f8fbfd;
+                border: 1px solid #dbe7ef;
+                border-radius: 12px;
+            }
+            QGroupBox {
+                background: #ffffff;
+                border: 1px solid #e1e9f0;
+                border-radius: 10px;
+                margin-top: 15px;
+                padding: 14px 14px 12px 14px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 14px;
+                padding: 0 4px;
+                color: #62778b;
+                font-size: 12px;
+                font-weight: 700;
+            }
+            QLineEdit,
+            QTextEdit,
+            QSpinBox,
+            QDoubleSpinBox,
+            QComboBox {
+                background: #fbfdff;
+                border: 1px solid #d7e2ed;
+                border-radius: 6px;
+                padding: 6px 8px;
+                selection-background-color: #dcecf7;
+                selection-color: #1d3248;
+            }
+            QLineEdit:focus,
+            QTextEdit:focus,
+            QSpinBox:focus,
+            QDoubleSpinBox:focus,
+            QComboBox:focus {
+                background: #ffffff;
+                border-color: #9fbfda;
+            }
+            QLabel#pageSubtitle {
+                color: #66778c;
+                font-size: 12px;
+                font-weight: 500;
+            }
+            QLabel[pageFieldLabel="true"] {
+                color: #506273;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            QCheckBox[pageOption="true"],
+            QRadioButton[pageChoice="true"] {
+                color: #31475c;
+                font-size: 12px;
+                font-weight: 600;
+                spacing: 8px;
+            }
+            QCheckBox[pageOption="true"]::indicator,
+            QRadioButton[pageChoice="true"]::indicator {
+                width: 14px;
+                height: 14px;
+            }
+            QTextEdit#pageTextPanel {
+                background: #fcfdff;
+                border: 1px solid #d7e2ed;
+                border-radius: 8px;
+                color: #213142;
+            }
+            QLabel#librarySelection {
+                color: #16212d;
+                font-size: 14px;
+                font-weight: 700;
+            }
+            QLabel#libraryMeta {
+                color: #5e6d7f;
+                font-size: 12px;
+            }
+            QRadioButton[librarySource="true"] {
+                background: #ffffff;
+                border: 1px solid #d7e2ed;
+                border-radius: 8px;
+                color: #223041;
+                font-weight: 600;
+                padding: 6px 12px;
+            }
+            QRadioButton[librarySource="true"]::indicator {
+                width: 0px;
+                height: 0px;
+            }
+            QRadioButton[librarySource="true"]:hover {
+                border-color: #abc3d9;
+            }
+            QRadioButton[librarySource="true"]:checked {
+                background: #eef6fb;
+                border-color: #bdd3e3;
+                color: #1c2c40;
+            }
+            QComboBox#librarySourceCombo {
+                background: #ffffff;
+                border: 1px solid #d9d7d1;
+                border-radius: 4px;
+                color: #223041;
+                font-weight: 600;
+                min-width: 120px;
+                padding: 6px 30px 6px 10px;
+            }
+            QComboBox#librarySourceCombo:hover {
+                border-color: #bca88d;
+            }
+            QLineEdit#librarySearch {
+                background: #ffffff;
+                border: 1px solid #d7e2ed;
+                border-radius: 8px;
+                padding: 8px 10px;
+            }
+            QListWidget#airfoilLibraryList {
+                background: #fdfefd;
+                border: 1px solid #dbe7ef;
+                border-radius: 8px;
+                padding: 4px;
+            }
+            QListWidget#airfoilLibraryList::item {
+                border-bottom: 1px solid #e7eff5;
+                padding: 8px 10px;
+            }
+            QListWidget#airfoilLibraryList::item:selected {
+                background: #edf6fb;
+                color: #1c2c40;
+            }
+            QPushButton#libraryActionButton,
+            QPushButton#libraryPrimaryButton {
+                background: #ffffff;
+                border: 1px solid #d7e2ed;
+                border-radius: 8px;
+                color: #223041;
+                font-weight: 600;
+                padding: 7px 12px;
+            }
+            QPushButton#libraryActionButton:hover,
+            QPushButton#libraryPrimaryButton:hover {
+                border-color: #abc3d9;
+                background: #f7fbfe;
+            }
+            QPushButton#libraryPrimaryButton {
+                background: #eef6fb;
+                border-color: #bdd3e3;
+                color: #1c2c40;
+            }
+            QPushButton#libraryPrimaryButton:disabled {
+                background: #f5f7fa;
+                border-color: #e5ebf1;
+                color: #8a97a8;
+            }
+            QFrame[pageSectionCard="true"] {
+                background: #ffffff;
+                border: 1px solid #e1e9f0;
+                border-radius: 10px;
+            }
+            QLabel[pageSectionTitle="true"] {
+                color: #1b2a3a;
+                font-size: 15px;
+                font-weight: 700;
+            }
+            QLabel[pageSectionHint="true"] {
+                color: #66778c;
+                font-size: 12px;
+            }
+            QToolButton[sectionToggle="true"] {
+                background: transparent;
+                border: none;
+                color: #4f6174;
+                font-weight: 600;
+                padding: 4px 0;
+                text-align: left;
+            }
+            QToolButton[sectionToggle="true"]:hover {
+                color: #223041;
+            }
+            QPushButton#pagePrimaryActionButton,
+            QPushButton#pageSecondaryActionButton {
+                border-radius: 8px;
+                font-weight: 600;
+                padding: 8px 14px;
+            }
+            QPushButton#pagePrimaryActionButton {
+                background: #eef6fb;
+                border: 1px solid #bdd3e3;
+                color: #1c2c40;
+            }
+            QPushButton#pagePrimaryActionButton:hover {
+                background: #f7fbfe;
+                border-color: #9ebbd3;
+            }
+            QPushButton#pageSecondaryActionButton {
+                background: #ffffff;
+                border: 1px solid #d7e2ed;
+                color: #223041;
+            }
+            QPushButton#pageSecondaryActionButton:hover {
+                border-color: #abc3d9;
+            }
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QWidget#workflowPageBody {
+                background: transparent;
             }
         """
         self.setStyleSheet(style)
 
-        # create toolbox items
-        self.itemFileSystem()
-        self.itemAerodynamics()
-        self.itemBoundaryCondtions()
-        self.itemContourAnalysis()
-        self.itemSplineRefine()
-        self.itemMeshing()
+        self.summary_card = self._buildSummaryCard()
 
-        self.makeToolbox()
+        self.workflow_steps = QtWidgets.QWidget()
+        self.workflow_steps_layout = QtWidgets.QVBoxLayout()
+        self.workflow_steps_layout.setContentsMargins(0, 0, 0, 0)
+        self.workflow_steps_layout.setSpacing(4)
+        self.workflow_steps.setLayout(self.workflow_steps_layout)
 
-        self.currentChanged.connect(self.toolboxChanged)
+        self.workflow_card = QtWidgets.QFrame()
+        self.workflow_card.setObjectName('workflowNavCard')
+        workflow_card_layout = QtWidgets.QVBoxLayout()
+        workflow_card_layout.setContentsMargins(14, 14, 14, 14)
+        workflow_card_layout.setSpacing(8)
+        self.workflow_card.setLayout(workflow_card_layout)
 
-    def toolboxChanged(self):
+        workflow_title = QtWidgets.QLabel('WORKFLOW')
+        workflow_title.setObjectName('sectionTitle')
+        workflow_card_layout.addWidget(workflow_title)
+        workflow_card_layout.addWidget(self.workflow_steps)
 
-        if self.currentIndex() == self.tb1:
-            self.mw.mainArea.tabs.setCurrentIndex(0)
+        self.page_card = QtWidgets.QFrame()
+        self.page_card.setObjectName('workflowPageCard')
+        page_layout = QtWidgets.QVBoxLayout()
+        page_layout.setContentsMargins(18, 16, 18, 18)
+        page_layout.setSpacing(8)
+        self.page_card.setLayout(page_layout)
 
+        self.page_title_label = QtWidgets.QLabel('')
+        self.page_title_label.setObjectName('pageTitle')
+        self.page_description_label = QtWidgets.QLabel('')
+        self.page_description_label.setObjectName('pageSubtitle')
+        self.page_description_label.setWordWrap(True)
+
+        self.page_stack = QtWidgets.QStackedWidget()
+        self.page_stack.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding,
+        )
+
+        page_layout.addWidget(self.page_title_label)
+        page_layout.addWidget(self.page_description_label)
+        page_layout.addWidget(self.page_stack, stretch=1)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(14)
+        layout.addWidget(self.summary_card)
+        layout.addWidget(self.workflow_card)
+        layout.addWidget(self.page_card, stretch=1)
+        self.setLayout(layout)
+
+    def _buildSummaryCard(self):
+        card = QtWidgets.QFrame()
+        card.setObjectName('workflowSummaryCard')
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setSpacing(8)
+        card.setLayout(layout)
+
+        header = QtWidgets.QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+        header.setSpacing(8)
+
+        eyebrow = QtWidgets.QLabel('ACTIVE AIRFOIL')
+        eyebrow.setObjectName('summaryEyebrow')
+        header.addWidget(eyebrow)
+        header.addStretch(1)
+
+        self.summary_remove_button = self._makeSummaryActionButton('Remove')
+        self.summary_remove_button.clicked.connect(
+            lambda *_: self.mw.slots.removeAirfoil()
+        )
+        header.addWidget(self.summary_remove_button)
+        layout.addLayout(header)
+
+        self.summary_name_card = QtWidgets.QFrame()
+        self.summary_name_card.setObjectName('summaryNameCard')
+        summary_name_layout = QtWidgets.QHBoxLayout()
+        summary_name_layout.setContentsMargins(12, 9, 12, 9)
+        summary_name_layout.setSpacing(0)
+        self.summary_name_card.setLayout(summary_name_layout)
+
+        self.summary_name_label = QtWidgets.QLabel('No airfoil loaded')
+        self.summary_name_label.setObjectName('summaryName')
+        summary_name_layout.addWidget(self.summary_name_label)
+        summary_name_layout.addStretch(1)
+        layout.addWidget(self.summary_name_card)
+
+        self.summary_meta_label = QtWidgets.QLabel('Open an airfoil to begin')
+        self.summary_meta_label.setObjectName('summaryMeta')
+        self.summary_meta_label.setWordWrap(True)
+        layout.addWidget(self.summary_meta_label)
+
+        self.summary_geometry_label = QtWidgets.QLabel('Geometry: waiting')
+        self.summary_geometry_label.setObjectName('summaryStatus')
+        self.summary_geometry_label.setWordWrap(True)
+        layout.addWidget(self.summary_geometry_label)
+
+        self.summary_mesh_label = QtWidgets.QLabel('Mesh: not available')
+        self.summary_mesh_label.setObjectName('summaryStatus')
+        self.summary_mesh_label.setWordWrap(True)
+        layout.addWidget(self.summary_mesh_label)
+
+        return card
+
+    def _makeSummaryActionButton(self, text):
+        button = QtWidgets.QPushButton(text)
+        button.setObjectName('summaryActionButton')
+        button.setCursor(QtCore.Qt.PointingHandCursor)
+        return button
+
+    def addPage(self, widget, title, description, icon, scrollable=True):
+        index = self.page_stack.count()
+        if scrollable:
+            widget.setMaximumWidth(PAGE_BODY_WIDTH)
+            widget.setSizePolicy(
+                QtWidgets.QSizePolicy.Preferred,
+                QtWidgets.QSizePolicy.Maximum,
+            )
+            page_body = QtWidgets.QWidget()
+            page_body.setObjectName('workflowPageBody')
+            body_layout = QtWidgets.QHBoxLayout()
+            body_layout.setContentsMargins(0, 0, 0, 0)
+            body_layout.setSpacing(0)
+            body_layout.addWidget(widget, 0, QtCore.Qt.AlignTop)
+            body_layout.addStretch(1)
+            page_body.setLayout(body_layout)
+
+            scroll = QtWidgets.QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+            scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+            scroll.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+            scroll.setWidget(page_body)
+            page_widget = scroll
+        else:
+            page_widget = widget
+        self.page_stack.addWidget(page_widget)
+
+        button = WorkflowStepButton(title=title, subtitle=description)
+        if icon:
+            button.setIcon(Icons.icon(icon))
+            button.setIconSize(QtCore.QSize(20, 20))
+        button.clicked.connect(
+            lambda _checked=False, idx=index: self.setCurrentIndex(idx)
+        )
+        self.workflow_steps_layout.addWidget(button)
+
+        self._page_buttons.append(button)
+        self._page_titles.append(title)
+        self._page_descriptions.append(description)
+        return index
+
+    def currentIndex(self):
+        return self._current_index
+
+    def lastWorkflowIndex(self):
+        return self._last_workflow_index
+
+    def setCurrentIndex(self, index):
+        if index < 0 or index >= self.page_stack.count():
+            return
+        if index == self._current_index:
+            return
+
+        self._current_index = index
+        if hasattr(self, 'tb3') and index != self.tb3:
+            self._last_workflow_index = index
+
+        self.page_stack.setCurrentIndex(index)
+        for page_index, button in enumerate(self._page_buttons):
+            blocker = QtCore.QSignalBlocker(button)
+            button.setChecked(page_index == index)
+            del blocker
+
+        self._updateCurrentPageHeader()
+        self.currentChanged.emit(index)
+
+    def _updateCurrentPageHeader(self):
+        if self._current_index < 0:
+            self.page_title_label.setText('')
+            self.page_description_label.setText('')
+            return
+
+        button = self._page_buttons[self._current_index]
+        self.page_title_label.setText(self._pageTitleText(self._current_index))
+        self.page_description_label.setText(
+            self._pageHeaderSubtitle(self._current_index, button)
+        )
+
+    def _pageTitleText(self, index):
+        title = self._page_titles[index]
+        if hasattr(self, 'tb1') and index == self.tb1:
+            count = getattr(self, '_airfoil_library_visible_count', None)
+            if count is not None:
+                return f'{title} ({count})'.upper()
+        return title.upper()
+
+    def _pageHeaderSubtitle(self, index, button):
+        if hasattr(self, 'tb1') and index == self.tb1:
+            return self._page_descriptions[index]
+        return button.subtitle or self._page_descriptions[index]
+
+    def refreshWorkflowState(self):
+        airfoil = self._active_airfoil()
+
+        self.summary_remove_button.setEnabled(airfoil is not None)
+        self.summary_remove_button.setVisible(airfoil is not None)
+
+        if airfoil is None:
+            self.summary_name_label.setText('No airfoil loaded')
+            self.summary_meta_label.setText(
+                'Choose an airfoil from the library below to begin.'
+            )
+            self.summary_geometry_label.setText('Geometry: waiting for an airfoil')
+            self.summary_mesh_label.setText('Mesh: not generated')
+        else:
+            self.summary_name_label.setText(airfoil.name)
+            source_path = getattr(airfoil, 'source_path', None)
+            source_text = FileSystem.describe_airfoil_source(
+                source_path,
+                mainwindow=self.mw,
+            )
+            self.summary_meta_label.setText(source_text or 'Working airfoil ready')
+            self.summary_geometry_label.setText(
+                f'Geometry: {self._geometryStatusText(airfoil)}'
+            )
+            self.summary_mesh_label.setText(
+                f'Mesh: {self._meshStatusText(airfoil)}'
+            )
+
+        fill_toggle = getattr(
+            getattr(self.mw, 'mainArea', None),
+            'airfoil_spline_fill_checkbox',
+            None,
+        )
+        if fill_toggle is not None:
+            can_fill_spline = airfoil is not None and airfoil.has_spline
+            fill_toggle.setEnabled(can_fill_spline)
+            if can_fill_spline:
+                self.applySplineFillPreference(airfoil)
+
+        if not hasattr(self, 'tb1'):
+            return
+
+        if airfoil is None:
+            self._setPageStatus(
+                self.tb1,
+                'ready',
+                'Open or drag in an airfoil contour',
+            )
+            self._setPageStatus(self.tb2, 'disabled', 'Select an airfoil first')
+            self._setPageStatus(self.tb4, 'disabled', 'Spline first')
+            self._setPageStatus(self.tb6, 'info', 'Freestream helper inputs')
+            self._setPageStatus(self.tb5, 'info', 'Reserved for quick aero tools')
+            self._setPageStatus(self.tb3, 'disabled', 'Secondary analysis workspace')
+            self._updateCurrentPageHeader()
+            return
+
+        self._setPageStatus(self.tb1, 'done', 'Working airfoil selected')
+
+        if airfoil.has_TE:
+            geometry_status = ('done', 'Spline ready, trailing edge adjusted')
+        elif airfoil.has_spline:
+            geometry_status = ('done', 'Spline ready for meshing')
+        else:
+            geometry_status = ('ready', 'Raw contour ready for refinement')
+        self._setPageStatus(self.tb2, *geometry_status)
+
+        if airfoil.mesh_model is not None:
+            stats = airfoil.mesh_model.mesh_statistics()
+            mesh_detail = f'{stats.cell_count} cells / {stats.block_count} blocks'
+            self._setPageStatus(self.tb4, 'done', mesh_detail)
+        elif airfoil.has_spline:
+            self._setPageStatus(self.tb4, 'ready', 'Ready to generate the mesh')
+        else:
+            self._setPageStatus(self.tb4, 'disabled', 'Spline first')
+
+        self._setPageStatus(self.tb6, 'ready', 'Freestream and y+ helper inputs')
+        self._setPageStatus(self.tb5, 'info', 'Future quick-aero workspace')
+        contour_status = 'ready' if airfoil.has_spline else 'disabled'
+        contour_detail = (
+            'Secondary analysis workspace'
+            if airfoil.has_spline else
+            'Spline first'
+        )
+        self._setPageStatus(self.tb3, contour_status, contour_detail)
+        self._updateCurrentPageHeader()
+
+    def _setPageStatus(self, index, status, detail):
+        self._page_buttons[index].set_status(status, detail)
+
+    def _geometryStatusText(self, airfoil):
+        if airfoil.has_TE:
+            return 'spline ready, trailing edge adjusted'
+        if airfoil.has_spline:
+            return 'spline ready'
+        return 'raw contour loaded'
+
+    def _meshStatusText(self, airfoil):
+        if airfoil.mesh_model is None:
+            return 'not generated'
+        stats = airfoil.mesh_model.mesh_statistics()
+        return f'{stats.cell_count} cells across {stats.block_count} blocks'
+
+    def toolboxChanged(self, _index=None):
         if self.currentIndex() == self.tb3:
             self.mw.mainArea.tabs.setCurrentIndex(1)
+        else:
+            self.mw.mainArea.tabs.setCurrentIndex(0)
 
-        # update points on airfoil when toolbox changed to meshing
-        if self.currentIndex() == self.tb4 and self.mw.airfoil:
-            pts = len(self.mw.airfoil.spline_data[0][0])
-            self.points_on_airfoil.setText(str(pts))
+        if self.currentIndex() == self.tb4:
+            points = 0
+            if self.mw.airfoil and self.mw.airfoil.has_spline:
+                points = len(self.mw.airfoil.spline_data[0][0])
+            self.points_on_airfoil.setText(str(points))
 
-    def itemFileSystem(self):
+    def selectedAirfoilLibrarySource(self):
+        if not hasattr(self, 'airfoil_library_source_buttons'):
+            return 'bundled'
+        for source, button in self.airfoil_library_source_buttons.items():
+            if button.isChecked():
+                return source
+        return 'bundled'
 
-        self.item_fs = QtWidgets.QWidget()
-        layout = QtWidgets.QVBoxLayout()
-        self.item_fs.setLayout(layout)
+    def currentAirfoilLibraryPath(self):
+        if not hasattr(self, 'airfoil_library_list'):
+            return None
+        item = self.airfoil_library_list.currentItem()
+        if item is None:
+            return None
+        return item.data(QtCore.Qt.UserRole)
 
-        # instance of QFileSystemModel
-        filesystem_model = FileSystem.FileSystemModel()
-        root_path = filesystem_model.rootPath()
+    def refreshAirfoilLibrary(self):
+        if not hasattr(self, 'airfoil_library_list'):
+            return
 
-        self.tree = QtWidgets.QTreeView()
-        self.tree.setModel(filesystem_model)
-        self.tree.setRootIndex(filesystem_model.index(root_path))
-        self.tree.setAnimated(True)
+        selected_path = self.currentAirfoilLibraryPath()
+        search_text = self.airfoil_library_search.text().strip().lower()
+        source = self.selectedAirfoilLibrarySource()
+        entries = FileSystem.list_airfoil_library_entries(
+            source=source,
+            mainwindow=self.mw,
+        )
 
-        # hide size column
-        self.tree.setColumnHidden(1, True)
-        # hide type column
-        self.tree.setColumnHidden(2, True)
-        # hide date modified column
-        self.tree.setColumnHidden(3, True)
+        if search_text:
+            entries = [
+                entry for entry in entries
+                if search_text in entry.name.lower() or
+                search_text in entry.relative_path.lower()
+            ]
 
-        # hide the header line of the filesystem tree
-        # the header line would consist of name, date, type, size
-        # the latter three are hidden anyway (see above)
-        header = self.tree.header()
-        header.hide()
+        blocker = QtCore.QSignalBlocker(self.airfoil_library_list)
+        self.airfoil_library_list.clear()
+        selected_item = None
 
-        # handler
-        self.tree.clicked.connect(filesystem_model.onFileSelected)
-        self.tree.doubleClicked.connect(filesystem_model.onFileLoad)
+        for entry in entries:
+            label = entry.name
+            if source == 'all':
+                label = f'{entry.name}  [{entry.source_label}]'
+            item = QtWidgets.QListWidgetItem(label)
+            item.setToolTip(entry.path)
+            item.setData(QtCore.Qt.UserRole, entry.path)
+            item.setData(QtCore.Qt.UserRole + 1, entry.relative_path)
+            item.setData(QtCore.Qt.UserRole + 2, entry.source_label)
+            item.setData(QtCore.Qt.UserRole + 3, entry.name)
+            item.setSizeHint(QtCore.QSize(0, 34))
+            self.airfoil_library_list.addItem(item)
 
-        layout.addWidget(self.tree, stretch=12)
-        # layout.setAlignment(QtCore.Qt.AlignTop)
+            if selected_path and os.path.abspath(entry.path) == os.path.abspath(selected_path):
+                selected_item = item
 
-        self.header = QtWidgets.QLabel('Loaded airfoil(s)')
-        self.header.setEnabled(False)
-        layout.addStretch(stretch=2)
-        layout.addWidget(self.header)
+        if selected_item is not None:
+            self.airfoil_library_list.setCurrentItem(selected_item)
+        elif self.airfoil_library_list.count() > 0:
+            self.airfoil_library_list.setCurrentRow(0)
+        del blocker
 
-        self.listwidget = ListWidget(self.mw)
-        self.listwidget.setEnabled(False)
-        # allow only single selections
-        self.listwidget.setSelectionMode(QtWidgets.QAbstractItemView.
-                                         SingleSelection)
-        layout.addWidget(self.listwidget, stretch=5)
-        layout.addStretch(stretch=1)
+        self._airfoil_library_visible_count = len(entries)
+        source_label = {
+            'bundled': 'Bundled library',
+            'local': 'Local library',
+            'all': 'All airfoils',
+        }[source]
+        if entries:
+            self._airfoil_library_status_text = ''
+        elif search_text:
+            self._airfoil_library_status_text = f'No matches for "{search_text}".'
+        elif source == 'local':
+            self._airfoil_library_status_text = (
+                'No local airfoils yet. Use Add To Local... to build your library.'
+            )
+        else:
+            self._airfoil_library_status_text = (
+                f'No airfoils available in {source_label.lower()}.'
+            )
 
-    def itemAerodynamics(self):
+        self.updateAirfoilLibraryDetails(self.airfoil_library_list.currentItem())
+        self._updateCurrentPageHeader()
 
-        form = QtWidgets.QFormLayout()
+    def selectAirfoilLibraryPath(self, path):
+        if not hasattr(self, 'airfoil_library_list'):
+            return
 
-        label1 = QtWidgets.QLabel(u'Angle of attack (°)')
-        self.aoaAP = QtWidgets.QDoubleSpinBox()
-        self.aoaAP.setSingleStep(0.1)
-        self.aoaAP.setDecimals(1)
-        self.aoaAP.setRange(-10.0, 10.0)
-        self.aoaAP.setValue(0.0)
-        form.addRow(label1, self.aoaAP)
+        blocker = QtCore.QSignalBlocker(self.airfoil_library_list)
+        if not path:
+            self.airfoil_library_list.setCurrentRow(-1)
+            del blocker
+            self.updateAirfoilLibraryDetails(None)
+            return
 
-        label2 = QtWidgets.QLabel('Freestream velocity (m/s)')
-        self.freestream = QtWidgets.QDoubleSpinBox()
-        self.freestream.setSingleStep(0.1)
-        self.freestream.setDecimals(2)
-        self.freestream.setRange(0.0, 100.0)
-        self.freestream.setValue(10.0)
-        form.addRow(label2, self.freestream)
+        target_path = os.path.abspath(path)
+        self.airfoil_library_list.setCurrentRow(-1)
 
-        label3 = QtWidgets.QLabel('Number of panels (-)')
-        self.panels = QtWidgets.QSpinBox()
-        self.panels.setRange(10, 500)
-        self.panels.setValue(40)
-        form.addRow(label3, self.panels)
+        for row in range(self.airfoil_library_list.count()):
+            item = self.airfoil_library_list.item(row)
+            item_path = item.data(QtCore.Qt.UserRole)
+            if item_path and os.path.abspath(item_path) == target_path:
+                self.airfoil_library_list.setCurrentItem(item)
+                break
 
-        panelMethodButton = QtWidgets.QPushButton('Calculate lift coefficient')
-        form.addRow(panelMethodButton)
+        del blocker
+        self.updateAirfoilLibraryDetails(self.airfoil_library_list.currentItem())
 
-        self.item_ap = QtWidgets.QGroupBox('Aerodynamics')
-        self.item_ap.setLayout(form)
+    def updateAirfoilLibraryDetails(self, current=None, _previous=None):
+        if not hasattr(self, 'airfoil_library_status_label'):
+            return
 
-    def itemBoundaryCondtions(self):
+        self.airfoil_library_load_button.setEnabled(current is not None)
+        status_text = getattr(self, '_airfoil_library_status_text', '')
+        self.airfoil_library_status_label.setVisible(bool(status_text))
+        self.airfoil_library_status_label.setText(status_text)
 
-        form = QtWidgets.QFormLayout()
+    def loadSelectedLibraryAirfoil(self, item=None):
+        selected_item = item or self.airfoil_library_list.currentItem()
+        if selected_item is None:
+            return
 
-        label = QtWidgets.QLabel(u'Reynolds Number (-)')
-        self.reynolds = QtWidgets.QDoubleSpinBox()
-        self.reynolds.setSingleStep(10000.0)
-        self.reynolds.setDecimals(2)
-        self.reynolds.setRange(0.0, 1.0e10)
-        self.reynolds.setValue(100000.0)
-        self.reynolds.valueChanged.connect(self.valuechange)
-        form.addRow(label, self.reynolds)
+        path = selected_item.data(QtCore.Qt.UserRole)
+        if not path:
+            return
+        self.mw.slots.loadAirfoil(path, comment='#')
 
-        label = QtWidgets.QLabel(u'Chord Length (m)')
-        self.chord = QtWidgets.QDoubleSpinBox()
-        self.chord.setSingleStep(0.01)
-        self.chord.setDecimals(2)
-        self.chord.setRange(0.0, 1.0e10)
-        self.chord.setValue(1.0)
-        self.chord.valueChanged.connect(self.valuechange)
-        form.addRow(label, self.chord)
+    def importAirfoilToLocalLibrary(self):
+        file_dialog = FileDialog.Dialog()
+        file_dialog.setFilter('Airfoil contour files (*.dat *.txt)')
+        filename, _ = file_dialog.open_filename()
 
-        # angle of attack (from, to, step)
-        # from
-        label = QtWidgets.QLabel(u'Angle of Attack (from) (°)')
-        self.aoaf = QtWidgets.QDoubleSpinBox()
-        self.aoaf.setSingleStep(0.1)
-        self.aoaf.setDecimals(2)
-        self.aoaf.setRange(-90.0, 90.0)
-        self.aoaf.setValue(-10.0)
-        form.addRow(label, self.aoaf)
-        # to
-        label = QtWidgets.QLabel(u'Angle of Attack (to) (°)')
-        self.aoat = QtWidgets.QDoubleSpinBox()
-        self.aoat.setSingleStep(0.1)
-        self.aoat.setDecimals(2)
-        self.aoat.setRange(-90.0, 90.0)
-        self.aoat.setValue(10.0)
-        form.addRow(label, self.aoat)
-        # step
-        label = QtWidgets.QLabel(u'Angle of Attack (step) (°)')
-        self.aoas = QtWidgets.QDoubleSpinBox()
-        self.aoas.setSingleStep(0.1)
-        self.aoas.setDecimals(2)
-        self.aoas.setRange(0.0, 90.0)
-        self.aoas.setValue(1.0)
-        form.addRow(label, self.aoas)
+        if not filename:
+            logger.info('No file selected. Nothing imported.')
+            return
 
-        self.aoaf.valueChanged.connect(self.valuechange)
-        self.aoat.valueChanged.connect(self.valuechange)
-        self.aoas.valueChanged.connect(self.valuechange)
+        local_root = FileSystem.local_library_root(self.mw)
+        destination = os.path.join(local_root, os.path.basename(filename))
 
-        label = QtWidgets.QLabel(u'Freestream Turbulence Intensity (%)')
-        self.turbulence = QtWidgets.QDoubleSpinBox()
-        self.turbulence.setSingleStep(0.1)
-        self.turbulence.setDecimals(2)
-        self.turbulence.setRange(0.0, 100.0)
-        self.turbulence.setValue(2.0)
-        self.turbulence.valueChanged.connect(self.valuechange)
-        form.addRow(label, self.turbulence)
+        if os.path.abspath(filename) != os.path.abspath(destination):
+            if os.path.exists(destination):
+                answer = QtWidgets.QMessageBox.question(
+                    self.mw,
+                    'Replace Airfoil?',
+                    f'{os.path.basename(destination)} already exists in the local library. Replace it?',
+                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                    QtWidgets.QMessageBox.No,
+                )
+                if answer != QtWidgets.QMessageBox.Yes:
+                    return
+            shutil.copy2(filename, destination)
+            logger.info(f'Imported airfoil to local library: {destination}')
+        else:
+            logger.info(f'Airfoil already in local library: {destination}')
 
-        label = QtWidgets.QLabel(u'Freestream Length Scale (m)')
-        self.length_sc = QtWidgets.QDoubleSpinBox()
-        self.length_sc.setSingleStep(0.01)
-        self.length_sc.setDecimals(3)
-        self.length_sc.setRange(1.e-6, 1.0e10)
-        self.length_sc.setValue(0.05)
-        self.length_sc.valueChanged.connect(self.valuechange)
-        form.addRow(label, self.length_sc)
-
-        label = QtWidgets.QLabel(u'Pressure (Pa)')
-        self.pressure = QtWidgets.QDoubleSpinBox()
-        self.pressure.setSingleStep(1000.0)
-        self.pressure.setDecimals(2)
-        self.pressure.setRange(0.0, 1.0e10)
-        self.pressure.setValue(101325.0)
-        self.pressure.valueChanged.connect(self.valuechange)
-        form.addRow(label, self.pressure)
-
-        label = QtWidgets.QLabel(u'Temperature (°C)')
-        self.temperature = QtWidgets.QDoubleSpinBox()
-        self.temperature.setSingleStep(1.0)
-        self.temperature.setDecimals(2)
-        self.temperature.setRange(-273.15, 1.0e10)
-        self.temperature.setValue(20.0)
-        self.temperature.valueChanged.connect(self.valuechange)
-        form.addRow(label, self.temperature)
-
-        label = QtWidgets.QLabel(u'Flat plate y\u207a (-)')
-        self.yplus = QtWidgets.QDoubleSpinBox()
-        self.yplus.setSingleStep(1.0)
-        self.yplus.setDecimals(2)
-        self.yplus.setRange(1e-6, 1.0e10)
-        self.yplus.setValue(30.0)
-        self.yplus.valueChanged.connect(self.valuechange)
-        form.addRow(label, self.yplus)
-
-        self.textedit = QtWidgets.QTextEdit()
-        self.textedit.setReadOnly(True)
-        self.textedit.selectionChanged.connect(self.copy_to_clipboard)
-        # update text box (so everything is computed from initial values)
-        self.valuechange()
-
-        copy_button = QtWidgets.QPushButton('Copy to clipboard')
-        copy_button.setGeometry(10, 10, 200, 50)
-        copy_button.clicked.connect(self.copy_all_to_clipboard)
-
-        text_and_button = QtWidgets.QHBoxLayout()
-        text_and_button.addWidget(self.textedit, stretch=10)
-        text_and_button.addWidget(copy_button)
-
-        form.addRow(text_and_button)
-
-        self.item_abc = QtWidgets.QGroupBox(
-            'Aerodynamic boundary conditions for CFD')
-        self.item_abc.setLayout(form)
+        local_button = getattr(self, 'airfoil_library_source_buttons', {}).get('local')
+        if local_button is not None:
+            local_button.setChecked(True)
+        self.refreshAirfoilLibrary()
+        self.selectAirfoilLibraryPath(destination)
 
     def copy_to_clipboard(self):
-        """ Copy any selected text in the self.textedit to the clipboard """
+        """Copy any selected text in the boundary-condition view."""
         self.textedit.copy()
 
     def copy_all_to_clipboard(self):
-        """ Copy any selected text in the self.textedit to the clipboard """
+        """Copy the full boundary-condition view to the clipboard."""
         self.textedit.selectAll()
         self.textedit.copy()
-        # weird way to unselect the text again
-        # https://stackoverflow.com/a/25348576/2264936
         cursor = self.textedit.textCursor()
         cursor.clearSelection()
         self.textedit.setTextCursor(cursor)
         vsb = self.textedit.verticalScrollBar()
         vsb.setValue(QtWidgets.QAbstractSlider.SliderToMaximum)
 
+    def boundary_condition_inputs(self):
+        return ToolboxBoundaryConditions.BoundaryConditionInputs(
+            reynolds=self.reynolds.value(),
+            chord=self.chord.value(),
+            aoa_from=self.aoaf.value(),
+            aoa_to=self.aoat.value(),
+            aoa_step=self.aoas.value(),
+            turbulence=self.turbulence.value(),
+            length_scale=self.length_sc.value(),
+            pressure=self.pressure.value(),
+            temperature_c=self.temperature.value(),
+            yplus=self.yplus.value(),
+        )
+
     def valuechange(self):
-        # checks that from and to do not overlap
         if self.aoaf.value() >= self.aoat.value():
             self.aoaf.setValue(self.aoat.value() - self.aoas.value())
         if self.aoat.value() <= self.aoaf.value():
             self.aoat.setValue(self.aoaf.value() + self.aoas.value())
 
-        gas_constant = 287.14
-        temperature = self.temperature.value() + 273.15
-        self.density = self.pressure.value() / gas_constant / temperature
-        num = int((self.aoat.value() - self.aoaf.value()) / self.aoas.value() + 1)
-        self.aoa = np.linspace(self.aoaf.value(), self.aoat.value(),
-                               num=num, endpoint=True)
+        inputs = self.boundary_condition_inputs()
+        results = ToolboxBoundaryConditions.calculate_boundary_conditions(inputs)
 
-        def dynamic_viscosity(temperature):
-            # Sutherland formula for air
-            C = 120.0
-            lamb = 1.512041288e-6
-            vis = lamb * temperature**1.5 / (temperature + C)
-            return vis
-
-        # calculate results wrt given inputs
-        self.dynamic_viscosity = dynamic_viscosity(temperature)
-        self.kinematic_viscosity = self.dynamic_viscosity / self.density
-        velocity = self.reynolds.value() / self.chord.value() * \
-            self.kinematic_viscosity
-        uprime = velocity * self.turbulence.value() / 100.0
-        tke = 3.0 / 2.0 * uprime**2
-        self.u_velocity = velocity * np.cos(self.aoa * np.pi / 180.0)
-        self.v_velocity = velocity * np.sin(self.aoa * np.pi / 180.0)
-
-        # calculate 1st cell thickness from y-plus and Reynolds, etc.
-        RE = self.reynolds.value()
-        log10 = np.log10(RE)
-        logRE = np.power(log10, 2.58)
-        if RE < 5.1e6:
-            friction_coefficient = 0.455 / logRE
-        else:
-            friction_coefficient = 0.455 / logRE - 1700.0 / RE
-        wall_shear_stress = friction_coefficient * 0.5 * self.density * velocity**2
-        friction_velocity = np.sqrt(wall_shear_stress / self.density)
-        wall_distance = self.yplus.value() * self.dynamic_viscosity / self.density / friction_velocity
-
-        # text for displaying the results
-        newline = '<br>'
-        self.te_text = '<b>CFD Boundary Conditions</b>' + newline
-        self.te_text += f'Reynolds (-): {self.reynolds.value()}' + newline
-        self.te_text += f'Pressure (Pa): {self.pressure.value()}' + newline
-        self.te_text += f'Temperature (C): {self.temperature.value()}' + newline
-        self.te_text += f'Temperature (K): {self.temperature.value()+273.15}' + newline
-        self.te_text += f'Density (kg/(m<sup>3</sup>)): {self.density}' + newline
-        self.te_text += f'Dynamic viscosity (kg/(m.s)): {self.dynamic_viscosity}' + newline
-        self.te_text += f'Kinematic viscosity (m/s) {self.kinematic_viscosity}:' + newline
-        self.te_text += f'<b>1st cell layer thickness (m)</b>, for y<sup>+</sup>={self.yplus.value()}' + newline
-        self.te_text += '{:16.8f}'.format(wall_distance) + newline
-        self.te_text += '<b>TKE (m<sup>2</sup>/s<sup>2</sup>), Length-scale (m)</b>' + newline
-        self.te_text += '{:16.8f} {:16.8f}'.\
-            format(tke, self.length_sc.value()) + newline
-        self.te_text += '<b>AOA (°)   u-velocity (m/s)   v-velocity (m/s)</b>' + newline
-        for i, _ in enumerate(self.u_velocity):
-            self.te_text += '{: >5.2f} {: >16.8f} {: >16.8f}{}'.format(
-                self.aoa[i],
-                self.u_velocity[i],
-                self.v_velocity[i],
-                newline)
-        self.textedit.setStyleSheet('font-family: Courier; font-size: 12px; ')
-
-        # update the text boxwith the current values
+        self.density = results.density
+        self.dynamic_viscosity = results.dynamic_viscosity
+        self.kinematic_viscosity = results.kinematic_viscosity
+        self.aoa = results.aoa
+        self.u_velocity = results.u_velocity
+        self.v_velocity = results.v_velocity
+        self.wall_distance = results.wall_distance
+        self.tke = results.tke
+        self.temperature_k = results.temperature_k
+        self.te_text = ToolboxBoundaryConditions.format_boundary_conditions_html(
+            inputs,
+            results,
+        )
+        self.textedit.setStyleSheet(
+            'font-family: "Menlo", "Monaco", "Courier New"; font-size: 12px; '
+        )
         self.textedit.setHtml(self.te_text)
 
-    def itemContourAnalysis(self):
-
-        box = QtWidgets.QVBoxLayout()
-
-        vlayout = QtWidgets.QVBoxLayout()
-        gb = QtWidgets.QGroupBox('Select contour to analyze')
-        self.b1 = QtWidgets.QRadioButton('Original')
-        self.b2 = QtWidgets.QRadioButton('Refined')
-        self.b2.setChecked(True)
-        vlayout.addWidget(self.b1)
-        vlayout.addWidget(self.b2)
-        gb.setLayout(vlayout)
-        box.addWidget(gb)
-
-        vlayout = QtWidgets.QVBoxLayout()
-        self.cgb = QtWidgets.QGroupBox('Select plot quantity')
-        self.cpb1 = QtWidgets.QRadioButton('Gradient')
-        self.cpb2 = QtWidgets.QRadioButton('Curvature')
-        self.cpb3 = QtWidgets.QRadioButton('Radius of Curvature')
-        self.cpb1.setChecked(True)
-        vlayout.addWidget(self.cpb1)
-        vlayout.addWidget(self.cpb2)
-        vlayout.addWidget(self.cpb3)
-        self.cgb.setLayout(vlayout)
-        self.cgb.setEnabled(False)
-        box.addWidget(self.cgb)
-
-        analyzeButton = QtWidgets.QPushButton('Analyze Contour')
-        analyzeButton.setGeometry(10, 10, 200, 50)
-        box.addWidget(analyzeButton)
-
-        box.addStretch(1)
-
-        self.item_ca = QtWidgets.QWidget()
-        self.item_ca.setLayout(box)
-
-        analyzeButton.clicked.connect(self.analyzeAirfoil)
-
-    def itemMeshing(self):
-
-        self.form_mesh_airfoil = QtWidgets.QFormLayout()
-
-        label = QtWidgets.QLabel(u'Gridpoints along airfoil')
-        label.setToolTip('Number of points as derived from splining')
-        points = 0
-        self.points_on_airfoil = QtWidgets.QLineEdit(str(points))
-        self.points_on_airfoil.setEnabled(False)
-        self.form_mesh_airfoil.addRow(label, self.points_on_airfoil)
-
-        label = QtWidgets.QLabel(u'Divisions normal to airfoil')
-        label.setToolTip('Number of points in the mesh which is constructed ' +
-                         ' normal to the airfoil contour')
-        self.points_n = QtWidgets.QSpinBox()
-        self.points_n.setSingleStep(1)
-        self.points_n.setRange(1, 500)
-        self.points_n.setValue(15)
-        self.form_mesh_airfoil.addRow(label, self.points_n)
-
-        label = QtWidgets.QLabel('1st cell layer thickness (m)')
-        label.setToolTip('Thickness of 1st cell layer perpendicular to the airfoil')
-        self.normal_thickness = QtWidgets.QDoubleSpinBox()
-        self.normal_thickness.setSingleStep(0.001)
-        self.normal_thickness.setRange(1.e-10, 1.e10)
-        self.normal_thickness.setDecimals(8)
-        self.normal_thickness.setValue(0.00400)
-        self.form_mesh_airfoil.addRow(label, self.normal_thickness)
-
-        label = QtWidgets.QLabel('Cell growth rate (-)')
-        label.setToolTip('Rate at which 1st cell layer grows')
-        self.ratio = QtWidgets.QDoubleSpinBox()
-        self.ratio.setSingleStep(0.01)
-        self.ratio.setRange(1., 100.)
-        self.ratio.setValue(1.05)
-        self.ratio.setDecimals(3)
-        self.form_mesh_airfoil.addRow(label, self.ratio)
-
-        self.form_mesh_TE = QtWidgets.QFormLayout()
-
-        label = QtWidgets.QLabel(u'Divisions at trailing edge')
-        label.setToolTip('Number of subdivisions along the vertical part of the TE')
-        self.te_div = QtWidgets.QSpinBox()
-        self.te_div.setSingleStep(1)
-        self.te_div.setRange(1, 20)
-        self.te_div.setValue(3)
-        self.form_mesh_TE.addRow(label, self.te_div)
-
-        label = QtWidgets.QLabel(u'Divisions downstream')
-        label.setToolTip('Number of subdivisions downstream within the TE block')
-        self.points_te = QtWidgets.QSpinBox()
-        self.points_te.setSingleStep(1)
-        self.points_te.setRange(1, 100)
-        self.points_te.setValue(15)
-        self.form_mesh_TE.addRow(label, self.points_te)
-
-        label = QtWidgets.QLabel('1st cell layer thickness (m)')
-        label.setToolTip('Thickness of first cell layer in downstream direction')
-        self.length_te = QtWidgets.QDoubleSpinBox()
-        self.length_te.setSingleStep(0.001)
-        self.length_te.setRange(1.e-10, 1.e10)
-        self.length_te.setDecimals(8)
-        self.length_te.setValue(0.00400)
-        self.form_mesh_TE.addRow(label, self.length_te)
-
-        label = QtWidgets.QLabel('Cell growth rate (-)')
-        label.setToolTip('Rate at which 1st cell layer downstream the TE grows')
-        self.ratio_te = QtWidgets.QDoubleSpinBox()
-        self.ratio_te.setSingleStep(0.01)
-        self.ratio_te.setRange(1., 100.)
-        self.ratio_te.setValue(1.05)
-        self.ratio_te.setDecimals(3)
-        self.form_mesh_TE.addRow(label, self.ratio_te)
-
-        self.form_mesh_tunnel = QtWidgets.QFormLayout()
-
-        label = QtWidgets.QLabel('Windtunnel Height (chords)')
-        label.setToolTip('The height of the windtunnel in units ' +
-                         'of chord length')
-        self.tunnel_height = QtWidgets.QDoubleSpinBox()
-        self.tunnel_height.setSingleStep(0.1)
-        self.tunnel_height.setRange(0.1, 100.)
-        self.tunnel_height.setValue(3.5)
-        self.tunnel_height.setDecimals(1)
-        self.form_mesh_tunnel.addRow(label, self.tunnel_height)
-
-        label = QtWidgets.QLabel(u'Divisions of Tunnel Height')
-        self.divisions_height = QtWidgets.QSpinBox()
-        self.divisions_height.setSingleStep(10)
-        self.divisions_height.setRange(1, 1000)
-        self.divisions_height.setValue(100)
-        self.form_mesh_tunnel.addRow(label, self.divisions_height)
-
-        label = QtWidgets.QLabel('Cell Thickness ratio (-)')
-        self.ratio_height = QtWidgets.QDoubleSpinBox()
-        self.ratio_height.setSingleStep(1.0)
-        self.ratio_height.setRange(0.1, 100.)
-        self.ratio_height.setValue(10.0)
-        self.ratio_height.setDecimals(1)
-        self.form_mesh_tunnel.addRow(label, self.ratio_height)
-
-        label = QtWidgets.QLabel('Distribution biasing')
-        self.dist = QtWidgets.QComboBox()
-        self.dist.addItems(['symmetric', 'lower', 'upper'])
-        self.dist.setCurrentIndex(0)
-        self.form_mesh_tunnel.addRow(label, self.dist)
-
-        self.form_mesh_wake = QtWidgets.QFormLayout()
-
-        label = QtWidgets.QLabel('Windtunnel Wake (chords)')
-        label.setToolTip('The length of the wake of the windtunnel in ' +
-                         'units of chord length')
-        self.tunnel_wake = QtWidgets.QDoubleSpinBox()
-        self.tunnel_wake.setSingleStep(0.1)
-        self.tunnel_wake.setRange(0.1, 100.)
-        self.tunnel_wake.setValue(7.0)
-        self.tunnel_wake.setDecimals(1)
-        self.form_mesh_wake.addRow(label, self.tunnel_wake)
-
-        label = QtWidgets.QLabel(u'Divisions in the wake')
-        self.divisions_wake = QtWidgets.QSpinBox()
-        self.divisions_wake.setSingleStep(10)
-        self.divisions_wake.setRange(1, 1000)
-        self.divisions_wake.setValue(100)
-        self.form_mesh_wake.addRow(label, self.divisions_wake)
-
-        label = QtWidgets.QLabel('Cell Thickness ratio (-)')
-        label.setToolTip('Thickness of the last cell vs. the first cell in ' +
-                         'the wake mesh block')
-        self.ratio_wake = QtWidgets.QDoubleSpinBox()
-        self.ratio_wake.setSingleStep(0.1)
-        self.ratio_wake.setRange(0.01, 100.0)
-        self.ratio_wake.setValue(15.0)
-        self.ratio_wake.setDecimals(1)
-        self.form_mesh_wake.addRow(label, self.ratio_wake)
-
-        label = QtWidgets.QLabel('Equalize vertical wake line at (%)')
-        label.setToolTip('Equalize  the wake line vertically. ' +
-                         'Homogeneous vertical distribution at x% downstream')
-        self.spread = QtWidgets.QDoubleSpinBox()
-        self.spread.setSingleStep(5.0)
-        self.spread.setRange(10.0, 90.0)
-        self.spread.setValue(30.0)
-        self.spread.setDecimals(1)
-        self.form_mesh_wake.addRow(label, self.spread)
-
-        # smoothing parameters
-        label = QtWidgets.QLabel('Smoothing')
-        label.setToolTip('Specify algorithm and parameters for smoothing')
-        self.btn_smoother_1 = QtWidgets.QRadioButton('Simple (fast)')
-        self.btn_smoother_2 = QtWidgets.QRadioButton('Elliptic (medium)')
-        self.btn_smoother_3 = QtWidgets.QRadioButton('Angle based (slow)')
-        # initialize simple smoother
-        self.btn_smoother_1.setChecked(True)
-        self.smoothing_algorithm = 'simple'
-
-        self.btn_smoother_1.clicked.connect(self.smoother_btn_clicked)
-        self.btn_smoother_2.clicked.connect(self.smoother_btn_clicked)
-        self.btn_smoother_3.clicked.connect(self.smoother_btn_clicked)
-
-        smoother_settings = QtWidgets.QFormLayout()
-
-        label = QtWidgets.QLabel('Iterations')
-        self.smoother_iterations = QtWidgets.QSpinBox()
-        self.smoother_iterations.setValue(20)
-        self.smoother_iterations.setSingleStep(5)
-        self.smoother_iterations.setRange(0, 1000)
-        self.smoother_iterations.setEnabled(False)
-        smoother_settings.addRow(label, self.smoother_iterations)
-
-        label = QtWidgets.QLabel('Tolerance')
-        self.smoother_tolerance = QtWidgets.QLineEdit()
-        self.onlyFloat = QtGui.QDoubleValidator()
-        self.smoother_tolerance.setValidator(self.onlyFloat)
-        self.smoother_tolerance.setText('1.e-5')
-        self.onlyFloat.setRange(1.e-8, 1.0)
-        self.onlyFloat.setDecimals(8)
-        self.smoother_tolerance.setEnabled(False)
-        smoother_settings.addRow(label, self.smoother_tolerance)
-
-        hbox_smoothing = QtWidgets.QHBoxLayout()
-        vbox1 = QtWidgets.QVBoxLayout()
-        vbox2 = QtWidgets.QVBoxLayout()
-        vbox1.addWidget(self.btn_smoother_1)
-        vbox1.addWidget(self.btn_smoother_2)
-        vbox1.addWidget(self.btn_smoother_3)
-        vbox2.addLayout(smoother_settings)
-        hbox_smoothing.addLayout(vbox1)
-        hbox_smoothing.addLayout(vbox2)
-
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addLayout(self.form_mesh_airfoil)
-        box_airfoil = QtWidgets.QGroupBox('Airfoil contour mesh')
-        box_airfoil.setLayout(vbox)
-
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addLayout(self.form_mesh_TE)
-        box_TE = QtWidgets.QGroupBox('Airfoil trailing edge mesh')
-        box_TE.setLayout(vbox)
-
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addLayout(self.form_mesh_tunnel)
-        box_tunnel = QtWidgets.QGroupBox('Windtunnel mesh (around airfoil)')
-        box_tunnel.setLayout(vbox)
-
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addLayout(self.form_mesh_wake)
-        box_wake = QtWidgets.QGroupBox('Windtunnel mesh (wake)')
-        box_wake.setLayout(vbox)
-
-        box_smoothing = QtWidgets.QGroupBox('Smoothing')
-        box_smoothing.setLayout(hbox_smoothing)
-
-        self.createMeshButton = QtWidgets.QPushButton('Create Mesh')
-        hbl_cm = QtWidgets.QHBoxLayout()
-        hbl_cm.addStretch(stretch=1)
-        hbl_cm.addWidget(self.createMeshButton, stretch=4)
-        hbl_cm.addStretch(stretch=1)
-
-        # boundary definitions
-        label = QtWidgets.QLabel('Boundary definitions:')
-        label.setToolTip('Here you can define the names of the boundaries ' +
-                         'for the mesh export')
-
-        grid1 = QtWidgets.QGridLayout()
-        grid1.addWidget(label, 0, 0)
-
-        # export menu and boundary definitions
-        self.form_bnd = QtWidgets.QFormLayout()
-        header_1 = QtWidgets.QLabel('Boundary')
-        header_1.setStyleSheet('font-weight: bold;')
-        header_2 = QtWidgets.QLabel('Name')
-        header_2.setStyleSheet('font-weight: bold;')
-        self.form_bnd.addRow(header_1, header_2)
-
-        label = QtWidgets.QLabel('Airfoil')
-        label.setToolTip('Name of the boundary definition for the airfoil')
-        self.lineedit_airfoil = QtWidgets.QLineEdit('Airfoil')
-        self.form_bnd.addRow(label, self.lineedit_airfoil)
-
-        label = QtWidgets.QLabel('Inlet (C-arc)')
-        label.setToolTip('Name of the boundary definition for the inlet')
-        self.lineedit_inlet = QtWidgets.QLineEdit('Inlet')
-        self.form_bnd.addRow(label, self.lineedit_inlet)
-
-        label = QtWidgets.QLabel('Outlet')
-        label.setToolTip('Name of the boundary definition for the outlet')
-        self.lineedit_outlet = QtWidgets.QLineEdit('Outlet')
-        self.form_bnd.addRow(label, self.lineedit_outlet)
-
-        label = QtWidgets.QLabel('Top')
-        label.setToolTip('Name of the boundary definition for the top of the windtunnel')
-        self.lineedit_top = QtWidgets.QLineEdit('Top')
-        self.form_bnd.addRow(label, self.lineedit_top)
-
-        label = QtWidgets.QLabel('Bottom')
-        label.setToolTip('Name of the boundary definition for the bottom of the windtunnel')
-        self.lineedit_bottom = QtWidgets.QLineEdit('Bottom')
-        self.form_bnd.addRow(label, self.lineedit_bottom)
-
-        self.check_FIRE = QtWidgets.QCheckBox('AVL FIRE')
-        self.check_SU2 = QtWidgets.QCheckBox('SU2')
-        self.check_GMSH = QtWidgets.QCheckBox('GMSH')
-        self.check_VTK = QtWidgets.QCheckBox('VTK (VTU)')
-        self.check_FIRE.setChecked(True)
-        self.check_SU2.setChecked(True)
-        self.check_GMSH.setChecked(False)
-        self.check_VTK.setChecked(False)
-
-        label = QtWidgets.QLabel('Export format:')
-        label.setToolTip('Check format to be exported')
-        grid = QtWidgets.QGridLayout()
-        grid.addWidget(label, 0, 0)
-        grid.addWidget(self.check_FIRE, 1, 1)
-        grid.addWidget(self.check_SU2, 1, 2)
-        grid.addWidget(self.check_GMSH, 1, 3)
-        grid.addWidget(self.check_VTK, 2, 1)
-
-        exportMeshButton = QtWidgets.QPushButton('Export Mesh')
-        hbl = QtWidgets.QHBoxLayout()
-        hbl.addStretch(stretch=1)
-        hbl.addWidget(exportMeshButton, stretch=4)
-        hbl.addStretch(stretch=1)
-
-        vbl1 = QtWidgets.QVBoxLayout()
-        vbl1.addLayout(grid1)
-        vbl1.addLayout(self.form_bnd)
-        vbl1.addLayout(grid)
-        vbl1.addLayout(hbl)
-
-        self.box_meshexport = QtWidgets.QGroupBox('Mesh Export')
-        self.box_meshexport.setLayout(vbl1)
-        self.box_meshexport.setEnabled(False)
-
-        vbl = QtWidgets.QVBoxLayout()
-        vbl.addStretch(1)
-        vbl.addWidget(box_airfoil)
-        vbl.addWidget(box_TE)
-        vbl.addWidget(box_tunnel)
-        vbl.addWidget(box_wake)
-        vbl.addWidget(box_smoothing)
-        vbl.addLayout(hbl_cm)
-        vbl.addStretch(1)
-        vbl.addWidget(self.box_meshexport)
-        vbl.addStretch(10)
-
-        self.item_msh = QtWidgets.QWidget()
-        self.item_msh.setLayout(vbl)
-
-        self.createMeshButton.clicked.connect(self.generateMesh)
-        exportMeshButton.clicked.connect(self.exportMesh)
-
-    def itemSplineRefine(self):
-
-        form = QtWidgets.QFormLayout()
-
-        label = QtWidgets.QLabel(u'Refinement tolerance (°)')
-        self.tolerance = QtWidgets.QDoubleSpinBox()
-        self.tolerance.setSingleStep(0.1)
-        self.tolerance.setDecimals(1)
-        self.tolerance.setRange(50.0, 177.0)
-        self.tolerance.setValue(172.0)
-        form.addRow(label, self.tolerance)
-
-        label = QtWidgets.QLabel(u'Refine trailing edge (old segments)')
-        label.setToolTip('Specify the number of segments at the trailing edge which should be refined.')
-        self.ref_te = QtWidgets.QSpinBox()
-        self.ref_te.setSingleStep(1)
-        self.ref_te.setRange(1, 50)
-        self.ref_te.setValue(3)
-        form.addRow(label, self.ref_te)
-
-        label = QtWidgets.QLabel(u'Refine trailing edge (new segments)')
-        self.ref_te_n = QtWidgets.QSpinBox()
-        self.ref_te_n.setSingleStep(1)
-        self.ref_te_n.setRange(1, 100)
-        self.ref_te_n.setValue(6)
-        form.addRow(label, self.ref_te_n)
-
-        label = QtWidgets.QLabel(u'Refine trailing edge ratio')
-        self.ref_te_ratio = QtWidgets.QDoubleSpinBox()
-        self.ref_te_ratio.setSingleStep(0.1)
-        self.ref_te_ratio.setDecimals(1)
-        self.ref_te_ratio.setRange(1., 10.)
-        self.ref_te_ratio.setValue(3.0)
-        form.addRow(label, self.ref_te_ratio)
-
-        label = QtWidgets.QLabel('Number points on spline (-)')
-        self.points = QtWidgets.QSpinBox()
-        self.points.setSingleStep(10)
-        self.points.setRange(10, 1000)
-        self.points.setValue(200)
-        form.addRow(label, self.points)
-
-        self.splineButton = QtWidgets.QPushButton('Spline and Refine')
-        hbl = QtWidgets.QHBoxLayout()
-        hbl.addStretch(stretch=1)
-        hbl.addWidget(self.splineButton, stretch=4)
-        hbl.addStretch(stretch=1)
-
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addLayout(form)
-        vbox.addLayout(hbl)
-        box = QtWidgets.QGroupBox('Airfoil contour refinement')
-        box.setLayout(vbox)
-
-        form1 = QtWidgets.QFormLayout()
-
-        label = QtWidgets.QLabel(u'Upper side blending length (%)')
-        self.blend_u = QtWidgets.QDoubleSpinBox()
-        self.blend_u.setSingleStep(1.0)
-        self.blend_u.setDecimals(1)
-        self.blend_u.setRange(0.1, 100.0)
-        self.blend_u.setValue(30.0)
-        form1.addRow(label, self.blend_u)
-        label = QtWidgets.QLabel(u'Lower side blending length (%)')
-        self.blend_l = QtWidgets.QDoubleSpinBox()
-        self.blend_l.setSingleStep(1.0)
-        self.blend_l.setDecimals(1)
-        self.blend_l.setRange(0.1, 100.0)
-        self.blend_l.setValue(30.0)
-        form1.addRow(label, self.blend_l)
-
-        label = QtWidgets.QLabel(u'Upper blending polynomial exponent (-)')
-        self.exponent_u = QtWidgets.QDoubleSpinBox()
-        self.exponent_u.setSingleStep(0.1)
-        self.exponent_u.setDecimals(1)
-        self.exponent_u.setRange(1.0, 10.0)
-        self.exponent_u.setValue(3.0)
-        form1.addRow(label, self.exponent_u)
-        label = QtWidgets.QLabel(u'Lower blending polynomial exponent (-)')
-        self.exponent_l = QtWidgets.QDoubleSpinBox()
-        self.exponent_l.setSingleStep(0.1)
-        self.exponent_l.setDecimals(1)
-        self.exponent_l.setRange(1.0, 10.0)
-        self.exponent_l.setValue(3.0)
-        form1.addRow(label, self.exponent_l)
-
-        label = QtWidgets.QLabel(u'Trailing edge thickness relative to chord (%)')
-        self.thickness = QtWidgets.QDoubleSpinBox()
-        self.thickness.setSingleStep(0.05)
-        self.thickness.setDecimals(2)
-        self.thickness.setRange(0.0, 10.0)
-        self.thickness.setValue(0.4)
-        form1.addRow(label, self.thickness)
-
-        self.trailingButton = QtWidgets.QPushButton('Add Trailing Edge')
-        self.trailingButton.setEnabled(False)
-        hbl1 = QtWidgets.QHBoxLayout()
-        hbl1.addStretch(stretch=1)
-        hbl1.addWidget(self.trailingButton, stretch=4)
-        hbl1.addStretch(stretch=1)
-
-        vbox = QtWidgets.QVBoxLayout()
-        vbox.addLayout(form1)
-        vbox.addLayout(hbl1)
-        box1 = QtWidgets.QGroupBox('Airfoil trailing edge')
-        box1.setLayout(vbox)
-
-        # export menu
-        name = ''
-        hbox = QtWidgets.QHBoxLayout()
-        self.exportContourButton = QtWidgets.QPushButton('Export Contour')
-        self.exportContourButton.setEnabled(False)
-        hbox.addWidget(self.exportContourButton)
-
-        box2 = QtWidgets.QGroupBox('Export modified contour')
-        box2.setLayout(hbox)
-
-        vbl = QtWidgets.QVBoxLayout()
-        vbl.addStretch(1)
-        vbl.addWidget(box)
-        vbl.addStretch(1)
-        vbl.addWidget(box1)
-        vbl.addStretch(1)
-        vbl.addWidget(box2)
-        vbl.addStretch(10)
-
-        self.item_cm = QtWidgets.QWidget()
-        self.item_cm.setLayout(vbl)
-
-        self.splineButton.clicked.connect(self.spline_and_refine)
-        self.trailingButton.clicked.connect(self.makeTrailingEdge)
-        self.exportContourButton.clicked.connect(self.exportContour)
-
     def makeToolbox(self):
+        self.tb1 = self.addPage(
+            self.item_fs,
+            title='Airfoil Library',
+            description='Pick an airfoil and bring it into the workspace.',
+            icon='airfoil-library',
+            scrollable=False,
+        )
+        self.tb2 = self.addPage(
+            self.item_cm,
+            title='Geometry Prep',
+            description='Refine the contour and prepare the trailing edge.',
+            icon='geometry-prep',
+        )
+        self.tb4 = self.addPage(
+            self.item_msh,
+            title='Mesh',
+            description='Set block sizes and export the tunnel mesh.',
+            icon='mesh',
+        )
+        self.tb6 = self.addPage(
+            self.item_abc,
+            title='CFD Inputs',
+            description='Prepare freestream and wall-distance inputs.',
+            icon='cfd-inputs',
+        )
+        self.tb5 = self.addPage(
+            self.item_ap,
+            title='Aerodynamics',
+            description='Run a quick panel-method estimate.',
+            icon='aerodynamics',
+        )
+        self.tb3 = self.addPage(
+            self.item_ca,
+            title='Contour Analysis',
+            description='Inspect gradient, curvature, and radius.',
+            icon='contour-analysis',
+        )
 
-        # populate toolbox
-        self.tb1 = self.addItem(self.item_fs, 'Airfoil Database')
-        self.tb2 = self.addItem(self.item_cm,
-                                'Contour Splining and Refinement')
-        self.tb4 = self.addItem(self.item_msh, 'Meshing')
-        self.tb6 = self.addItem(self.item_abc,
-                                'CFD Boundary Conditions')
-        self.tb5 = self.addItem(self.item_ap, 'Aerodynamics')
-        self.tb3 = self.addItem(self.item_ca, 'Contour Analysis')
-
-        self.setItemToolTip(0, 'Airfoil database ' +
-                            '(browse filesystem)')
-        self.setItemToolTip(1, 'Spline and refine the contour')
-        self.setItemToolTip(2, 'Generate a 2D mesh around the ' +
-                            'selected airfoil')
-        self.setItemToolTip(3,
-                            'Compute aerodynamic boundary conditions based' +
-                            ' on Reynolds number and thermodynamics')
-        self.setItemToolTip(4, 'Compute aerodynamic coefficients')
-        self.setItemToolTip(5, 'Analyze the curvature of the ' +
-                            'selected airfoil')
-
-        icons = [
-            'resources/Icons/24x24/airfoil.png',
-            'resources/Icons/24x24/Pixel editor.png',
-            'resources/Icons/24x24/mesh.png',
-            'resources/Icons/24x24/Fast delivery.png',
-            'resources/Icons/24x24/Fast delivery.png',
-            'resources/Icons/24x24/Pixel editor.png'
-        ]
-        for i, icon in enumerate(icons):
-            self.setItemIcon(i, QtGui.QIcon(icon))
-
-        # preselect airfoil database box
         self.setCurrentIndex(self.tb1)
 
     def smoother_btn_clicked(self):
@@ -892,297 +934,221 @@ class Toolbox(QtWidgets.QToolBox):
             self.smoother_iterations.setEnabled(True)
             self.smoother_tolerance.setEnabled(True)
 
+    def _active_airfoil(self):
+        return getattr(self.mw, 'airfoil', None)
+
+    def _toggleAirfoilItem(self, attribute_name):
+        airfoil = self._active_airfoil()
+        if airfoil is None:
+            return
+
+        item = getattr(airfoil, attribute_name, None)
+        if item is None:
+            return
+
+        item.setVisible(not item.isVisible())
+
+    def _smootherToleranceValue(self):
+        text = self.smoother_tolerance.text().strip()
+        if not text:
+            return 1.0e-5
+        return float(text)
+
+    def spline_refine_settings(self):
+        return ToolboxServices.SplineRefineSettings(
+            tolerance=self.tolerance.value(),
+            points=self.points.value(),
+            ref_te=self.ref_te.value(),
+            ref_te_n=self.ref_te_n.value(),
+            ref_te_ratio=self.ref_te_ratio.value(),
+        )
+
+    def trailing_edge_settings(self):
+        return ToolboxServices.TrailingEdgeSettings(
+            upper_blend=self.blend_u.value() / 100.0,
+            lower_blend=self.blend_l.value() / 100.0,
+            upper_exponent=self.exponent_u.value(),
+            lower_exponent=self.exponent_l.value(),
+            thickness=self.thickness.value(),
+        )
+
+    def mesh_generation_settings(self):
+        return Meshing.WindtunnelMeshSettings(
+            airfoil=MeshBuilders.AirfoilBlockSettings(
+                name='block_airfoil',
+                divisions=self.points_n.value(),
+                growth=self.ratio.value(),
+                thickness=self.normal_thickness.value(),
+            ),
+            trailing_edge=MeshBuilders.TrailingEdgeBlockSettings(
+                name='block_TE',
+                trailing_edge_divisions=self.te_div.value(),
+                thickness=self.length_te.value(),
+                divisions=self.points_te.value(),
+                growth=self.ratio_te.value(),
+            ),
+            tunnel=MeshBuilders.TunnelBlockSettings(
+                name='block_tunnel',
+                tunnel_height=self.tunnel_height.value(),
+                divisions_height=self.divisions_height.value(),
+                height_growth=self.ratio_height.value(),
+                distribution=self.dist.currentText(),
+                smoothing_algorithm=self.smoothing_algorithm,
+                smoothing_iterations=self.smoother_iterations.value(),
+                smoothing_tolerance=self._smootherToleranceValue(),
+            ),
+            wake=MeshBuilders.WakeBlockSettings(
+                name='block_tunnel_wake',
+                tunnel_wake=self.tunnel_wake.value(),
+                divisions=self.divisions_wake.value(),
+                growth=self.ratio_wake.value(),
+                spread=self.spread.value() / 100.0,
+            ),
+        )
+
+    def mesh_export_settings(self):
+        formats = []
+        if self.check_FIRE.isChecked():
+            formats.append('flma')
+        if self.check_SU2.isChecked():
+            formats.append('su2')
+        if self.check_GMSH.isChecked():
+            formats.append('gmsh')
+        if self.check_VTK.isChecked():
+            formats.append('vtu')
+
+        return ToolboxServices.MeshExportSettings(
+            boundary_definitions={
+                'airfoil': self.lineedit_airfoil.text(),
+                'inlet': self.lineedit_inlet.text(),
+                'outlet': self.lineedit_outlet.text(),
+                'top': self.lineedit_top.text(),
+                'bottom': self.lineedit_bottom.text(),
+            },
+            formats=formats,
+        )
+
+    def selected_contour_analysis_quantity(self):
+        if self.cpb2.isChecked():
+            return 'curvature'
+        if self.cpb3.isChecked():
+            return 'radius'
+        return 'gradient'
+
     def toggleRawPoints(self):
-        """Toggle points of raw airfoil contour (on/off)"""
-        if hasattr(self.mw.airfoil, 'polygonMarkersGroup'):
-            visible = self.mw.airfoil.polygonMarkersGroup.isVisible()
-            self.mw.airfoil.polygonMarkersGroup.setVisible(not visible)
+        self._toggleAirfoilItem('polygonMarkersGroup')
 
     def toggleRawContour(self):
-        """Toggle contour polygon of raw airfoil contour (on/off)"""
-        if hasattr(self.mw.airfoil, 'contourPolygon'):
-            visible = self.mw.airfoil.contourPolygon.isVisible()
-            self.mw.airfoil.contourPolygon.setVisible(not visible)
+        self._toggleAirfoilItem('contourPolygon')
 
     def toggleSplinePoints(self):
-        """Toggle points of raw airfoil contour (on/off)"""
-        if hasattr(self.mw.airfoil, 'splineMarkersGroup'):
-            visible = self.mw.airfoil.splineMarkersGroup.isVisible()
-            self.mw.airfoil.splineMarkersGroup.setVisible(not visible)
+        self._toggleAirfoilItem('splineMarkersGroup')
 
     def toggleSpline(self):
-        if hasattr(self.mw.airfoil, 'contourSpline'):
-            visible = self.mw.airfoil.contourSpline.isVisible()
-            self.mw.airfoil.contourSpline.setVisible(not visible)
+        self._toggleAirfoilItem('contourSpline')
 
     def toggleChord(self):
-        """Toggle visibility of the airfoil chord"""
-        if hasattr(self.mw.airfoil, 'chord'):
-            visible = self.mw.airfoil.chord.isVisible()
-            self.mw.airfoil.chord.setVisible(not visible)
+        self._toggleAirfoilItem('chord')
 
     def toggleMesh(self):
-        """Toggle visibility of the mesh lines"""
-        if hasattr(self.mw.airfoil, 'mesh'):
-            visible = self.mw.airfoil.mesh.isVisible()
-            self.mw.airfoil.mesh.setVisible(not visible)
+        self._toggleAirfoilItem('mesh')
 
     def toggleLeCircle(self):
-        """Toggle visibility of the leading edge circle"""
-        if hasattr(self.mw.airfoil, 'le_circle'):
-            visible = self.mw.airfoil.le_circle.isVisible()
-            self.mw.airfoil.le_circle.setVisible(not visible)
+        self._toggleAirfoilItem('le_circle')
 
     def toggleMeshBlocks(self):
-        """Toggle visibility of the mesh blocking structure"""
-        if hasattr(self.mw.airfoil, 'mesh_blocks'):
-            visible = self.mw.airfoil.mesh_blocks.isVisible()
-            self.mw.airfoil.mesh_blocks.setVisible(not visible)
+        self._toggleAirfoilItem('mesh_blocks')
 
     def toggleCamberLine(self):
-        """Toggle visibility of the airfoil camber line"""
-        if hasattr(self.mw.airfoil, 'camberline'):
-            visible = self.mw.airfoil.camberline.isVisible()
-            self.mw.airfoil.camberline.setVisible(not visible)
+        self._toggleAirfoilItem('camberline')
+
+    def splineFillEnabled(self):
+        fill_toggle = getattr(
+            getattr(self.mw, 'mainArea', None),
+            'airfoil_spline_fill_checkbox',
+            None,
+        )
+        return bool(fill_toggle and fill_toggle.isChecked())
+
+    def applySplineFillPreference(self, airfoil=None):
+        target = airfoil or self._active_airfoil()
+        if target is None:
+            return
+        target.setSplineFillEnabled(self.splineFillEnabled())
+
+    def toggleSplineFill(self, _checked=None):
+        self.applySplineFillPreference()
 
     def spline_and_refine(self):
-        """Spline and refine airfoil"""
-
-        if self.mw.airfoil:
-
-            self.mw.airfoil.has_TE = False
-
-            refine = SplineRefine.SplineRefine()
-            refine.doSplineRefine(tolerance=self.tolerance.value(),
-                                  points=self.points.value(),
-                                  ref_te=self.ref_te.value(),
-                                  ref_te_n=self.ref_te_n.value(),
-                                  ref_te_ratio=self.ref_te_ratio.value())
-
-            # add splined and refined contour to the airfoil contourGroup
-            # makeSplineMarkers call within makeContourSpline
-            self.mw.airfoil.makeContourSpline()
-
-            # get LE radius, etc.
-            spline_data = self.mw.airfoil.spline_data
-            curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
-            rc, xc, yc, xle, yle, le_id = \
-                ca.ContourAnalysis.getLeRadius(spline_data, curvature_data)
-            refine.makeLeCircle(rc, xc, yc, xle, yle)
-
-            # calculate thickness and camber
-            camber = refine.getCamberThickness(spline_data, le_id)
-            # draw camber
-            self.mw.airfoil.drawCamber(camber)
-
-            logger.info('Leading edge radius: {:11.8f}'.format(rc))
-            logger.info('Leading edge circle tangent at point: {}'.format(le_id))
-
-            # enable trailing edge button
-            self.trailingButton.setEnabled(True)
-            
-            # enable export button
-            self.exportContourButton.setEnabled(True)
-
-        else:
-            self.mw.slots.messageBox('No airfoil loaded.')
-            return
+        self.workflow.spline_and_refine(self.spline_refine_settings())
+        self.refreshWorkflowState()
 
     def makeTrailingEdge(self):
-
-        if self.mw.airfoil:
-
-            self.mw.airfoil.has_TE = True
-
-            if not hasattr(self.mw.airfoil, 'spline_data'):
-                message = 'Splining needs to be done first.'
-                self.mw.slots.messageBox(message)
-                return
-
-            trailing = TrailingEdge.TrailingEdge()
-            trailing.trailingEdge(blend=self.blend_u.value() / 100.0,
-                                  ex=self.exponent_u.value(),
-                                  thickness=self.thickness.value(),
-                                  side='upper')
-            self.addTEtoScene()
-
-            trailing.trailingEdge(blend=self.blend_l.value() / 100.0,
-                                  ex=self.exponent_l.value(),
-                                  thickness=self.thickness.value(),
-                                  side='lower')
-            self.addTEtoScene()
-        else:
-            self.mw.slots.messageBox('No airfoil loaded.')
-            return
-
-    def addTEtoScene(self):
-            
-        # add modified spline contour to the airfoil contourGroup
-        # makeSplineMarkers call within makeContourSpline
-        self.mw.airfoil.makeContourSpline()
-        self.mw.airfoil.contourSpline.brush.setStyle(QtCore.Qt.SolidPattern)
-        color = QtGui.QColor()
-        color.setNamedColor('#7c8696')
-        self.mw.airfoil.contourSpline.brush.setColor(color)
-        # FIXME
-        # FIXME check if redundant, because already set elsewhere
-        # FIXME
-        self.mw.airfoil.polygonMarkersGroup.setZValue(100)
-        self.mw.airfoil.chord.setZValue(99)
-        self.mw.airfoil.camberline.setZValue(99)
-
-        self.mw.view.adjustMarkerSize()
+        self.workflow.add_trailing_edge(self.trailing_edge_settings())
+        self.refreshWorkflowState()
 
     def generateMesh(self):
-        self.wind_tunnel = Meshing.Windtunnel()
-        self.wind_tunnel.makeMesh()
+        wind_tunnel = self.workflow.generate_mesh(
+            self.mesh_generation_settings()
+        )
+        if wind_tunnel is not None:
+            self.wind_tunnel = wind_tunnel
+        self.refreshWorkflowState()
 
     def analyzeAirfoil(self):
-        """Airfoil contour analysis with respect to geometric features"""
+        self.workflow.prepare_contour_analysis()
 
-        if not self.mw.airfoil:
-            self.mw.slots.messageBox('No airfoil loaded.')
-            return
-
-        # switch tab contour analysis
-        self.mw.mainArea.tabs.setCurrentIndex(1)
-        # keep tab 'Contour Analysis'
-        self.setCurrentIndex(self.tb3)
-
-        # enable radio buttons for plotting when analysis starts
-        self.cgb.setEnabled(True)
-
-        # analyse contour
-        self.mw.contourview.analyze()
-
-        # connect signals to slots
-        # lambda allows to send extra parameters
-        self.cpb1.clicked.connect(lambda:
-                                  self.mw.contourview
-                                  .drawContour('gradient'))
-        self.cpb2.clicked.connect(lambda:
-                                  self.mw.contourview
-                                  .drawContour('curvature'))
-        self.cpb3.clicked.connect(lambda:
-                                  self.mw.contourview
-                                  .drawContour('radius'))
+    def drawContourAnalysis(self):
+        self.workflow.draw_contour_analysis(
+            self.selected_contour_analysis_quantity()
+        )
 
     def exportMesh(self):
+        airfoil = self._active_airfoil()
+        if airfoil is None:
+            self.mw.slots.messageBox('No airfoil loaded.')
+            return
+        if self.wind_tunnel is None:
+            self.mw.slots.messageBox('Please generate a mesh first.')
+            return
+
+        export_settings = self.mesh_export_settings()
+        if not export_settings.formats:
+            self.mw.slots.messageBox('Please select at least one export format.')
+            return
 
         file_dialog = FileDialog.Dialog()
-        file_dialog.setFilter('Mesh files (*.flma *.su2 *.msh *.inp *.cgns *.vtk)')
-        filename, extension = os.path.splitext(self.mw.airfoil.name)
+        file_dialog.setFilter(
+            'Mesh files (*.flma *.su2 *.msh *.inp *.cgns *.vtu *.vtk)'
+        )
+        filename, extension = os.path.splitext(airfoil.name)
         filename, _ = file_dialog.save_filename(filename)
 
         if not filename:
             logger.info('No file selected. Nothing saved.')
             return
 
-        # clean extension again (because added by file_dialog return)
         filename, extension = os.path.splitext(filename)
-
-        # add boundary definition attributes to mesh object
-        self.wind_tunnel.boundary_airfoil = self.lineedit_airfoil.text()
-        self.wind_tunnel.boundary_inlet = self.lineedit_inlet.text()
-        self.wind_tunnel.boundary_outlet = self.lineedit_outlet.text()
-        self.wind_tunnel.boundary_top = self.lineedit_top.text()
-        self.wind_tunnel.boundary_bottom = self.lineedit_bottom.text()
-
-        if self.check_FIRE.isChecked():
-            name = filename + '.flma'
-            Meshing.BlockMesh.writeFLMA(self.wind_tunnel,
-                                        name=name)
-        if self.check_SU2.isChecked():
-            name = filename + '.su2'
-            Meshing.BlockMesh.writeSU2_nolib(self.wind_tunnel, name=name)
-        if self.check_GMSH.isChecked():
-            name = filename + '.msh'
-            Meshing.BlockMesh.writeGMSH_nolib(self.wind_tunnel, name=name)
-        if self.check_VTK.isChecked():
-            name = filename + '.vtu'
-            Meshing.BlockMesh.writeVTK_nolib(self.wind_tunnel, name=name)
+        self.workflow.export_mesh(
+            self.wind_tunnel,
+            filename,
+            export_settings,
+        )
 
     def exportContour(self):
+        airfoil = self._active_airfoil()
+        if airfoil is None:
+            self.mw.slots.messageBox('No airfoil loaded.')
+            return
+        if not airfoil.has_spline:
+            self.mw.slots.messageBox('Splining needs to be done first.')
+            return
 
         file_dialog = FileDialog.Dialog()
         file_dialog.setFilter('Airfoil contour files (*.dat *.txt)')
-        filename, _ = file_dialog.save_filename(self.mw.airfoil.name)
+        filename, _ = file_dialog.save_filename(airfoil.name)
 
         if not filename:
             logger.info('No file selected. Nothing saved.')
             return
-
-        # get coordinates of modified contour
-        x, y = self.mw.airfoil.spline_data[0]
-        airfoil_name = self.mw.airfoil.name
-
-        try:
-            # export modified contour
-            with open(filename, 'w') as f:
-                f.write('#\n')
-                f.write('# File created with ' + PyAero.__appname__ + '\n')
-                f.write('# Version: ' + PyAero.__version__ + '\n')
-                f.write('# Author: ' + PyAero.__author__ + '\n')
-                f.write('#\n')
-                f.write('# Derived from: %s\n' % (str(airfoil_name).strip()))
-                f.write('# Number of points: %s\n' % (len(x)))
-                f.write('#\n')
-                for i, _ in enumerate(x):
-                    f.write('{:10.6f} {:10.6f}\n'.format(x[i], y[i]))
-        except IOError as error:
-            logger.info('IO error: {}'.format(error))
-
-        # log to message window
-        logger.info('Contour saved as {}'.format(filename))
-
-
-class ListWidget(QtWidgets.QListWidget):
-    """Subclassing QListWidget in order to be able to catch key press
-    events
-    """
-    def __init__(self, parent):
-        super().__init__()
-        self.mw = parent
-
-        self.itemClicked.connect(self.listItemClicked)
-        self.itemDoubleClicked.connect(self.listItemDoubleClicked)
-
-        # get MainWindow instance (overcomes handling parents)
-        self.mw = get_main_window()
-
-    def keyPressEvent(self, event):
-        key = event.key()
-
-        if key == QtCore.Qt.Key_Delete:
-            item = self.selectedItems()[0]
-            row = self.row(item)
-            self.takeItem(row)
-
-            for airfoil in self.mw.airfoils:
-                if item.text() == airfoil.name:
-                    name = airfoil.name
-                    self.mw.slots.removeAirfoil(name=name)
-                    break
-
-        # call original implementation of QListWidget keyPressEvent handler
-        super().keyPressEvent(event)
-
-    def listItemClicked(self, item):
-        """show information of airfoil in message window"""
-        pass
-
-    def listItemDoubleClicked(self, item):
-        """make double clicked name in listwidget new active airfoil"""
-        for airfoil in self.mw.airfoils:
-            if airfoil.name == item.text():
-                # first clear all items from the scene
-                self.mw.scene.clear()
-                # activate double clicked airfoil
-                airfoil.makeAirfoil()
-                # add all airfoil items (contour markers) to the scene
-                airfoil.addToScene(self.mw.scene)
-                # make double clicked airfoil the currently active airfoil
-                self.mw.airfoil = airfoil
-                # adjust the marker size again
-                self.mw.view.adjustMarkerSize()
-                break
+        self.workflow.export_contour(filename)

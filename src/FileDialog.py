@@ -17,6 +17,14 @@ class Dialog:
         # DIALOG_FILTER = 'Airfoil contour files (*.dat *.txt)'
         self.filter = self.mw.DIALOG_FILTER
 
+    def _dialog_options(self):
+        options = QtWidgets.QFileDialog.Options()
+        if getattr(self.mw, 'platform', '') == 'Darwin':
+            # Use the Qt dialog on macOS to avoid the recurring NSOpenPanel
+            # warning path from the native file dialog wrapper.
+            options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        return options
+
     def save_filename(self, filename=None):
         """Summary
 
@@ -28,13 +36,15 @@ class Dialog:
             string: filename inlcuding path to filename
             string: filter which was selected
         """
-        path = os.path.join(self.mw.OUTPUT, filename)
+        path = self.mw.OUTPUT if filename is None else os.path.join(self.mw.OUTPUT, filename)
         filename, selected_filter = QtWidgets.QFileDialog.getSaveFileName(
-            None,
+            self.mw,
             'Save File As',
             path,
             self.filter,
-            selectedFilter='*')
+            selectedFilter='*',
+            options=self._dialog_options(),
+        )
 
         return filename, selected_filter
 
@@ -47,11 +57,13 @@ class Dialog:
             string: filter which was selected
         """
         filename, selected_filter = QtWidgets.QFileDialog.getOpenFileName(
-            None,
+            self.mw,
             'Open File',
             self.mw.AIRFOILS,
             self.filter,
-            '')
+            '',
+            options=self._dialog_options(),
+        )
 
         return filename, selected_filter
 
