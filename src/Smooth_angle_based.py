@@ -270,7 +270,7 @@ class SmoothAngleBased:
                 xnew = x - [d2Tdy2 * dTdx - d2Tdxdy * dTdy] / (d2Tdx2 * d2Tdy2 - (d2Tdxdy)**2)
                 ynew = y - [d2Tdx2 * dTdy - d2Tdxdy * dTdx] / (d2Tdx2 * d2Tdy2 - (d2Tdxdy)**2)
 
-                smoothed_vertices[cardinal] = (xnew[0], ynew[0])
+                smoothed_vertices[cardinal] = (float(xnew[0]), float(ynew[0]))
                 smoothed_vertices_old[cardinal] = (x, y)
 
                 tol = np.linalg.norm((xnew[0] - x, ynew[0] - y))

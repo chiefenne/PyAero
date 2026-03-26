@@ -247,6 +247,16 @@ class MeshData:
             return Polygon(points, name=label)
         return Polyline(points, closed=False, name=label)
 
+    @classmethod
+    def from_file(cls, filename: str, mesh_format: str | None = None,
+                  **kwargs) -> 'MeshData':
+        """Read mesh data from disk via the mesh import registry."""
+        return MeshImportRegistry.import_file(
+            filename,
+            mesh_format=mesh_format,
+            **kwargs,
+        )
+
 
 class Mesh(ABC):
     """Abstract mesh model used by the new domain layer."""
@@ -501,6 +511,68 @@ def _coerce_boundary_definitions(mesh_or_data, boundary_definitions=None):
     return BoundaryDefinitions.from_mapping(boundary_mapping)
 
 
+class MeshImporter(ABC):
+    """Base class for 2D mesh importers.
+
+    The current import/export layer only operates on 2D mesh data.
+    FIRE/FLMA is a special case on disk because it stores the 2D mesh as a
+    single-cell extrusion in the third dimension.
+    """
+
+    format_name = 'mesh'
+
+    @abstractmethod
+    def read(self, filename: str, **kwargs) -> MeshData:
+        """Read mesh data from disk."""
+
+
+class PlannedMeshImporter(MeshImporter):
+    """Placeholder importer used to mark future mesh-import entry points."""
+
+    detail = 'Only 2D mesh import/export is in scope at the moment.'
+
+    def read(self, filename: str, **kwargs) -> MeshData:
+        format_label = self.format_name.upper()
+        basename = os.path.basename(filename)
+        raise NotImplementedError(
+            f'{format_label} mesh import is reserved for future work '
+            f'({basename}). {self.detail}'
+        )
+
+
+class FlmaImporter(PlannedMeshImporter):
+    format_name = 'flma'
+    detail = (
+        'Only 2D mesh import/export is in scope at the moment. '
+        'FIRE/FLMA currently represents the 2D mesh as a one-cell extrusion '
+        'in the third dimension.'
+    )
+
+
+class Su2Importer(PlannedMeshImporter):
+    format_name = 'su2'
+
+
+class GmshImporter(PlannedMeshImporter):
+    format_name = 'msh'
+
+
+class AbaqusInpImporter(PlannedMeshImporter):
+    format_name = 'inp'
+
+
+class CgnsImporter(PlannedMeshImporter):
+    format_name = 'cgns'
+
+
+class VtuImporter(PlannedMeshImporter):
+    format_name = 'vtu'
+
+
+class VtkImporter(PlannedMeshImporter):
+    format_name = 'vtk'
+
+
 class MeshExporter(ABC):
     format_name = 'mesh'
 
@@ -526,6 +598,8 @@ class FlmaExporter(MeshExporter):
             number_of_vertices_2d = len(vertices)
             handle.write(str(2 * number_of_vertices_2d) + '\n')
 
+            # FIRE expects a thin 3D volume. For now the 2D mesh is exported
+            # as a single-cell extrusion in the third dimension.
             signum = -1.0
             for _ in range(2):
                 for vertex in vertices:
@@ -823,6 +897,72 @@ class GmshExporter(MeshExporter):
             handle.write('$EndElements\n')
 
         logger.info('GMSH type mesh saved as %s', os.path.basename(name))
+
+
+class MeshImportRegistry:
+    _registry = {
+        'flma': FlmaImporter(),
+        'su2': Su2Importer(),
+        'msh': GmshImporter(),
+        'gmsh': GmshImporter(),
+        'inp': AbaqusInpImporter(),
+        'cgns': CgnsImporter(),
+        'vtu': VtuImporter(),
+        'vtk': VtkImporter(),
+    }
+
+    @classmethod
+    def _normalize_format(cls, mesh_format: str) -> str:
+        return mesh_format.strip().lower().lstrip('.')
+
+    @classmethod
+    def format_from_filename(cls, filename: str) -> str:
+        _, extension = os.path.splitext(filename)
+        if not extension:
+            raise ValueError(
+                f'Unable to determine mesh format from filename: {filename}'
+            )
+        return cls._normalize_format(extension)
+
+    @classmethod
+    def can_import(cls, filename: str) -> bool:
+        try:
+            mesh_format = cls.format_from_filename(filename)
+        except ValueError:
+            return False
+        return mesh_format in cls._registry
+
+    @classmethod
+    def supported_extensions(cls) -> tuple[str, ...]:
+        extensions = [
+            'flma',
+            'su2',
+            'msh',
+            'inp',
+            'cgns',
+            'vtu',
+            'vtk',
+        ]
+        return tuple(extension for extension in extensions if extension in cls._registry)
+
+    @classmethod
+    def qt_file_dialog_filter(cls) -> str:
+        patterns = ' '.join(
+            f'*.{extension}' for extension in cls.supported_extensions()
+        )
+        return f'Mesh files ({patterns})'
+
+    @classmethod
+    def import_file(cls, filename: str, mesh_format: str | None = None,
+                    **kwargs) -> MeshData:
+        key = cls._normalize_format(mesh_format) if mesh_format else (
+            cls.format_from_filename(filename)
+        )
+        try:
+            importer = cls._registry[key]
+        except KeyError as error:
+            raise ValueError(f'Unknown mesh import format: {key}') from error
+        return importer.read(filename, **kwargs)
 
 
 class MeshExportRegistry:

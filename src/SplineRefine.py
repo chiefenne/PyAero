@@ -53,13 +53,12 @@ class SplineRefine:
 
     def getCamberThickness(self, spline_data, le_id):
 
-        # split airfoil spline at leading edge
-        # FIXME
-        # FIXME why do I need to substract -3 here to be at LE ????
-        # FIXME
-        u_le = spline_data[1][le_id - 3]
-        upper = np.linspace(u_le, 0.0, 300)
-        lower = np.linspace(u_le, 1.0, 300)
+        # Split the current contour sampling at the leading edge.
+        # spline_data[1] stores the input-point parameters returned by splprep,
+        # while spline_data[2] tracks the active sampling used by coo/derivatives.
+        t_le = spline_data[2][le_id]
+        upper = np.linspace(t_le, 0.0, 300)
+        lower = np.linspace(t_le, 1.0, 300)
         tck = spline_data[5]
         coo_upper = interpolate.splev(upper, tck, der=0)
         coo_lower = interpolate.splev(lower, tck, der=0)
@@ -142,25 +141,26 @@ class SplineRefine:
         """Interpolate spline through given points
 
         Args:
-            spline (int, optional): Number of points on the spline
+            points (int, optional): Number of points used to sample the spline
             degree (int, optional): Degree of the spline
-            evaluate (bool, optional): If True, evaluate spline just at
-                                       the coordinates of the knots
+            evaluate (bool, optional): If True, evaluate the spline at the
+                                       input-point parameters returned by
+                                       splprep so the output matches the
+                                       current contour points.
         """
 
-        # interpolate B-spline through data points
-        # returns knots of control polygon
-        # tck ... tuple (t,c,k) containing the vector of knots,
-        # the B-spline coefficients, and the degree of the spline.
-        # u ... array of the parameters for each knot
+        # Interpolate a parametric B-spline through the input contour points.
+        # tck ... tuple (knots, coefficients, degree) describing the spline.
+        # u   ... parameter value assigned by splprep to each input point.
         # NOTE: s=0.0 is important as no smoothing should be done on the spline
         # after interpolating it
         tck, u = interpolate.splprep([x, y], s=0.0, k=degree)
 
-        # number of points on interpolated B-spline (parameter t)
+        # t is the parameter array used to sample the spline for coo/derivatives.
         t = np.linspace(0.0, 1.0, points)
 
-        # if True, evaluate spline just at the coordinates of the knots
+        # When evaluate=True we keep the refined contour point distribution
+        # instead of resampling it on a uniform parameter grid.
         if evaluate:
             t = u
 
@@ -174,6 +174,8 @@ class SplineRefine:
         # evaluate 2nd derivative at given parameters
         der2 = interpolate.splev(t, tck, der=2)
 
+        # spline_data[1] stores splprep fit metadata, spline_data[2] stores
+        # the active sampling used by coo/derivatives.
         spline_data = [coo, u, t, der1, der2, tck]
 
         return spline_data
@@ -191,7 +193,7 @@ class SplineRefine:
                                         during recursions
         """
 
-        # self.spline_data = [coo, u, t, der1, der2, tck]
+        # spline_data layout: [coo, u, t, der1, der2, tck]
         xx, yy = spline_data[0]
         t = spline_data[2]
         tck = spline_data[5]
@@ -279,12 +281,10 @@ class SplineRefine:
         """Refine the airfoil contour at the trailing edge
 
         Args:
-            ref_te (TYPE): Description
-            ref_te_n (TYPE): Description
-            ref_te_ratio (TYPE): Description
-
-        Returns:
-            TYPE: Description
+            ref_te (int): Number of original points removed per side near the
+                trailing edge before reinserting the refined distribution.
+            ref_te_n (int): Number of refined subdivisions used per side.
+            ref_te_ratio (float): Growth ratio used for the refined spacing.
         """
         # get parameter of point to which refinement reaches
         tref = self.spline_data[2][ref_te]
@@ -325,7 +325,8 @@ class SplineRefine:
 
         # update coordinate array, including inserted points
         self.spline_data[0] = (x, y)
-        # update parameter array, including parameters of inserted points
+        # Update the active sampling used by coo/derivatives. spline_data[1]
+        # keeps the original splprep input-point parameters of the fitted spline.
         self.spline_data[2] = t
         # update derivatives, including inserted points
         self.spline_data[3] = interpolate.splev(t, tck, der=1)
@@ -340,7 +341,7 @@ class SplineRefine:
             thickness (float, optional): length of line
 
         Returns:
-            TYPE: Description
+            np.ndarray: Normalized spacing scaled to ``thickness``.
         """
         if divisions == 1:
             sp = [0.0, 1.0]

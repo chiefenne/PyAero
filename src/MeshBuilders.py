@@ -67,7 +67,7 @@ class LegacyBlockMeshBuilder:
             raise ValueError('Airfoil contour data is required before building the airfoil block.')
 
         x, y = contour
-        line = list(zip(x, y))
+        line = [_to_point_tuple(point) for point in zip(x, y)]
         block = self.block_mesh_cls(name=settings.name)
         block.addLine(line)
         block.extrudeLine_cell_thickness(
@@ -247,9 +247,10 @@ class LegacyBlockMeshBuilder:
 
         line = copy.deepcopy(last_reversed)
         if has_trailing_edge:
-            vector = np.array(first[0], dtype=float) - np.array(last[0], dtype=float)
+            start = np.asarray(last_reversed[-1], dtype=float)
+            vector = np.asarray(first[0], dtype=float) - np.asarray(last[0], dtype=float)
             for index in range(1, trailing_edge_divisions):
-                point = last_reversed[-1] + float(index) / trailing_edge_divisions * vector
+                point = start + float(index) / trailing_edge_divisions * vector
                 line.append(_to_point_tuple(point))
             line += first
         else:
@@ -292,7 +293,7 @@ class LegacyBlockMeshBuilder:
         xx = np.linspace(lower, upper, len(inner_line))
         t = (np.tanh(xx) + 1.0) / 2.0
         xs, ys = interpolate.splev(t, tck, der=0)
-        return list(zip(xs.tolist(), ys.tolist()))
+        return [_to_point_tuple(point) for point in zip(xs, ys)]
 
     def _blend_tunnel_lines(self, block):
         old_ulines = copy.deepcopy(block.getULines())

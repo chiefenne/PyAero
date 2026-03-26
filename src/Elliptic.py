@@ -36,7 +36,7 @@ class Elliptic:
         for j, uline in enumerate(self.ulines):
             new_uline = list()
             for i, u in enumerate(uline):
-                new_uline.append((self.xn[i, j], self.yn[i, j]))
+                new_uline.append((float(self.xn[i, j]), float(self.yn[i, j])))
             self.new_ulines.append(new_uline)
 
     @staticmethod

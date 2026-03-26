@@ -12,7 +12,7 @@ from Utils import get_main_window
 
 
 class Connect:
-    """docstring"""
+    """Merge structured mesh blocks into a single vertex/connectivity set."""
 
     def __init__(self, progdialog):
 
@@ -67,7 +67,7 @@ class Connect:
         return pairs
 
     def getNearestNeighboursBiDirectional(d1, d2, radius=1.e-6):
-        """Get all indices ofts in d1 which are within distance r to d2"""
+        """Get matching point indices between two point sets within ``radius``."""
         tree_1 = spatial.cKDTree(d1)
         tree_2 = spatial.cKDTree(d2)
         idx1 = tree_2.query_ball_tree(tree_1, radius, p=2., eps=0)
@@ -142,11 +142,8 @@ class Connect:
         if self.progdialog:
             self.progdialog.setValue(80)
 
-        # FIXME
-        # FIXME for some reason tuples need to be redefined
-        # FIXME
-        vertices = [(vertex[0], vertex[1]) for vertex in vertices]
-
+        # BlockMesh stores vertices as plain 2D float tuples, so connectivity
+        # merging can work directly on the collected point data.
         # search vertices of all blocks against themselves
         # finds itself AND multiple connections (i.e. vertices from neighbour blocks)
         # uses Scipy kd-tree for quick nearest-neighbor lookup

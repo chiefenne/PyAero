@@ -12,6 +12,7 @@ from PySide6 import QtGui, QtCore, QtWidgets, QtPrintSupport
 import PyAero
 import Airfoil
 import FileDialog
+import Mesh as MeshModel
 from Utils import get_main_window
 import logging
 logger = logging.getLogger(__name__)
@@ -35,24 +36,28 @@ class Slots:
 
     @QtCore.Slot()
     def onOpen(self):
-        """Summary
-
-        Returns:
-            TYPE: Description
-        """
+        """Open an airfoil contour or a future mesh import target."""
         file_dialog = FileDialog.Dialog()
-        file_dialog.setFilter(self.mw.DIALOG_FILTER)
+        file_dialog.setFilter(self.openFileDialogFilter())
         filename, _ = file_dialog.open_filename()
 
         if not filename:
             logger.info('No file selected. Nothing saved.')
             return
 
-        if 'su2' in filename:
-            self.loadSU2(filename)
-            return
+        self.openFile(filename)
 
-        self.loadAirfoil(filename)
+    def openFileDialogFilter(self):
+        mesh_filter = MeshModel.MeshImportRegistry.qt_file_dialog_filter()
+        if not mesh_filter:
+            return self.mw.DIALOG_FILTER
+        return f'{self.mw.DIALOG_FILTER};;{mesh_filter}'
+
+    @QtCore.Slot(str)
+    def openFile(self, filename):
+        if MeshModel.MeshImportRegistry.can_import(filename):
+            return self.loadMesh(filename)
+        return self.loadAirfoil(filename)
 
     @QtCore.Slot()
     def onOpenPredefined(self):
@@ -110,22 +115,26 @@ class Slots:
         self.fitAirfoilInView()
 
     @QtCore.Slot(str)
-    def loadSU2(self, filename):
-        comment = '%'
-
+    def loadMesh(self, filename):
         try:
-            with open(filename, mode='r') as f:
-                lines = f.readlines()
-        except IOError as error:
-            # exc_info=True sends traceback to the logger
-            logger.error('Failed to open file {} with error {}'.
-                         format(filename, error), exc_info=True)
-            return False
+            return MeshModel.MeshData.from_file(filename)
+        except NotImplementedError as error:
+            logger.info(str(error))
+            self.messageBox(str(error))
+            return None
+        except (OSError, ValueError) as error:
+            logger.error(
+                'Failed to load mesh file %s with error %s',
+                filename,
+                error,
+                exc_info=True,
+            )
+            self.messageBox(f'Failed to load mesh file:\n{filename}\n\n{error}')
+            return None
 
-        # FIXME
-        # FIXME complete code to read SU2 mesh files
-        # FIXME
-        data = [line for line in lines if comment not in line]
+    @QtCore.Slot(str)
+    def loadSU2(self, filename):
+        return self.loadMesh(filename)
 
     @QtCore.Slot()
     def fitAirfoilInView(self):

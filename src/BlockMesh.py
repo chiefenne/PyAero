@@ -1,26 +1,47 @@
 from __future__ import annotations
 
+from typing import Iterable, Sequence
+
 import numpy as np
 from scipy import interpolate
 
 from MathUtils import VectorUtils
+from Shape import Point2D
 
 
 class BlockMesh:
-    """Legacy structured block primitive used by the current mesh builders."""
+    """Legacy structured block primitive used by the current mesh builders.
+
+    The canonical stored point type is ``tuple[float, float]``.
+    NumPy arrays are only used locally inside numerical routines.
+    """
 
     def __init__(self, name='block'):
         self.name = name
-        self.ULines = []
+        self.ULines: list[list[Point2D]] = []
+
+    @staticmethod
+    def as_point(point: Sequence[float]) -> Point2D:
+        if len(point) != 2:
+            raise ValueError('Expected a 2D point.')
+        return float(point[0]), float(point[1])
+
+    @classmethod
+    def as_line(cls, line: Iterable[Sequence[float]]) -> list[Point2D]:
+        return [cls.as_point(point) for point in line]
+
+    @classmethod
+    def as_ulines(cls, ulines: Iterable[Iterable[Sequence[float]]]) -> list[list[Point2D]]:
+        return [cls.as_line(uline) for uline in ulines]
 
     def addLine(self, line):
-        self.ULines.append(line)
+        self.ULines.append(self.as_line(line))
 
     def getULines(self):
         return self.ULines
 
     def setUlines(self, ulines):
-        self.ULines = ulines
+        self.ULines = self.as_ulines(ulines)
 
     def getVLines(self):
         vlines = []
@@ -54,7 +75,7 @@ class BlockMesh:
 
     def setNodeCoo(self, node, new_pos):
         i_index, j_index = node
-        self.getULines()[j_index][i_index] = new_pos
+        self.getULines()[j_index][i_index] = self.as_point(new_pos)
 
     @staticmethod
     def makeLine(p1, p2, divisions=1, ratio=1.0):
@@ -301,7 +322,7 @@ class BlockMesh:
             uline = []
             for vline in vlines:
                 x_value, y_value = vline[index][0], vline[index][1]
-                uline.append((x_value, y_value))
+                uline.append((float(x_value), float(y_value)))
             ulines.append(uline[::-1])
         return ulines
 
@@ -352,7 +373,10 @@ class Smooth:
                 else:
                     continue
 
-                self.block.setNodeCoo(node, new_position.tolist())
+                self.block.setNodeCoo(
+                    node,
+                    (float(new_position[0]), float(new_position[1])),
+                )
 
         return self.block
 

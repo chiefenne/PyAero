@@ -92,6 +92,21 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
         self.setStyleSheet(style)
 
+    def fitInView(self, *args, **kwargs):
+        result = super().fitInView(*args, **kwargs)
+        self.refreshCustomItemGeometry()
+        return result
+
+    def refreshCustomItemGeometry(self):
+        scene = self.scene()
+        if scene is None:
+            return
+
+        for item in scene.items():
+            refresh_geometry = getattr(item, 'refreshGeometry', None)
+            if callable(refresh_geometry):
+                refresh_geometry()
+
     def resizeEvent(self, event):
         """Re-implement QGraphicsView's resizeEvent handler"""
 
@@ -102,6 +117,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # within resize event otherwise strange recursion can occur
         self.fitInView(self.sceneview,
                        aspectRadioMode=QtCore.Qt.KeepAspectRatio)
+        self.adjustMarkerSize()
 
     def mousePressEvent(self, event):
         """Re-implement QGraphicsView's mousePressEvent handler"""
@@ -294,7 +310,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         for url in event.mimeData().urls():
             path = url.toLocalFile()
             if os.path.isfile(path):
-                self.mw.slots.loadAirfoil(path, comment='#')
+                self.mw.slots.openFile(path)
 
     def scaleView(self, factor):
 
@@ -314,6 +330,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # rescale markers during zoom, i.e., keep them constant size
         self.adjustMarkerSize()
 
+        self.refreshCustomItemGeometry()
+
         # cache view to be able to keep it during resize
         self.getSceneFromView()
 
@@ -321,7 +339,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         """Adjust marker size during zoom. Marker items are circles
         which are otherwise affected by zoom. Using MARKER_SIZE from
         Settings a fixed markersize (e.g. 3 pixels) can be kept.
-        This method immitates the behaviour of pen.setCosmetic()
+        This method imitates the behaviour of pen.setCosmetic().
         """
 
         airfoil = getattr(self.mw, 'airfoil', None)
@@ -352,6 +370,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
                                              y[i] - mappedMarkerWidth,
                                              2. * mappedMarkerWidth,
                                              2. * mappedMarkerWidth)]
+                sync_geometry = getattr(marker, 'syncGeometryFromArgs', None)
+                if callable(sync_geometry):
+                    sync_geometry()
 
         if (
             airfoil.has_spline and
@@ -366,6 +387,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
                                              y[i] - mappedMarkerWidth,
                                              2. * mappedMarkerWidth,
                                              2. * mappedMarkerWidth)]
+                sync_geometry = getattr(marker, 'syncGeometryFromArgs', None)
+                if callable(sync_geometry):
+                    sync_geometry()
 
     def getSceneFromView(self):
         """Cache view to be able to keep it during resize"""

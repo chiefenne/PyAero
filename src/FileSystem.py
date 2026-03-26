@@ -172,7 +172,7 @@ class FileSystemModel(QtWidgets.QFileSystemModel):
             return
 
         fullname = self.getFileInfo(index)[2]
-        self.mw.slots.loadAirfoil(fullname, comment='#')
+        self.mw.slots.openFile(fullname)
 
     def getFileInfo(self, index):
         fileInfo = self.fileInfo(index)

@@ -39,7 +39,7 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         self.method = item.method
         self.args = item.args
         self.pen = item.pen
-        self.penwidth = item.pen.width()
+        self.penwidth = item.pen.widthF()
         self.brush = item.brush
         self.rect = QtCore.QRectF(item.rect)
         self.setToolTip(item.tooltip)
@@ -92,20 +92,70 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         # rect + line thickness is size
         return self.boundingrect
 
+    def _boundingPadding(self, penwidth=None):
+        penwidth = self.pen.widthF() if penwidth is None else penwidth
+        if penwidth <= 0.0:
+            return 0.0, 0.0
+
+        if not self.pen.isCosmetic():
+            half_width = penwidth / 2.0
+            return half_width, half_width
+
+        view = getattr(self.mw, 'view', None)
+        if view is None:
+            half_width = penwidth / 2.0
+            return half_width, half_width
+
+        transform = view.transform()
+        sx = abs(transform.m11())
+        sy = abs(transform.m22())
+        half_x = penwidth / (2.0 * sx) if sx else penwidth / 2.0
+        half_y = penwidth / (2.0 * sy) if sy else penwidth / 2.0
+        return half_x, half_y
+
+    def _makeBoundingRect(self, rect):
+        pad_x, pad_y = self._boundingPadding()
+        return QtCore.QRectF(rect.left() - pad_x,
+                             rect.top() - pad_y,
+                             rect.width() + 2.0 * pad_x,
+                             rect.height() + 2.0 * pad_y)
+
     def setBoundingRect(self):
-        # FIXME
-        # FIXME self.penwidth is in pixels, most probably needs
-        # FIXME to be transformed to scene coordinates
-        # FIXME maybe updated when refactoring GraphicsitemCollection
-        # FIXME and its usage
-        # FIXME
+        boundingrect = self._makeBoundingRect(self.rect)
+        if hasattr(self, 'boundingrect') and self.boundingrect != boundingrect:
+            self.prepareGeometryChange()
+        self.boundingrect = boundingrect
 
-        pw = 0.0
+    def refreshGeometry(self):
+        self.setBoundingRect()
 
-        self.boundingrect = QtCore.QRectF(self.rect.left()-pw/2,
-                                          self.rect.top()-pw/2,
-                                          self.rect.width()+pw,
-                                          self.rect.height()+pw)
+    def syncGeometryFromArgs(self):
+        if self.method not in ('drawEllipse', 'drawRect') or not self.args:
+            return
+
+        rect = self.args[0]
+        if not isinstance(rect, QtCore.QRectF):
+            return
+
+        rect = QtCore.QRectF(rect)
+        path = QtGui.QPainterPath()
+        if self.method == 'drawEllipse':
+            path.addEllipse(rect)
+        else:
+            path.addRect(rect)
+
+        boundingrect = self._makeBoundingRect(rect)
+        geometry_changed = (
+            rect != self.rect or
+            not hasattr(self, 'boundingrect') or
+            self.boundingrect != boundingrect
+        )
+        if geometry_changed:
+            self.prepareGeometryChange()
+
+        self.rect = rect
+        self.item_shape = path
+        self.boundingrect = boundingrect
 
     def paint(self, painter, option, widget):
         # this function must be overwritten when subclassing QGraphicsItem
@@ -122,10 +172,10 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
 
         # care for difference between objects and text
         # i.e. normally y-coordinates go top down
-        # to make a normal coordinate system y-axis is swapped in PGraphicsview
-        # since PyQT does this automatically for text in the original setup
+        # to make a normal coordinate system the y-axis is swapped in GraphicsView
+        # since Qt does this automatically for text in the original setup
         # the text here needs to be swapped back to be printed correctly
-        # scale on text items therefore in PGraphicsitemsCollection
+        # scale on text items therefore in GraphicsItemsCollection
         # gets scale (1, -1), all other items get scale (1, 1)
         painter.scale(self.scale[0], self.scale[1])
 
@@ -165,10 +215,12 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
     def hoverEnterEvent(self, event):
         if not self.isSelected():
             self.pen.setWidthF(self.penwidth + self.hoverwidth)
+            self.setBoundingRect()
         # handle event
         super().hoverEnterEvent(event)
 
     def hoverLeaveEvent(self, event):
         self.pen.setWidthF(self.penwidth)
+        self.setBoundingRect()
         # handle event
         super().hoverLeaveEvent(event)
