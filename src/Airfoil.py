@@ -5,6 +5,7 @@ from PySide6 import QtGui, QtCore
 
 import GraphicsItemsCollection as gic
 import GraphicsItem
+from ContourData import CamberData
 from Shape import Polygon, Polyline
 
 import logging
@@ -39,7 +40,9 @@ class Airfoil:
         self.contourSpline = None
         self.polygonMarkersGroup = None
         self.splineMarkersGroup = None
+        self.camber_data = None
         self.camberline = None
+        self.camber_circles = None
         self.le_circle = None
         self.mesh = None
         self.mesh_blocks = None
@@ -69,6 +72,8 @@ class Airfoil:
             'spline_marker_fill': QtGui.QColor('#93c83e'),
             'chord_pen': QtGui.QColor('#94a4b5'),
             'camber_pen': QtGui.QColor('#d07c4d'),
+            'camber_circle_pen': QtGui.QColor('#d07c4d'),
+            'camber_circle_fill': QtGui.QColor(208, 124, 77, 22),
         }
 
     def _apply_spline_fill_style(self):
@@ -106,8 +111,16 @@ class Airfoil:
 
     def current_contour(self, prefer_spline=True):
         if prefer_spline and self.spline_data is not None:
-            return self.spline_data[0]
+            return self.spline_data.coordinates
         return self.raw_coordinates
+
+    def markerCollections(self):
+        collections = []
+        if self.raw_coordinates is not None and self.polygonMarkers:
+            collections.append((self.raw_coordinates, self.polygonMarkers))
+        if self.has_spline and self.splineMarkers:
+            collections.append((self.spline_data.coordinates, self.splineMarkers))
+        return collections
 
     def to_shape(self, prefer_spline=True, closed=True):
         contour = self.current_contour(prefer_spline=prefer_spline)
@@ -291,7 +304,7 @@ class Airfoil:
         # instantiate a graphics item
         splinecontour = gic.GraphicsCollection()
         # make it polygon type and populate its points
-        points = [QtCore.QPointF(x, y) for x, y in zip(*self.spline_data[0])]
+        points = [QtCore.QPointF(x, y) for x, y in zip(*self.spline_data.coordinates)]
         splinecontour.Polygon(QtGui.QPolygonF(points), self.name)
         # set its properties
         splinecontour.pen.setColor(self.pencolor)
@@ -344,7 +357,7 @@ class Airfoil:
 
         self.splineMarkers = list()
 
-        for x, y in zip(*self.spline_data[0]):
+        for x, y in zip(*self.spline_data.coordinates):
 
             # put airfoil contour points as graphicsitem
             splinemarker = gic.GraphicsCollection()
@@ -361,7 +374,17 @@ class Airfoil:
 
             self.splineMarkers.append(splineMarkerItem)
 
+    def _removeSceneItem(self, item):
+        if item is not None and item.scene() is not None:
+            item.scene().removeItem(item)
+
     def drawCamber(self, camber):
+        if isinstance(camber, CamberData):
+            self.camber_data = camber
+            coordinates = camber.polyline_coordinates(start_at_le_tangency=True)
+        else:
+            coordinates = camber
+
         palette = self._display_palette()
 
         self.pencolor = palette['camber_pen']
@@ -370,7 +393,7 @@ class Airfoil:
         # instantiate a graphics item
         camberline = gic.GraphicsCollection()
         # make it polygon type and populate its points
-        points = [QtCore.QPointF(x, y) for x, y in zip(*camber)]
+        points = [QtCore.QPointF(x, y) for x, y in zip(*coordinates)]
         camberline.Polyline(QtGui.QPolygonF(points))
         # set its properties
         camberline.pen.setColor(self.pencolor)
@@ -385,15 +408,51 @@ class Airfoil:
         camberline.brush.setStyle(QtCore.Qt.NoBrush)
 
         # remove items from iterated uses of spline/refine and trailing edge
-        if hasattr(self, 'camberline') and \
-                self.camberline in self.mw.scene.items():
-            self.mw.scene.removeItem(self.camberline)
+        self._removeSceneItem(self.camberline)
         self.camberline = GraphicsItem.GraphicsItem(camberline)
         self.camberline.setAcceptHoverEvents(False)
         self.camberline.setZValue(35)
         self.mw.scene.addItem(self.camberline)
         self.mw.mainArea.airfoil_camber_line_checkbox.setChecked(True)
         self.mw.mainArea.airfoil_camber_line_checkbox.setEnabled(True)
+
+    def drawCamberCircles(self, camber_data):
+        if not isinstance(camber_data, CamberData):
+            return
+
+        palette = self._display_palette()
+        self.camber_data = camber_data
+
+        self._removeSceneItem(self.camber_circles)
+
+        circles = []
+        center_x, center_y = camber_data.display_coordinates()
+        radii = camber_data.display_radius()
+
+        for x, y, radius in zip(center_x, center_y, radii):
+            if radius <= 0.0:
+                continue
+
+            circle = gic.GraphicsCollection()
+            circle.pen.setColor(palette['camber_circle_pen'])
+            circle.pen.setWidthF(1.1)
+            circle.pen.setCosmetic(True)
+            circle.brush.setColor(palette['camber_circle_fill'])
+            circle.brush.setStyle(QtCore.Qt.NoBrush)
+            circle.Circle(float(x), float(y), float(radius))
+
+            circle_item = GraphicsItem.GraphicsItem(circle)
+            circle_item.setAcceptHoverEvents(False)
+            circles.append(circle_item)
+
+        if not circles:
+            self.camber_circles = None
+            return
+
+        self.camber_circles = self.mw.scene.createItemGroup(circles)
+        self.camber_circles.setZValue(34)
+        self.mw.mainArea.airfoil_camber_circles_checkbox.setChecked(True)
+        self.mw.mainArea.airfoil_camber_circles_checkbox.setEnabled(True)
 
     def setPenColor(self, r, g, b, a):
         self.pencolor = QtGui.QColor(r, g, b, a)

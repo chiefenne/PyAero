@@ -6,9 +6,7 @@ import Icons
 
 
 APP_ICON_ASSETS = (
-    ('Primary PNG', 'app_image.png'),
-    ('Dock 24px', 'app_image_24x24.png'),
-    ('Large 256px', 'app_image_256x256.png'),
+    ('Primary SVG', Icons.APP_ICON_FILE),
 )
 
 
@@ -175,7 +173,7 @@ class IconPreviewDialog(QtWidgets.QDialog):
         icon_label.setFixedSize(84, 84)
         icon_label.setAlignment(QtCore.Qt.AlignCenter)
         if self.windowIcon().isNull():
-            pixmap = QtGui.QPixmap('resources/Icons/app_image_256x256.png')
+            pixmap = Icons.app_icon().pixmap(72, 72)
         else:
             pixmap = self.windowIcon().pixmap(72, 72)
         if not pixmap.isNull():
@@ -237,8 +235,8 @@ class IconPreviewDialog(QtWidgets.QDialog):
         layout.addWidget(title)
 
         body = QtWidgets.QLabel(
-            'These PNG assets are used for the application icon. '
-            'They should be designed separately from the thin toolbar icon style.'
+            'This SVG is the canonical application icon source. '
+            'It is rendered directly in the UI instead of relying on hard-coded PNG-only paths.'
         )
         body.setObjectName('previewSectionBody')
         body.setWordWrap(True)
@@ -273,7 +271,7 @@ class IconPreviewDialog(QtWidgets.QDialog):
         preview = QtWidgets.QLabel()
         preview.setAlignment(QtCore.Qt.AlignCenter)
         preview.setMinimumHeight(92)
-        pixmap = QtGui.QPixmap(str(Icons.ICON_ROOT / relative_path))
+        pixmap = QtGui.QIcon(str(Icons.ICON_ROOT / relative_path)).pixmap(72, 72)
         if not pixmap.isNull():
             preview.setPixmap(
                 pixmap.scaled(

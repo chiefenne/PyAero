@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from PySide6 import QtCore, QtGui
-
+import Camber
 import ContourAnalysis as ca
+import FileOperations
 import Meshing
-import PyAero
 import SplineRefine
 import TrailingEdge
 from Utils import get_main_window
@@ -100,8 +99,12 @@ class ToolboxWorkflowController:
             thickness=settings.thickness,
             side='lower',
         )
+        refine = SplineRefine.SplineRefine()
+        rebuilt = refine.rebuildSplineData(airfoil.spline_data.coordinates)
+        if rebuilt is not None:
+            airfoil.spline_data = rebuilt
         self.refresh_modified_contour_scene()
-        self._update_derived_contour_geometry(airfoil)
+        self._update_derived_contour_geometry(airfoil, refine=refine)
         self.invalidate_contour_analysis(airfoil)
         self.invalidate_mesh_state(airfoil)
         self.toolbox.refreshWorkflowState()
@@ -122,6 +125,8 @@ class ToolboxWorkflowController:
             airfoil.chord.setZValue(30)
         if airfoil.camberline is not None:
             airfoil.camberline.setZValue(35)
+        if airfoil.camber_circles is not None:
+            airfoil.camber_circles.setZValue(34)
 
         self.mw.view.adjustMarkerSize()
         return airfoil
@@ -208,39 +213,30 @@ class ToolboxWorkflowController:
         exported_files = []
         for mesh_format in settings.formats:
             output_name = filename + self.mesh_export_extensions[mesh_format]
-            wind_tunnel.export_mesh(mesh_format, name=output_name)
+            try:
+                wind_tunnel.export_mesh(mesh_format, name=output_name)
+            except (OSError, ValueError) as error:
+                FileOperations.report_io_error(
+                    'export mesh',
+                    output_name,
+                    error,
+                    mainwindow=self.mw,
+                )
+                return exported_files
             exported_files.append(output_name)
         return exported_files
 
     def export_contour(self, filename: str):
-        airfoil = self._require_airfoil(require_spline=True)
+        airfoil = self._require_airfoil()
         if airfoil is None:
             return None
 
-        x_values, y_values = airfoil.spline_data[0]
-        try:
-            with open(filename, 'w') as handle:
-                handle.write('#\n')
-                handle.write('# File created with ' + PyAero.__appname__ + '\n')
-                handle.write('# Version: ' + PyAero.__version__ + '\n')
-                handle.write('# Author: ' + PyAero.__author__ + '\n')
-                handle.write('#\n')
-                handle.write('# Derived from: %s\n' % str(airfoil.name).strip())
-                handle.write('# Number of points: %s\n' % len(x_values))
-                handle.write('#\n')
-                for index, _ in enumerate(x_values):
-                    handle.write(
-                        '{:10.6f} {:10.6f}\n'.format(
-                            x_values[index],
-                            y_values[index],
-                        )
-                    )
-        except IOError as error:
-            logger.info('IO error: {}'.format(error))
-            return None
-
-        logger.info('Contour saved as {}'.format(filename))
-        return filename
+        return FileOperations.write_contour(
+            airfoil,
+            filename,
+            prefer_spline=True,
+            mainwindow=self.mw,
+        )
 
     def _require_airfoil(self, require_spline: bool = False):
         airfoil = getattr(self.mw, 'airfoil', None)
@@ -268,8 +264,19 @@ class ToolboxWorkflowController:
         refine = refine or SplineRefine.SplineRefine()
         refine.makeLeCircle(rc, xc, yc, xle, yle)
 
-        camber = refine.getCamberThickness(spline_data, le_id)
-        airfoil.drawCamber(camber)
+        camber_builder = Camber.CamberBuilder()
+        camber_data = camber_builder.build(
+            spline_data,
+            le_id,
+            rc,
+            xc,
+            yc,
+            xle,
+            yle,
+        )
+        airfoil.camber_data = camber_data
+        airfoil.drawCamber(camber_data)
+        airfoil.drawCamberCircles(camber_data)
         return rc, le_id
 
     def _remove_scene_item(self, item):

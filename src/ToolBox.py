@@ -7,6 +7,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 import FileSystem
 import FileDialog
+import FileOperations
 import Icons
 import Meshing
 import MeshBuilders
@@ -661,7 +662,7 @@ class Toolbox(QtWidgets.QWidget):
         if self.currentIndex() == self.tb4:
             points = 0
             if self.mw.airfoil and self.mw.airfoil.has_spline:
-                points = len(self.mw.airfoil.spline_data[0][0])
+                points = self.mw.airfoil.spline_data.point_count
             self.points_on_airfoil.setText(str(points))
 
     def selectedAirfoilLibrarySource(self):
@@ -788,12 +789,14 @@ class Toolbox(QtWidgets.QWidget):
         path = selected_item.data(QtCore.Qt.UserRole)
         if not path:
             return
-        self.mw.slots.loadAirfoil(path, comment='#')
+        self.mw.slots.openFile(path)
 
     def importAirfoilToLocalLibrary(self):
         file_dialog = FileDialog.Dialog()
-        file_dialog.setFilter('Airfoil contour files (*.dat *.txt)')
-        filename, _ = file_dialog.open_filename()
+        filename, _ = file_dialog.open_filename(
+            title='Import Airfoil To Local Library',
+            filter=FileOperations.CONTOUR_FILTER,
+        )
 
         if not filename:
             logger.info('No file selected. Nothing imported.')
@@ -813,7 +816,16 @@ class Toolbox(QtWidgets.QWidget):
                 )
                 if answer != QtWidgets.QMessageBox.Yes:
                     return
-            shutil.copy2(filename, destination)
+            try:
+                shutil.copy2(filename, destination)
+            except OSError as error:
+                FileOperations.report_io_error(
+                    'import airfoil to local library',
+                    destination,
+                    error,
+                    mainwindow=self.mw,
+                )
+                return
             logger.info(f'Imported airfoil to local library: {destination}')
         else:
             logger.info(f'Airfoil already in local library: {destination}')
@@ -921,18 +933,33 @@ class Toolbox(QtWidgets.QWidget):
         self.setCurrentIndex(self.tb1)
 
     def smoother_btn_clicked(self):
+        elliptic_controls = [
+            self.outer_boundary_slide,
+            self.elliptic_relaxation,
+            self.protected_guide_relaxation,
+            self.protected_guide_layers,
+            self.protected_guide_decay,
+            self.protected_guide_smoothing,
+        ]
+
         if self.btn_smoother_1.isChecked():
             self.smoothing_algorithm = 'simple'
             self.smoother_iterations.setEnabled(False)
             self.smoother_tolerance.setEnabled(False)
+            for control in elliptic_controls:
+                control.setEnabled(False)
         elif self.btn_smoother_2.isChecked():
             self.smoothing_algorithm = 'elliptic'
             self.smoother_iterations.setEnabled(True)
             self.smoother_tolerance.setEnabled(True)
+            for control in elliptic_controls:
+                control.setEnabled(True)
         elif self.btn_smoother_3.isChecked():
             self.smoothing_algorithm = 'angle_based'
             self.smoother_iterations.setEnabled(True)
             self.smoother_tolerance.setEnabled(True)
+            for control in elliptic_controls:
+                control.setEnabled(False)
 
     def _active_airfoil(self):
         return getattr(self.mw, 'airfoil', None)
@@ -996,6 +1023,12 @@ class Toolbox(QtWidgets.QWidget):
                 smoothing_algorithm=self.smoothing_algorithm,
                 smoothing_iterations=self.smoother_iterations.value(),
                 smoothing_tolerance=self._smootherToleranceValue(),
+                outer_boundary_slide=self.outer_boundary_slide.value(),
+                elliptic_relaxation=self.elliptic_relaxation.value(),
+                protected_guide_relaxation=self.protected_guide_relaxation.value(),
+                protected_guide_layers=self.protected_guide_layers.value(),
+                protected_guide_decay=self.protected_guide_decay.value(),
+                protected_guide_smoothing=self.protected_guide_smoothing.value(),
             ),
             wake=MeshBuilders.WakeBlockSettings(
                 name='block_tunnel_wake',
@@ -1062,6 +1095,9 @@ class Toolbox(QtWidgets.QWidget):
     def toggleCamberLine(self):
         self._toggleAirfoilItem('camberline')
 
+    def toggleCamberCircles(self):
+        self._toggleAirfoilItem('camber_circles')
+
     def splineFillEnabled(self):
         fill_toggle = getattr(
             getattr(self.mw, 'mainArea', None),
@@ -1117,18 +1153,15 @@ class Toolbox(QtWidgets.QWidget):
             self.mw.slots.messageBox('Please select at least one export format.')
             return
 
-        file_dialog = FileDialog.Dialog()
-        file_dialog.setFilter(
-            'Mesh files (*.flma *.su2 *.msh *.inp *.cgns *.vtu *.vtk)'
+        filename = FileOperations.choose_mesh_export_basename(
+            airfoil,
+            export_settings.formats,
+            mainwindow=self.mw,
         )
-        filename, extension = os.path.splitext(airfoil.name)
-        filename, _ = file_dialog.save_filename(filename)
-
         if not filename:
             logger.info('No file selected. Nothing saved.')
             return
 
-        filename, extension = os.path.splitext(filename)
         self.workflow.export_mesh(
             self.wind_tunnel,
             filename,
@@ -1140,14 +1173,12 @@ class Toolbox(QtWidgets.QWidget):
         if airfoil is None:
             self.mw.slots.messageBox('No airfoil loaded.')
             return
-        if not airfoil.has_spline:
-            self.mw.slots.messageBox('Splining needs to be done first.')
-            return
 
-        file_dialog = FileDialog.Dialog()
-        file_dialog.setFilter('Airfoil contour files (*.dat *.txt)')
-        filename, _ = file_dialog.save_filename(airfoil.name)
-
+        filename = FileOperations.choose_contour_save_filename(
+            airfoil,
+            title='Export Contour',
+            mainwindow=self.mw,
+        )
         if not filename:
             logger.info('No file selected. Nothing saved.')
             return

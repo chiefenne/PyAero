@@ -1,305 +1,358 @@
-
-import copy
-from distutils.debug import DEBUG
-from types import prepare_class
+from __future__ import annotations
 
 import numpy as np
 
-from PySide6 import QtGui, QtCore
-
-import GraphicsItemsCollection as gic
-import GraphicsItem
-import Connect
-from Utils import get_main_window
 import logging
 logger = logging.getLogger(__name__)
 
+
 class SmoothAngleBased:
-    """Mesh smoothing based on the paper:
+    """Angle-based mesh smoothing for block-mesh vertex/connectivity data."""
 
-    An Angular Method with Position Control for Block Mesh Squareness Improvement
-    by Jin Yao, Douglas Stillman
+    EPSILON = 1.0e-9
+    DEFAULT_LOG_INTERVAL = 10
 
-    There are several errors in the paper.
-    Nevertheless, the idea and algorithm description are formulated very clear.
+    def __init__(self, data, connectivity=None, data_source=None):
+        self.block = None
 
-    The errors are in the summation over all 12 angles, which in fact needs
-    to be split into four for the alphas and eight for the betas.
-    Therefore also the depicted derivatives are wrong as well as
-    the inverse Hessian for the Newton optimization iterations.
+        if connectivity is not None:
+            vertices = data
+        elif data_source == 'block':
+            import Connect
 
-    This class contains the corrected equations. 
-    """
-
-    def __init__(self, data, data_source='block'):
-        
-        # get MainWindow instance (overcomes handling parents)
-        self.mw = get_main_window()
-
-        # data_source is one of 'block' or 'mesh'
-        if data_source == 'block':
             self.block = data
-            connect = Connect.Connect(None)
-            vertices = connect.getVertices(self.block)
-            connectivity = connect.getConnectivity(self.block)
-            self.mesh = vertices, connectivity
-        if data_source == 'mesh':
-            self.mesh = data
+            connector = Connect.Connect()
+            vertices = connector.getVertices(self.block)
+            connectivity = connector.getConnectivity(self.block)
+        elif data_source == 'mesh':
+            vertices, connectivity = data
+        else:
+            raise ValueError(
+                'SmoothAngleBased expects vertices/connectivity data or '
+                'data_source="block"/"mesh".'
+            )
 
-        lvc = self.makeLVC()
-        self.stencils = self.make_stencil(lvc)
+        self.vertices = np.asarray(vertices, dtype=float)
+        self.connectivity = np.asarray(connectivity, dtype=int)
 
-        self.drawlines = None
+        if self.vertices.ndim != 2 or self.vertices.shape[1] != 2:
+            raise ValueError('SmoothAngleBased expects vertices as an N x 2 array.')
+        if self.connectivity.ndim != 2:
+            raise ValueError('SmoothAngleBased expects connectivity as a 2D array.')
+
+        self.lvc = self.makeLVC()
+        self.stencils = self.make_stencil(self.lvc)
+        self._compile_stencils(self.stencils)
+
+    @staticmethod
+    def _should_log_iteration(iteration, iterations, log_interval):
+        return (
+            iteration == 1 or
+            iteration == iterations or
+            iteration % log_interval == 0
+        )
+
+    @staticmethod
+    def _as_vertex_list(vertices):
+        return [
+            (float(vertex[0]), float(vertex[1]))
+            for vertex in np.asarray(vertices, dtype=float)
+        ]
 
     def makeLVC(self):
-        _, connectivity = self.mesh
-        nodes = set([node for cell in connectivity for node in cell])
+        lvc = {}
+        for cell in self.connectivity:
+            for node in cell:
+                lvc.setdefault(int(node), []).append(cell)
 
-        self.lvc = dict()
-        conn = np.array(connectivity)
-
-        for node in nodes:
-            cells, _ = np.where(conn == node)
-            self.lvc.setdefault(node, []).append([conn[cell] for cell in cells])
-
+        self.lvc = {
+            node: np.asarray(cells, dtype=int)
+            for node, cells in lvc.items()
+        }
         return self.lvc
 
-    def make_stencil(self, lvc, verbose=False):     
-        # lvc is a dictionary
-        self.stencils = dict()
-        for idx in range(len(lvc)):
-            v, c = np.unique(lvc[idx], return_counts=True)
-            vertices_quad = v[np.argwhere(c==1)]
-            vertices_star = v[np.argwhere(c==2)]
-    
-            cells_with_common_edges = list()
+    def make_stencil(self, lvc, verbose=False):
+        stencils = {}
+
+        for idx in range(len(self.vertices)):
+            if idx not in lvc:
+                continue
+
+            local_cells = np.asarray(lvc[idx], dtype=int)
+            vertices, counts = np.unique(local_cells, return_counts=True)
+            vertices_star = vertices[counts == 2]
+
             if len(vertices_star) != 4:
                 continue
-            
+
+            cells_with_common_edges = []
             for vertex in vertices_star:
-                mask = np.isin(lvc[idx], [vertex[0], idx])
-                mask1 = np.count_nonzero(mask, axis=1) == 2
-                cells_with_common_edges.append(np.array(lvc[idx])[mask1])
+                mask = np.isin(local_cells, [vertex, idx])
+                mask_edges = np.count_nonzero(mask, axis=1) == 2
+                cells_with_common_edges.append(local_cells[mask_edges])
 
             if idx == 6 and verbose:
-            
                 for cells in cells_with_common_edges:
-                    mask2 = np.isin(cells, np.append(vertices_star.flatten(), idx))
-    
-            corresponding_corners = list()
+                    np.isin(cells, np.append(vertices_star.flatten(), idx))
+
+            corresponding_corners = []
+            stencil_vertices = np.append(vertices_star.flatten(), idx)
             for cells in cells_with_common_edges:
-                mask2 = np.isin(cells, np.append(vertices_star.flatten(), idx))
-                corresponding_corners.append(cells[~mask2])
-    
-            self.stencils[idx] = corresponding_corners
-    
+                mask_corners = np.isin(cells, stencil_vertices)
+                corresponding_corners.append(cells[~mask_corners])
+
+            stencils[idx] = corresponding_corners
+
+        self.stencils = stencils
         return self.stencils
 
+    def _compile_stencils(self, stencils):
+        center_indices = []
+        d_indices = []
+        e_indices = []
+        f_indices = []
+        g_indices = []
+
+        for center in sorted(stencils):
+            stencil = stencils[center]
+            center_indices.append(int(center))
+            d_indices.append(int(stencil[2][0]))
+            e_indices.append(int(stencil[0][0]))
+            f_indices.append(int(stencil[1][1]))
+            g_indices.append(int(stencil[0][1]))
+
+        self.center_indices = np.asarray(center_indices, dtype=int)
+        self.d_indices = np.asarray(d_indices, dtype=int)
+        self.e_indices = np.asarray(e_indices, dtype=int)
+        self.f_indices = np.asarray(f_indices, dtype=int)
+        self.g_indices = np.asarray(g_indices, dtype=int)
+
+    def _compute_cardinals(self, vertices):
+        d_vertex = vertices[self.d_indices]
+        e_vertex = vertices[self.e_indices]
+        f_vertex = vertices[self.f_indices]
+        g_vertex = vertices[self.g_indices]
+
+        south = 0.5 * (d_vertex + e_vertex)
+        west = 0.5 * (d_vertex + g_vertex)
+        east = 0.5 * (e_vertex + f_vertex)
+        north = 0.5 * (g_vertex + f_vertex)
+
+        return south, west, east, north, d_vertex, e_vertex, f_vertex, g_vertex
+
     def make_cardinals(self, vertices):
+        vertices = np.asarray(vertices, dtype=float)
+        cardinals = {}
 
-        cardinals = dict()
-        
-        for stencil in self.stencils:
-            s = self.stencils[stencil]
+        if self.center_indices.size == 0:
+            return cardinals
 
-            D = [vertices[s[2][0]][0], vertices[s[2][0]][1]]
-            EE = [vertices[s[0][0]][0], vertices[s[0][0]][1]]
-            F = [vertices[s[1][1]][0], vertices[s[1][1]][1]]
-            G = [vertices[s[0][1]][0], vertices[s[0][1]][1]]
+        south, west, east, north, d_vertex, e_vertex, f_vertex, g_vertex = (
+            self._compute_cardinals(vertices)
+        )
 
-            S = (0.5 * (D[0] + EE[0]), 0.5 * (D[1] + EE[1]))
-            W = (0.5 * (D[0] + G[0]), 0.5 * (D[1] + G[1]))
-            E = (0.5 * (EE[0] + F[0]), 0.5 * (EE[1] + F[1]))
-            N = (0.5 * (G[0] + F[0]), 0.5 * (G[1] + F[1]))
-            cardinals[stencil] = (S, W, E, N, D, EE, F, G)
+        for index, center in enumerate(self.center_indices):
+            cardinals[int(center)] = (
+                (float(south[index, 0]), float(south[index, 1])),
+                (float(west[index, 0]), float(west[index, 1])),
+                (float(east[index, 0]), float(east[index, 1])),
+                (float(north[index, 0]), float(north[index, 1])),
+                [float(d_vertex[index, 0]), float(d_vertex[index, 1])],
+                [float(e_vertex[index, 0]), float(e_vertex[index, 1])],
+                [float(f_vertex[index, 0]), float(f_vertex[index, 1])],
+                [float(g_vertex[index, 0]), float(g_vertex[index, 1])],
+            )
+
         return cardinals
 
-    def draw_cardinal(self, S, W, E, N, D, EE, F, G):
+    def smooth(self, iterations=20, tolerance=1.0e-4, verbose=False,
+               log_interval=None):
+        iterations = int(iterations)
+        log_interval = (
+            self.DEFAULT_LOG_INTERVAL if log_interval is None
+            else max(1, int(log_interval))
+        )
 
-        self.drawlines = list()
+        if iterations <= 0 or self.center_indices.size == 0:
+            return self._as_vertex_list(self.vertices)
 
-        gc = gic.GraphicsCollection()
+        current_vertices = np.array(self.vertices, copy=True, dtype=float)
+        previous_vertices = np.array(self.vertices, copy=True, dtype=float)
+        omega = 1.0
 
-        points = [QtCore.QPointF(x, y) for x, y in [S, N]]
-        gc.Polyline(QtGui.QPolygonF(points), '')
-        gc.pen.setColor(QtGui.QColor(255, 0, 0, 255))
-        gc.pen.setWidthF(3.0)
-        gc.pen.setCosmetic(True)
-        gc.brush.setStyle(QtCore.Qt.NoBrush)
-        meshline = GraphicsItem.GraphicsItem(gc)
-        self.drawlines.append(meshline)
+        for iteration in range(1, iterations + 1):
+            south, west, east, north, d_vertex, e_vertex, f_vertex, g_vertex = (
+                self._compute_cardinals(current_vertices)
+            )
 
-        gc = gic.GraphicsCollection()
-        points = [QtCore.QPointF(x, y) for x, y in [E, W]]
-        gc.Polyline(QtGui.QPolygonF(points), '')
-        gc.pen.setColor(QtGui.QColor(0, 255, 0, 255))
-        gc.pen.setWidthF(3.0)
-        gc.pen.setCosmetic(True)
-        gc.brush.setStyle(QtCore.Qt.NoBrush)
-        meshline = GraphicsItem.GraphicsItem(gc)
-        self.drawlines.append(meshline)
+            centers = current_vertices[self.center_indices]
+            centers_old = previous_vertices[self.center_indices]
+            x = centers[:, 0]
+            y = centers[:, 1]
+            xold = centers_old[:, 0]
+            yold = centers_old[:, 1]
 
-        gc = gic.GraphicsCollection()
-        points = [QtCore.QPointF(x, y) for x, y in [D, EE, F, G, D]]
-        gc.Polyline(QtGui.QPolygonF(points), '')
-        gc.pen.setColor(QtGui.QColor(0, 0, 255, 255))
-        gc.pen.setWidthF(5.0)
-        gc.pen.setCosmetic(True)
-        gc.brush.setStyle(QtCore.Qt.NoBrush)
-        meshline = GraphicsItem.GraphicsItem(gc)
-        self.drawlines.append(meshline)
+            ns = np.linalg.norm(south - north, axis=1)
+            we = np.linalg.norm(east - west, axis=1)
+            ns_safe = np.maximum(ns, self.EPSILON)
+            we_safe = np.maximum(we, self.EPSILON)
+            sigma = np.maximum(ns_safe / we_safe, we_safe / ns_safe)
 
-        '''
-        gc = gic.GraphicsCollection()
-        points = [QtCore.QPointF(x, y) for x, y in [EE, G]]
-        gc.Polyline(QtGui.QPolygonF(points), '')
-        gc.pen.setColor(QtGui.QColor(0, 255, 255, 255))
-        gc.pen.setWidthF(9.0)
-        gc.pen.setCosmetic(True)
-        gc.brush.setStyle(QtCore.Qt.NoBrush)
-        meshline = GraphicsItem.GraphicsItem(gc)
-        self.drawlines.append(meshline)
+            a1 = np.column_stack((south[:, 0], east[:, 0], north[:, 0], west[:, 0]))
+            a2 = np.column_stack((east[:, 0], north[:, 0], west[:, 0], south[:, 0]))
+            b1 = np.column_stack((south[:, 1], east[:, 1], north[:, 1], west[:, 1]))
+            b2 = np.column_stack((east[:, 1], north[:, 1], west[:, 1], south[:, 1]))
 
-        gc = gic.GraphicsCollection()
-        points = [QtCore.QPointF(x, y) for x, y in [D, G]]
-        gc.Polyline(QtGui.QPolygonF(points), '')
-        gc.pen.setColor(QtGui.QColor(255, 0, 255, 255))
-        gc.pen.setWidthF(9.0)
-        gc.pen.setCosmetic(True)
-        gc.brush.setStyle(QtCore.Qt.NoBrush)
-        meshline = GraphicsItem.GraphicsItem(gc)
-        self.drawlines.append(meshline)
+            c1 = np.column_stack((
+                south[:, 0], south[:, 0], east[:, 0], east[:, 0],
+                north[:, 0], north[:, 0], west[:, 0], west[:, 0],
+            ))
+            c2 = np.column_stack((
+                d_vertex[:, 0], e_vertex[:, 0], e_vertex[:, 0], f_vertex[:, 0],
+                f_vertex[:, 0], g_vertex[:, 0], g_vertex[:, 0], d_vertex[:, 0],
+            ))
+            d1 = np.column_stack((
+                south[:, 1], south[:, 1], east[:, 1], east[:, 1],
+                north[:, 1], north[:, 1], west[:, 1], west[:, 1],
+            ))
+            d2 = np.column_stack((
+                d_vertex[:, 1], e_vertex[:, 1], e_vertex[:, 1], f_vertex[:, 1],
+                f_vertex[:, 1], g_vertex[:, 1], g_vertex[:, 1], d_vertex[:, 1],
+            ))
 
-        gc = gic.GraphicsCollection()
-        points = [QtCore.QPointF(x, y) for x, y in [D, F]]
-        gc.Polyline(QtGui.QPolygonF(points), '')
-        gc.pen.setColor(QtGui.QColor(0, 0, 0, 255))
-        gc.pen.setWidthF(9.0)
-        gc.pen.setCosmetic(True)
-        gc.brush.setStyle(QtCore.Qt.NoBrush)
-        meshline = GraphicsItem.GraphicsItem(gc)
-        self.drawlines.append(meshline)
-        '''
+            x4 = x[:, None]
+            y4 = y[:, None]
+            xold4 = xold[:, None]
+            yold4 = yold[:, None]
+            sigma4 = sigma[:, None]
 
-        # self.mw.scene.createItemGroup(self.drawlines)
+            alpha_denominator_1 = (
+                a1**2 + b1**2 - 2 * a1 * xold4 + xold4**2 -
+                2 * b1 * yold4 + yold4**2
+            )
+            alpha_denominator_2 = (
+                a2**2 + b2**2 - 2 * a2 * xold4 + xold4**2 -
+                2 * b2 * yold4 + yold4**2
+            )
+            ca = np.sum(
+                omega / (alpha_denominator_1 * alpha_denominator_2 + self.EPSILON),
+                axis=1,
+            )
 
-    def smooth(self, iterations=20, tolerance=1.e-4, verbose=False):
+            alpha_energy = (
+                a1 * a2 + b1 * b2 - a1 * x4 - a2 * x4 + x4**2 -
+                b1 * y4 - b2 * y4 + y4**2
+            )
+            dTdx_alpha = np.sum(
+                -alpha_energy * (a1 + a2 - 2.0 * x4) -
+                (4.0 * a1 - 4.0 * x4) * sigma4,
+                axis=1,
+            )
+            dTdy_alpha = np.sum(
+                -alpha_energy * (b1 + b2 - 2.0 * y4) -
+                (4.0 * b1 - 4.0 * y4) * sigma4,
+                axis=1,
+            )
+            d2Tdx2_alpha = np.sum(
+                (a1 + a2 - 2.0 * x4) ** 2 + 2.0 * a1 * a2 + 2.0 * b1 * b2 -
+                2.0 * a1 * x4 - 2.0 * a2 * x4 + 2.0 * x4**2 -
+                2.0 * b1 * y4 - 2.0 * b2 * y4 + 2.0 * y4**2 + 4.0 * sigma4,
+                axis=1,
+            )
+            d2Tdy2_alpha = np.sum(
+                2.0 * a1 * a2 + (b1 + b2 - 2.0 * y4) ** 2 + 2.0 * b1 * b2 -
+                2.0 * a1 * x4 - 2.0 * a2 * x4 + 2.0 * x4**2 -
+                2.0 * b1 * y4 - 2.0 * b2 * y4 + 2.0 * y4**2 + 4.0 * sigma4,
+                axis=1,
+            )
+            d2Tdxdy_alpha = np.sum((a1 + a2 - 2.0 * x4) * (b1 + b2 - 2.0 * y4), axis=1)
 
-        # iterations=1
+            x8 = x[:, None]
+            y8 = y[:, None]
+            xold8 = xold[:, None]
+            yold8 = yold[:, None]
 
-        vertices, _ = self.mesh
-    
-        cardinals = self.make_cardinals(vertices)
+            beta_denominator_1 = (
+                c1**2 - 2.0 * c1 * c2 + c2**2 + d1**2 - 2.0 * d1 * d2 + d2**2
+            )
+            beta_denominator_2 = (
+                c1**2 + d1**2 - 2.0 * c1 * xold8 + xold8**2 -
+                2.0 * d1 * yold8 + yold8**2
+            )
+            cb = np.sum(
+                omega / (beta_denominator_1 * beta_denominator_2 + self.EPSILON),
+                axis=1,
+            )
 
-        smoothed_vertices = copy.deepcopy(vertices)
-        smoothed_vertices_old = copy.deepcopy(vertices)
-    
-        corner = False
-        omega = 1
-        if corner:
-            omega = 0
+            beta_energy = (
+                c1**2 - c1 * c2 + d1**2 - d1 * d2 - c1 * x8 +
+                c2 * x8 - d1 * y8 + d2 * y8
+            )
+            alpha_control = (np.sum(a1, axis=1) - 4.0 * x) * sigma
+            beta_control = (np.sum(b1, axis=1) - 4.0 * y) * sigma
+            dTdx_beta = np.sum(
+                -beta_energy * (c1 - c2) - alpha_control[:, None],
+                axis=1,
+            )
+            dTdy_beta = np.sum(
+                -beta_energy * (d1 - d2) - beta_control[:, None],
+                axis=1,
+            )
+            d2Tdx2_beta = np.sum((c1 - c2) ** 2 + 4.0 * sigma[:, None], axis=1)
+            d2Tdy2_beta = np.sum((d1 - d2) ** 2 + 4.0 * sigma[:, None], axis=1)
+            d2Tdxdy_beta = np.sum((c1 - c2) * (d1 - d2), axis=1)
 
-        # loop until convergence
-        iteration = 0
-        while iteration < iterations:
-            iteration += 1
+            dTdx = ca * dTdx_alpha + cb * dTdx_beta
+            dTdy = ca * dTdy_alpha + cb * dTdy_beta
+            d2Tdx2 = ca * d2Tdx2_alpha + cb * d2Tdx2_beta
+            d2Tdy2 = ca * d2Tdy2_alpha + cb * d2Tdy2_beta
+            d2Tdxdy = ca * d2Tdxdy_alpha + cb * d2Tdxdy_beta
 
-            # loop over all stencils (for vertices to be smoothed)
-            for ic, cardinal in enumerate(cardinals):
+            hessian_determinant = d2Tdx2 * d2Tdy2 - d2Tdxdy**2
+            safe_hessian_determinant = np.where(
+                np.abs(hessian_determinant) < self.EPSILON,
+                np.where(hessian_determinant < 0.0, -self.EPSILON, self.EPSILON),
+                hessian_determinant,
+            )
 
-                (x, y) = smoothed_vertices[cardinal]
-                (xold, yold) = smoothed_vertices_old[cardinal]
+            xnew = x - (d2Tdy2 * dTdx - d2Tdxdy * dTdy) / safe_hessian_determinant
+            ynew = y - (d2Tdx2 * dTdy - d2Tdxdy * dTdx) / safe_hessian_determinant
 
-                S, W, E, N, D, EE, F, G = cardinals[cardinal]
+            residual = np.max(np.hypot(xnew - x, ynew - y))
 
-                DEBUG = False
-                if DEBUG and ic == 143:
-                    self.draw_cardinal(S, W, E, N, D, EE, F, G)
-                    # print('ic, cardinal', ic, cardinal)
-                    # print('Stencil', self.stencils[cardinal])
+            previous_vertices[:, :] = current_vertices
+            current_vertices[self.center_indices, 0] = xnew
+            current_vertices[self.center_indices, 1] = ynew
 
-                # calculate position control
-                NS = np.linalg.norm( (S[0] - N[0], S[1] - N[1]) )
-                WE = np.linalg.norm( (E[0] - W[0], E[1] - W[1]) )
-                sigma = np.max((NS/WE, WE/NS))
+            if verbose and self._should_log_iteration(
+                iteration,
+                iterations,
+                log_interval,
+            ):
+                logger.info(f'Iteration={iteration:3d}, residual={residual:.3e}')
 
-                # angles alpha
-                a1 = np.array([S[0], E[0], N[0], W[0]])
-                a2 = np.array([E[0], N[0], W[0], S[0]])
-                b1 = np.array([S[1], E[1], N[1], W[1]])
-                b2 = np.array([E[1], N[1], W[1], S[1]])
-
-                # angles beta
-                c1 = np.array([S[0], S[0], E[0], E[0], N[0], N[0], W[0], W[0]])
-                c2 = np.array([D[0], EE[0], EE[0], F[0], F[0], G[0], G[0], D[0]])
-                d1 = np.array([S[1], S[1], E[1], E[1], N[1], N[1], W[1], W[1]])
-                d2 = np.array([D[1], EE[1], EE[1], F[1], F[1], G[1], G[1], D[1]])
-
-                # derivatives of alpha contributions (including position control)
-                ca = np.sum(omega / ( (a1**2 + b1**2 - 2*a1*xold + xold**2 - 2*b1*yold + yold**2) * \
-                                      (a2**2 + b2**2 - 2*a2*xold + xold**2 - 2*b2*yold + yold**2) + 1.e-9))                
-                dTdx_alpha = np.sum(-(a1*a2 + b1*b2 - a1*x - a2*x + x**2 - b1*y - b2*y + y**2) * \
-                                (a1 + a2 - 2.*x) - (a1 + a1 + a1 + a1 - 4.*x) * sigma)
-                dTdy_alpha = np.sum(-(a1*a2 + b1*b2 - a1*x - a2*x + x**2 - b1*y - b2*y + y**2) * \
-                                (b1 + b2 - 2*y) - (b1 + b1 + b1 + b1 - 4*y)*sigma)
-                d2Tdx2_alpha = np.sum((a1 + a2 - 2*x)**2 + 2*a1*a2 + 2*b1*b2 - 2*a1*x - 2*a2*x + 2*x**2 - \
-                                2*b1*y - 2*b2*y + 2*y**2 + 4*sigma)
-                d2Tdy2_alpha = np.sum(2*a1*a2 + (b1 + b2 - 2*y)**2 + 2*b1*b2 - 2*a1*x - 2*a2*x + 2*x**2 - \
-                                2*b1*y - 2*b2*y + 2*y**2 + 4*sigma)
-                d2Tdxdy_alpha = np.sum((a1 + a2 - 2*x)*(b1 + b2 - 2*y))
-
-                # derivatives of beta contributions (including position control)
-                cb = np.sum(omega / ((c1**2 - 2*c1*c2 + c2**2 + d1**2 - 2*d1*d2 + d2**2) * \
-                                        (c1**2 + d1**2 - 2*c1*xold + xold**2 - 2*d1*yold + yold**2) + 1.e-9))
-                dTdx_beta = np.sum(-(c1**2 - c1*c2 + d1**2 - d1*d2 - c1*x + c2*x - d1*y + d2*y) * (c1 - c2) -\
-                                        (a1[0] + a1[1] + a1[2] + a1[3] - 4.*x)*sigma)
-                dTdy_beta = np.sum(-(c1**2 - c1*c2 + d1**2 - d1*d2 - c1*x + c2*x - d1*y + d2*y) * (d1 - d2) -\
-                                        (b1[0] + b1[1] + b1[2] + b1[3] - 4*y)*sigma)
-                d2Tdx2_beta = np.sum((c1 - c2)**2 + 4*sigma)
-                d2Tdy2_beta = np.sum((d1 - d2)**2 + 4*sigma)
-                d2Tdxdy_beta = np.sum((c1 - c2)*(d1 - d2))
-
-                # compile derivatives of all contributions
-                dTdx = ca * dTdx_alpha + cb * dTdx_beta
-                dTdy = ca * dTdy_alpha + cb * dTdy_beta
-                d2Tdx2 = ca * d2Tdx2_alpha + cb * d2Tdx2_beta
-                d2Tdy2 = ca * d2Tdy2_alpha + cb * d2Tdy2_beta
-                d2Tdxdy = ca * d2Tdxdy_alpha + cb * d2Tdxdy_beta
-
-                # Newton iteration for optimization
-                xnew = x - [d2Tdy2 * dTdx - d2Tdxdy * dTdy] / (d2Tdx2 * d2Tdy2 - (d2Tdxdy)**2)
-                ynew = y - [d2Tdx2 * dTdy - d2Tdxdy * dTdx] / (d2Tdx2 * d2Tdy2 - (d2Tdxdy)**2)
-
-                smoothed_vertices[cardinal] = (float(xnew[0]), float(ynew[0]))
-                smoothed_vertices_old[cardinal] = (x, y)
-
-                tol = np.linalg.norm((xnew[0] - x, ynew[0] - y))
-
-            if verbose:
-                logger.info(f'Iteration={iteration:3d}, residual={tol:.3e}')
-
-            if tol < tolerance:
+            if residual < tolerance:
                 break
 
-            # update current cardinals for next iteration
-            cardinals = self.make_cardinals(smoothed_vertices)
+        return self._as_vertex_list(current_vertices)
 
-        if self.drawlines:
-            self.mw.scene.createItemGroup(self.drawlines)
-
-        return smoothed_vertices
-    
     def mapToUlines(self, smoothed_vertices):
+        if self.block is None:
+            raise ValueError(
+                'mapToUlines() requires initialization with data_source="block".'
+            )
 
-        self.new_ulines = list()
+        vertices = np.asarray(smoothed_vertices, dtype=float)
+        ulines = []
+        vertex_index = 0
 
-        j = -1
         for uline in self.block.getULines():
-            new_uline = list()
-            for i in range(len(uline)):
-                j += 1
-                new_uline.append(smoothed_vertices[j])
+            point_count = len(uline)
+            new_uline = []
+            for offset in range(point_count):
+                x_value, y_value = vertices[vertex_index + offset]
+                new_uline.append((float(x_value), float(y_value)))
+            ulines.append(new_uline)
+            vertex_index += point_count
 
-            self.new_ulines.append(new_uline)
-
-        return self.new_ulines
+        return ulines

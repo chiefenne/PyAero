@@ -31,6 +31,7 @@ import ContourAnalysis
 import ToolBox
 import BatchMode
 import Logger
+import Icons
 
 
 __appname__ = 'PyAero'
@@ -437,6 +438,8 @@ class MainContentArea(QtWidgets.QWidget):
              self.toolbox.toggleMeshBlocks, 'Mesh Blocks'),
             ('Camber', 'airfoil_camber_line_checkbox', False, False,
              self.toolbox.toggleCamberLine, 'Airfoil Camber Line'),
+            ('C Circles', 'airfoil_camber_circles_checkbox', False, False,
+             self.toolbox.toggleCamberCircles, 'Airfoil Camber Inscribed Circles'),
         ]
 
         for index, control in enumerate(controls):
@@ -452,6 +455,10 @@ class MainContentArea(QtWidgets.QWidget):
             setattr(self, attribute_name, button)
             controls_grid.addWidget(button, index // controls_columns, index % controls_columns)
 
+        fit_airfoil_button = self._makeViewerActionButton(
+            'Fit Airfoil',
+            self.parent.slots.fitAirfoilInView,
+        )
         fit_button = self._makeViewerActionButton(
             'Fit View',
             self.parent.slots.onViewAll,
@@ -461,6 +468,12 @@ class MainContentArea(QtWidgets.QWidget):
             self.parent.slots.onBackground,
         )
         action_index = len(controls)
+        controls_grid.addWidget(
+            fit_airfoil_button,
+            action_index // controls_columns,
+            action_index % controls_columns,
+        )
+        action_index += 1
         controls_grid.addWidget(
             fit_button,
             action_index // controls_columns,
@@ -586,16 +599,12 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
 
     # Set icon for the application
-    app_icon = QtGui.QIcon('resources/Icons/app_image.png')
-    for size in [24, 256]:
-        app_icon.addFile(
-            f'resources/Icons/app_image_{size}x{size}.png',
-            QtCore.QSize(size, size),
-        )
+    app_icon = Icons.app_icon()
     app.setWindowIcon(app_icon)
 
     # Window style set in Settings.py
     window = MainWindow(app)
+    window.setWindowIcon(app_icon)
     window.show()
 
     sys.exit(app.exec())

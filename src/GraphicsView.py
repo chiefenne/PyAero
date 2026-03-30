@@ -346,50 +346,44 @@ class GraphicsView(QtWidgets.QGraphicsView):
         if airfoil is None:
             return
 
+        marker_radius = self._markerRadiusInScene()
+        for coordinates, markers in airfoil.markerCollections():
+            self._resizeMarkers(markers, coordinates, marker_radius)
+
+    def _markerRadiusInScene(self):
         current_zoom = self.transform().m11()
-        scale_marker = 1. + 3. * (current_zoom - self.mw.MIN_ZOOM) / (self.mw.MAX_ZOOM - self.mw.MIN_ZOOM)
+        zoom_span = self.mw.MAX_ZOOM - self.mw.MIN_ZOOM
+        if zoom_span == 0.0:
+            scale_marker = 1.0
+        else:
+            scale_marker = 1.0 + 3.0 * (current_zoom - self.mw.MIN_ZOOM) / zoom_span
 
-        # markers are drawn in GraphicsItem using scene coordinates
-        # in order to keep them constant size, also when zooming
-        # a fixed pixel size (MARKER_SIZE from settings) is mapped to
-        # scene coordinates
-        # depending on the zoom, this leads to always different
-        # scene coordinates
-        # map a square with side length of MARKER_SIZE to the scene coords
+        # Markers are drawn in scene coordinates. Map the configured marker size
+        # from view pixels back to the scene so the apparent size stays stable.
+        mapped_marker = self.mapToScene(
+            QtCore.QRect(
+                0,
+                0,
+                self.mw.MARKER_SIZE * scale_marker,
+                self.mw.MARKER_SIZE * scale_marker,
+            )
+        )
+        return mapped_marker.boundingRect().width()
 
-        mappedMarker = self.mapToScene(
-            QtCore.QRect(0, 0, self.mw.MARKER_SIZE*scale_marker, self.mw.MARKER_SIZE*scale_marker))
-        mappedMarkerWidth = mappedMarker.boundingRect().width()
-
-        if airfoil.contourPolygon is not None and airfoil.raw_coordinates is not None:
-            markers = airfoil.polygonMarkers
-            x, y = airfoil.raw_coordinates
-            for i, marker in enumerate(markers):
-                # in case of circle, args is a QRectF
-                marker.args = [QtCore.QRectF(x[i] - mappedMarkerWidth,
-                                             y[i] - mappedMarkerWidth,
-                                             2. * mappedMarkerWidth,
-                                             2. * mappedMarkerWidth)]
-                sync_geometry = getattr(marker, 'syncGeometryFromArgs', None)
-                if callable(sync_geometry):
-                    sync_geometry()
-
-        if (
-            airfoil.has_spline and
-            airfoil.contourSpline is not None and
-            airfoil.spline_data is not None
-        ):
-            markers = airfoil.splineMarkers
-            x, y = airfoil.spline_data[0]
-            for i, marker in enumerate(markers):
-                # in case of circle, args is a QRectF
-                marker.args = [QtCore.QRectF(x[i] - mappedMarkerWidth,
-                                             y[i] - mappedMarkerWidth,
-                                             2. * mappedMarkerWidth,
-                                             2. * mappedMarkerWidth)]
-                sync_geometry = getattr(marker, 'syncGeometryFromArgs', None)
-                if callable(sync_geometry):
-                    sync_geometry()
+    def _resizeMarkers(self, markers, coordinates, marker_radius):
+        x_values, y_values = coordinates
+        for marker, x_value, y_value in zip(markers, x_values, y_values):
+            marker.args = [
+                QtCore.QRectF(
+                    x_value - marker_radius,
+                    y_value - marker_radius,
+                    2.0 * marker_radius,
+                    2.0 * marker_radius,
+                )
+            ]
+            sync_geometry = getattr(marker, 'syncGeometryFromArgs', None)
+            if callable(sync_geometry):
+                sync_geometry()
 
     def getSceneFromView(self):
         """Cache view to be able to keep it during resize"""

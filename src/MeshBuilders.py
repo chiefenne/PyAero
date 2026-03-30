@@ -4,7 +4,6 @@ import copy
 from dataclasses import dataclass
 
 import numpy as np
-from scipy import interpolate
 
 
 def _to_point_tuple(point) -> tuple[float, float]:
@@ -36,8 +35,14 @@ class TunnelBlockSettings:
     height_growth: float = 10.0
     distribution: str = 'symmetric'
     smoothing_algorithm: str = 'simple'
-    smoothing_iterations: int = 10
-    smoothing_tolerance: float = 1.0e-3
+    smoothing_iterations: int = 100
+    smoothing_tolerance: float = 1.0e-5
+    outer_boundary_slide: float = 1.0
+    elliptic_relaxation: float = 1.0
+    protected_guide_relaxation: float = 0.25
+    protected_guide_layers: int = 8
+    protected_guide_decay: float = 0.2
+    protected_guide_smoothing: int = 15
 
 
 @dataclass(slots=True)
@@ -54,6 +59,9 @@ class LegacyBlockMeshBuilder:
 
     c_curve_segment_samples = 10
     c_curve_arc_samples = 200
+    c_curve_segment_blend = 0.2
+    c_curve_min_leg_fraction = 0.08
+    c_curve_bias_exponent = 1.35
     side_transition_span = 30
     chord_length = 1.0
 
@@ -107,10 +115,11 @@ class LegacyBlockMeshBuilder:
         if airfoil_block is None or trailing_edge_block is None:
             raise ValueError('Airfoil and trailing edge blocks are required before building the tunnel block.')
 
-        inner_line = self._compose_tunnel_inner_line(
+        inner_segments = self._compose_tunnel_inner_segments(
             trailing_edge_block,
             airfoil_block,
         )
+        inner_line = self._compose_tunnel_inner_line(inner_segments)
         block = self.block_mesh_cls(name=settings.name)
         block.addLine(inner_line)
         block.addLine(
@@ -118,6 +127,7 @@ class LegacyBlockMeshBuilder:
                 inner_line=inner_line,
                 tunnel_height=settings.tunnel_height,
                 distribution=settings.distribution,
+                segment_lengths=tuple(len(segment) for segment in inner_segments),
             )
         )
 
@@ -159,6 +169,9 @@ class LegacyBlockMeshBuilder:
             blended_block.addLine(uline)
 
         self._apply_tunnel_side_interpolation(blended_block)
+
+        if settings.smoothing_algorithm.strip().lower() == 'elliptic':
+            return blended_block
 
         smoother = self.create_smoother(settings.smoothing_algorithm)
         return smoother.smooth(
@@ -257,43 +270,134 @@ class LegacyBlockMeshBuilder:
             line += first[1:]
         return line
 
-    def _compose_tunnel_inner_line(self, trailing_edge_block, airfoil_block):
-        line = copy.deepcopy(trailing_edge_block.getVLines()[-1])
-        line.reverse()
+    def _compose_tunnel_inner_segments(self, trailing_edge_block, airfoil_block):
+        upper = copy.deepcopy(trailing_edge_block.getVLines()[-1])
+        upper.reverse()
+        middle = copy.deepcopy(airfoil_block.getULines()[-1])
+        lower = copy.deepcopy(trailing_edge_block.getVLines()[0])
+        return upper, middle, lower
+
+    def _compose_tunnel_inner_line(self, segments):
+        upper, middle, lower = segments
+        line = copy.deepcopy(upper)
         del line[-1]
-        line += copy.deepcopy(airfoil_block.getULines()[-1])
+        line += copy.deepcopy(middle)
         del line[-1]
-        line += copy.deepcopy(trailing_edge_block.getVLines()[0])
+        line += copy.deepcopy(lower)
         return line
 
     def _build_tunnel_outer_curve(self, inner_line, tunnel_height: float,
-                                  distribution: str):
+                                  distribution: str, segment_lengths=None):
         p1 = np.array((inner_line[0][0], tunnel_height), dtype=float)
         p2 = np.array((0.0, tunnel_height), dtype=float)
         p3 = np.array((0.0, -tunnel_height), dtype=float)
         p4 = np.array((inner_line[-1][0], -tunnel_height), dtype=float)
 
-        line = self._sample_segment(
-            p1, p2, self.c_curve_segment_samples, include_last=False
+        if segment_lengths is None:
+            upper_points = self.c_curve_segment_samples
+            arc_points = self.c_curve_arc_samples
+            lower_points = self.c_curve_segment_samples
+        else:
+            upper_points, arc_points, lower_points = \
+                self._outer_curve_segment_point_counts(
+                    p1,
+                    p2,
+                    p3,
+                    p4,
+                    segment_lengths,
+                    tunnel_height,
+                )
+
+        line = self._sample_segment_point_count(
+            p1,
+            p2,
+            upper_points,
+            include_last=False,
         )
-        line += self._sample_half_circle(
+        line += self._sample_half_circle_point_count(
             radius=tunnel_height,
             start_degrees=90.0,
             end_degrees=270.0,
-            samples=self.c_curve_arc_samples,
+            count=arc_points,
             include_last=False,
+            distribution=distribution,
         )
-        line += self._sample_segment(
-            p3, p4, self.c_curve_segment_samples, include_last=True
+        line += self._sample_segment_point_count(
+            p3,
+            p4,
+            lower_points,
+            include_last=True,
+        )
+        return line
+
+    def _outer_curve_segment_point_counts(self, p1, p2, p3, p4,
+                                          segment_lengths, tunnel_height):
+        legacy_counts = np.array(
+            [
+                max(1, int(segment_lengths[0]) - 1),
+                max(1, int(segment_lengths[1]) - 1),
+                max(1, int(segment_lengths[2])),
+            ],
+            dtype=float,
+        )
+        total_points = int(np.sum(legacy_counts))
+
+        geometric_lengths = np.array(
+            [
+                np.linalg.norm(p2 - p1),
+                np.pi * float(tunnel_height),
+                np.linalg.norm(p4 - p3),
+            ],
+            dtype=float,
+        )
+        geometric_total = float(np.sum(geometric_lengths))
+        if geometric_total > 0.0:
+            geometric_counts = (
+                geometric_lengths / geometric_total * float(total_points)
+            )
+        else:
+            geometric_counts = np.array(legacy_counts, copy=True)
+
+        blend = float(np.clip(self.c_curve_segment_blend, 0.0, 1.0))
+        target_counts = (
+            (1.0 - blend) * legacy_counts +
+            blend * geometric_counts
         )
 
-        curve = np.asarray(line, dtype=float)
-        tck, _ = interpolate.splprep(curve.T, s=0, k=1)
-        lower, upper = self._distribution_interval(distribution)
-        xx = np.linspace(lower, upper, len(inner_line))
-        t = (np.tanh(xx) + 1.0) / 2.0
-        xs, ys = interpolate.splev(t, tck, der=0)
-        return [_to_point_tuple(point) for point in zip(xs, ys)]
+        minimum_leg = max(
+            4,
+            int(round(self.c_curve_min_leg_fraction * float(total_points))),
+        )
+        minimum_counts = np.array([minimum_leg, 8, minimum_leg], dtype=int)
+        if np.sum(minimum_counts) > total_points:
+            minimum_counts = np.array([1, 1, 1], dtype=int)
+
+        counts = np.maximum(
+            minimum_counts,
+            np.floor(target_counts).astype(int),
+        )
+        difference = total_points - int(np.sum(counts))
+
+        if difference > 0:
+            fractions = target_counts - np.floor(target_counts)
+            order = np.argsort(fractions)[::-1]
+            index = 0
+            while difference > 0:
+                counts[order[index % len(order)]] += 1
+                difference -= 1
+                index += 1
+        elif difference < 0:
+            fractions = target_counts - np.floor(target_counts)
+            order = np.argsort(fractions)
+            index = 0
+            while difference < 0:
+                candidate = order[index % len(order)]
+                if counts[candidate] > minimum_counts[candidate]:
+                    counts[candidate] -= 1
+                    difference += 1
+                index += 1
+
+        return tuple(int(value) for value in counts)
 
     def _blend_tunnel_lines(self, block):
         old_ulines = copy.deepcopy(block.getULines())
@@ -381,6 +485,19 @@ class LegacyBlockMeshBuilder:
         return points
 
     @staticmethod
+    def _sample_segment_point_count(start, end, count: int, include_last: bool):
+        count = max(0, int(count))
+        if count == 0:
+            return []
+
+        parameters = np.linspace(0.0, 1.0, count + (0 if include_last else 1))
+        if not include_last:
+            parameters = parameters[:-1]
+
+        vector = end - start
+        return [_to_point_tuple(start + parameter * vector) for parameter in parameters]
+
+    @staticmethod
     def _sample_half_circle(radius: float, start_degrees: float,
                             end_degrees: float, samples: int,
                             include_last: bool):
@@ -396,3 +513,41 @@ class LegacyBlockMeshBuilder:
         if not include_last and points:
             points.pop()
         return points
+
+    @classmethod
+    def _sample_half_circle_point_count(cls, radius: float, start_degrees: float,
+                                        end_degrees: float, count: int,
+                                        include_last: bool, distribution: str):
+        count = max(0, int(count))
+        if count == 0:
+            return []
+
+        parameters = np.linspace(0.0, 1.0, count + (0 if include_last else 1))
+        if not include_last:
+            parameters = parameters[:-1]
+
+        parameters = cls._apply_arc_distribution(parameters, distribution)
+
+        angles = start_degrees + parameters * (end_degrees - start_degrees)
+        points = []
+        for angle in angles:
+            radians = np.radians(angle)
+            points.append(
+                (
+                    float(radius * np.cos(radians)),
+                    float(radius * np.sin(radians)),
+                )
+            )
+        return points
+
+    @classmethod
+    def _apply_arc_distribution(cls, parameters, distribution: str):
+        parameters = np.asarray(parameters, dtype=float)
+        distribution = str(distribution).strip().lower()
+        exponent = max(1.0, float(cls.c_curve_bias_exponent))
+
+        if distribution == 'upper':
+            return parameters**exponent
+        if distribution == 'lower':
+            return 1.0 - (1.0 - parameters)**exponent
+        return parameters

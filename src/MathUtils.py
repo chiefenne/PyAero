@@ -168,24 +168,42 @@ class VectorUtils:
     @staticmethod
     def vector_length(vector):
         """ Returns the length of the vector.  """
-        return np.linalg.norm(vector)
+        return np.linalg.norm(np.asarray(vector, dtype=float), axis=-1)
 
     @staticmethod
     def unit_vector(vector):
-        """ Returns the unit vector of the vector.  """
-        return vector / np.linalg.norm(vector)
+        """Return a normalized vector.
+
+        Zero-length vectors are mapped to zeros instead of returning NaNs.
+        Supports both single vectors and batched vectors along the last axis.
+        """
+        vector = np.asarray(vector, dtype=float)
+        norms = np.linalg.norm(vector, axis=-1, keepdims=True)
+        return np.divide(
+            vector,
+            norms,
+            out=np.zeros_like(vector, dtype=float),
+            where=norms > 0.0,
+        )
 
     @staticmethod
     def angle_between(a, b, degree=False):
         """Returns the angle between
         vectors 'a' and 'b'
         """
-        a = np.array(a)
-        b = np.array(b)
+        a = np.asarray(a, dtype=float)
+        b = np.asarray(b, dtype=float)
+        a, b = np.broadcast_arrays(a, b)
 
-        a_u = VectorUtils.unit_vector(a)
-        b_u = VectorUtils.unit_vector(b)
-        angle = np.arccos(np.clip(np.dot(a_u, b_u), -1.0, 1.0))
+        dot_product = np.sum(a * b, axis=-1)
+        norms = VectorUtils.vector_length(a) * VectorUtils.vector_length(b)
+        cosine = np.divide(
+            dot_product,
+            norms,
+            out=np.ones_like(dot_product, dtype=float),
+            where=norms > 0.0,
+        )
+        angle = np.arccos(np.clip(cosine, -1.0, 1.0))
         if degree:
             angle *= 180.0 / np.pi
         return angle

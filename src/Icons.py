@@ -4,6 +4,7 @@ from PySide6 import QtCore, QtGui
 
 
 ICON_ROOT = Path(__file__).resolve().parent.parent / 'resources' / 'Icons'
+APP_ICON_FILE = 'app_image.svg'
 PREVIEW_SIZES = (16, 20, 24, 32)
 
 
@@ -88,6 +89,14 @@ def icon(name):
     if not icon_path:
         return QtGui.QIcon()
     return QtGui.QIcon(icon_path)
+
+
+def app_icon_path():
+    return path(APP_ICON_FILE)
+
+
+def app_icon():
+    return QtGui.QIcon(app_icon_path())
 
 
 def pixmap(name, size):

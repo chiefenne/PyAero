@@ -22,7 +22,7 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
         # get MainWindow instance (overcomes handling parents)
         self.mw = get_main_window()
 
-        self.scene = self.mw.scene
+        self.graphics_scene = self.mw.scene
 
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
@@ -60,7 +60,7 @@ class GraphicsItem(QtWidgets.QGraphicsItem):
     def mousePressEvent(self, event):
 
         # set item as topmost in stack
-        # zstack = [itm.zValue() for itm in self.scene.items()]
+        # zstack = [itm.zValue() for itm in self.graphics_scene.items()]
         # zmax = max(zstack)
         # self.setZValue(zmax + 1)
 

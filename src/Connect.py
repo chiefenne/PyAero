@@ -1,25 +1,26 @@
+from __future__ import annotations
+
 import os
-import copy
 
 import numpy as np
 from scipy import spatial
 
-from PySide6 import QtCore, QtGui
-
-import GraphicsItemsCollection as gic
-import GraphicsItem
-from Utils import get_main_window
-
-
 class Connect:
     """Merge structured mesh blocks into a single vertex/connectivity set."""
 
-    def __init__(self, progdialog):
+    MERGE_RADIUS = 1.0e-6
 
-        # get MainWindow instance (overcomes handling parents)
-        self.mw = get_main_window()
-
+    def __init__(self, progdialog=None, progress_callback=None):
         self.progdialog = progdialog
+        self.progress_callback = progress_callback
+        if self.progress_callback is None and progdialog is not None:
+            callback = getattr(progdialog, 'setValue', None)
+            if callable(callback):
+                self.progress_callback = callback
+
+    def _setProgress(self, value):
+        if self.progress_callback is not None:
+            self.progress_callback(value)
 
     def getVertices(self, block):
         """Make a list of point tuples from a BlockMesh object
@@ -66,6 +67,7 @@ class Connect:
         pairs = tree.query_pairs(radius, p=2., eps=0)
         return pairs
 
+    @staticmethod
     def getNearestNeighboursBiDirectional(d1, d2, radius=1.e-6):
         """Get matching point indices between two point sets within ``radius``."""
         tree_1 = spatial.cKDTree(d1)
@@ -108,97 +110,91 @@ class Connect:
         if shift == 0:
             return connectivity
 
-        connectivity_shifted = list()
-        for cell in connectivity:
-            new_cell = [vertex + shift for vertex in cell]
-            connectivity_shifted.append(new_cell)
+        return [
+            tuple(vertex + shift for vertex in cell)
+            for cell in connectivity
+        ]
 
-        return connectivity_shifted
+    def _collectBlocks(self, blocks):
+        vertices = []
+        connectivity = []
+
+        for block in blocks:
+            shift = len(vertices)
+            vertices.extend(self.getVertices(block))
+            connectivity.extend(
+                self.shiftConnectivity(self.getConnectivity(block), shift)
+            )
+
+        return vertices, connectivity
+
+    def _mergeConnectivity(self, vertices, connectivity):
+        vertex_and_neighbours = self.getNearestNeighbours(
+            vertices,
+            vertices,
+            radius=self.MERGE_RADIUS,
+        )
+        connectivity_connected = [
+            [min(vertex_and_neighbours[node]) for node in cell]
+            for cell in connectivity
+        ]
+
+        return np.asarray(connectivity), np.asarray(connectivity_connected)
+
+    def _compactConnectivity(self, vertices, unconnected, connected):
+        deleted_nodes = np.unique(unconnected[np.where(connected != unconnected)])
+
+        if deleted_nodes.size:
+            keep_mask = np.ones(len(vertices), dtype=bool)
+            keep_mask[deleted_nodes] = False
+            vertices_clean = [
+                vertex for vertex, keep in zip(vertices, keep_mask) if keep
+            ]
+        else:
+            vertices_clean = list(vertices)
+
+        remaining_nodes = np.setdiff1d(np.unique(connected), deleted_nodes)
+        mapping = {node: index for index, node in enumerate(remaining_nodes)}
+        mapping_keys = np.array(list(mapping.keys()))
+        mapping_values = np.array(list(mapping.values()))
+        mapping_array = np.zeros(mapping_keys.max() + 1, dtype=mapping_values.dtype)
+        mapping_array[mapping_keys] = mapping_values
+        connectivity_clean = mapping_array[connected]
+
+        return vertices_clean, connectivity_clean, deleted_nodes
 
     def connectAllBlocks(self, blocks):
 
+        if not blocks:
+            return [], np.empty((0, 4), dtype=int)
+
         # compile global vertex list and cell connectivity from all blocks
-        vertices = list()
-        connectivity = list()
+        vertices, connectivity = self._collectBlocks(blocks)
 
-        for i, block in enumerate(blocks):
-
-            # accumulated number of vertices
-            # for i = 0 shift is automatically 0
-            # so the connectivity of the first block doesn't get shifted
-            # thus, this variable must be set before 'vertices += ...'
-            shift = len(vertices)
-
-            # concatenate vertices of all blocks
-            # vertices += [vertex for vertex in self.getVertices(block)]
-            vertices += self.getVertices(block)
-
-            # shift the block connectivity by accumulated number of vertices
-            # from all blocks before this one
-            connectivity_block = \
-                self.shiftConnectivity(self.getConnectivity(block), shift)
-            connectivity += [tuple(cell) for cell in connectivity_block]
-
-        if self.progdialog:
-            self.progdialog.setValue(80)
+        self._setProgress(80)
 
         # BlockMesh stores vertices as plain 2D float tuples, so connectivity
         # merging can work directly on the collected point data.
-        # search vertices of all blocks against themselves
-        # finds itself AND multiple connections (i.e. vertices from neighbour blocks)
-        # uses Scipy kd-tree for quick nearest-neighbor lookup
-        # the distance tolerance is specified via the radius variable
-        vertex_and_neighbours = self.getNearestNeighbours(vertices,
-                                                          vertices,
-                                                          radius=1.e-6)
+        unconnected, connected = self._mergeConnectivity(vertices, connectivity)
+        vertices_clean, connectivity_clean, deleted_nodes = self._compactConnectivity(
+            vertices,
+            unconnected,
+            connected,
+        )
 
-        # substitute vertex ids in connectivity at block connections
-        connectivity_connected = list()
-        for cell in connectivity:
-            cell_new = list()
-            for node in cell:
-                # if there is only one vertex in vertex_and_neighbours,
-                # then it is taken as it is
-                # if there is more than one vertex,
-                # then the minimum vertex index is used
-                # so a few vertices remain unused and need to be removed later
-                node_new = min(vertex_and_neighbours[node])
-                cell_new.append(node_new)
-            connectivity_connected.append(cell_new)
-
-        # use numpy arrays
-        unconnected = np.array(connectivity)
-        connected = np.array(connectivity_connected)
-
-        # deleted nodes
-        deleted_nodes = np.unique(unconnected[np.where(connected != unconnected)])
-
-        # delete unused vertices
-        vertices_clean = [v for i,v in enumerate(vertices)
-                        if i not in sorted(deleted_nodes.tolist())]
-
-        # find remaining node ids
-        remaining_nodes = np.setdiff1d(np.unique(connected), deleted_nodes)
-
-        # replace node ids so that a contiguous numbering is established
-        # divakar, method 3 (https://stackoverflow.com/a/55950051/2264936)
-        mapping = {rn:i for i, rn in enumerate(remaining_nodes)}
-        k = np.array(list(mapping.keys()))
-        v = np.array(list(mapping.values()))
-        mapping_ar = np.zeros(k.max()+1,dtype=v.dtype)
-        mapping_ar[k] = v
-        connectivity_clean = mapping_ar[connected]
-
-        if self.progdialog:
-            self.progdialog.setValue(90)
+        self._setProgress(90)
 
         # DEBUGGING
         # self.write_debug(unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean)
         # self.draw_connectivity(vertices, deleted_nodes)
 
-        return (vertices_clean, connectivity_clean, self.progdialog)
+        return vertices_clean, connectivity_clean
 
-    def draw_connectivity(self, vertices, deleted_nodes):
+    def draw_connectivity(self, vertices, deleted_nodes, scene):
+        from PySide6 import QtGui
+
+        import GraphicsItemsCollection as gic
+        import GraphicsItem
 
         self.connections = list()
 
@@ -217,10 +213,10 @@ class Connect:
             self.connections.append(marker_item)
             
         # add to the scene
-        self.connections = self.mw.scene. \
-            createItemGroup(self.connections)
+        self.connections = scene.createItemGroup(self.connections)
 
-    def write_debug(self, unconnected, connected, deleted_nodes, vertices, vertices_clean, connectivity_clean):
+    def write_debug(self, unconnected, connected, deleted_nodes, vertices,
+                    vertices_clean, connectivity_clean):
         debug_data = {
             'unconnected': unconnected,
             'connected': connected,
@@ -234,5 +230,6 @@ class Connect:
         os.makedirs(folder, exist_ok=True)
 
         for name, data in debug_data.items():
-            with open(os.path.join(folder, f'{name}.txt'), 'w') as f:
+            with open(os.path.join(folder, f'{name}.txt'), 'w',
+                      encoding='utf-8') as f:
                 f.writelines(f'{item}\n' for item in data)

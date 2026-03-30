@@ -100,10 +100,16 @@ class Batch:
                                     ex=te['Lower blending polynomial exponent'],
                                     thickness=te['Trailing edge thickness relative to chord'],
                                     side='lower')
+
+                rebuilt = refine.rebuildSplineData(
+                    self.app.mainwindow.airfoil.spline_data.coordinates
+                )
+                if rebuilt is not None:
+                    self.app.mainwindow.airfoil.spline_data = rebuilt
             
             # make mesh
             wind_tunnel = Meshing.Windtunnel()
-            contour = self.app.mainwindow.airfoil.spline_data[0]
+            contour = self.app.mainwindow.airfoil.spline_data.coordinates
 
             # mesh around airfoil
             acm = self.batch_control['Airfoil contour mesh']
@@ -142,7 +148,7 @@ class Batch:
             
             # connect mesh blocks
             connect = Connect.Connect(None)
-            vertices, connectivity, _ = connect.connectAllBlocks(wind_tunnel.blocks)
+            vertices, connectivity = connect.connectAllBlocks(wind_tunnel.blocks)
 
             wind_tunnel.setMesh(vertices, connectivity)
             wind_tunnel.publishMeshArtifacts(airfoil=self.airfoil)

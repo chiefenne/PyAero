@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QPushButton
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 from PySide6.QtGui import QPainter
 
+from ContourData import CurvatureData
 from Utils import get_main_window
 import logging
 logger = logging.getLogger(__name__)
@@ -104,31 +105,55 @@ class ContourAnalysis(QFrame):
                    curvature circle centers for each point of the curve
         """
 
-        coo = spline_data[0]
-        der1 = spline_data[3]
-        der2 = spline_data[4]
+        xd, yd = spline_data.first_derivative
+        x2d, y2d = spline_data.second_derivative
+        speed_squared = xd**2 + yd**2
+        curvature_numerator = xd * y2d - yd * x2d
+        speed = np.sqrt(speed_squared)
+        curvature_denominator = speed_squared**(3.0 / 2.0)
 
-        xd = der1[0]
-        yd = der1[1]
-        x2d = der2[0]
-        y2d = der2[1]
-        n = xd**2 + yd**2
-        d = xd*y2d - yd*x2d
+        with np.errstate(divide='ignore', invalid='ignore'):
+            gradient = np.divide(
+                yd,
+                xd,
+                out=np.full_like(yd, np.inf, dtype=float),
+                where=xd != 0.0,
+            )
+            radius = np.divide(
+                curvature_denominator,
+                np.abs(curvature_numerator),
+                out=np.full_like(curvature_numerator, np.inf, dtype=float),
+                where=curvature_numerator != 0.0,
+            )
+            curvature = np.divide(
+                curvature_numerator,
+                curvature_denominator,
+                out=np.zeros_like(curvature_numerator, dtype=float),
+                where=curvature_denominator != 0.0,
+            )
+            normal_x = np.divide(
+                yd,
+                speed,
+                out=np.zeros_like(yd, dtype=float),
+                where=speed != 0.0,
+            )
+            normal_y = np.divide(
+                xd,
+                speed,
+                out=np.zeros_like(xd, dtype=float),
+                where=speed != 0.0,
+            )
 
-        # gradient dy/dx = dy/du / dx/du
-        gradient = der1[1] / der1[0]
+        center_x = spline_data.coordinates[0] - radius * normal_x
+        center_y = spline_data.coordinates[1] + radius * normal_y
 
-        # radius of curvature
-        R = n**(3./2.) / abs(d)
-
-        # curvature
-        C = d / n**(3./2.)
-
-        # coordinates of curvature-circle center points
-        xc = coo[0] - R * yd / np.sqrt(n)
-        yc = coo[1] + R * xd / np.sqrt(n)
-
-        return [gradient, C, R, xc, yc]
+        return CurvatureData(
+            gradient=gradient,
+            curvature=curvature,
+            radius=radius,
+            center_x=center_x,
+            center_y=center_y,
+        )
 
     @staticmethod
     def getLeRadius(spline_data, curvature_data):
@@ -140,17 +165,13 @@ class ContourAnalysis(QFrame):
             point and id
         """
 
-        radius = curvature_data[2]
-        rc = np.min(radius)
-        # numpy where returns a tuple
-        # we take the first element, which is type array
-        le_id = np.where(radius == rc)[0]
-        # convert the numpy array to a list and take the first element
-        le_id = le_id.tolist()[0]
+        radius = curvature_data.radius
+        le_id = int(np.argmin(radius))
+        rc = radius[le_id]
         # leading edge curvature circle center
-        xc = curvature_data[3][le_id]
-        yc = curvature_data[4][le_id]
-        xr, yr = spline_data[0]
+        xc = curvature_data.center_x[le_id]
+        yc = curvature_data.center_y[le_id]
+        xr, yr = spline_data.coordinates
         xle = xr[le_id]
         yle = yr[le_id]
 
@@ -177,10 +198,11 @@ class ContourAnalysis(QFrame):
         spline_data = self.mw.airfoil.spline_data
         curvature_data = self.mw.airfoil.curvature_data
 
-        selector = {'gradient': 0, 'curvature': 1, 'radius': 2}
-
-        points = [QtCore.QPointF(x, y) for x, y in zip(spline_data[0][0],
-            curvature_data[selector[quantity]])]
+        series = curvature_data.series(quantity)
+        points = [
+            QtCore.QPointF(x, y)
+            for x, y in zip(spline_data.coordinates[0], series)
+        ]
 
         self.lineSeries = QLineSeries()
         self.lineSeries.append(points)

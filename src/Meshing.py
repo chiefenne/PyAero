@@ -12,6 +12,7 @@ import Mesh as MeshModel
 import MeshGraphics
 import MeshBuilders
 import Connect
+from Elliptic import BoundaryGuide, SlidingBoundary, EllipticSolver
 from Smoother import SmootherFactory
 from Utils import get_main_window
 from MathUtils import VectorUtils
@@ -230,7 +231,13 @@ class Windtunnel:
                    ratio_height=10.0, dist='symmetric',
                    smoothing_algorithm='simple',
                    smoothing_iterations=10,
-                   smoothing_tolerance=1e-3):
+                   smoothing_tolerance=1e-3,
+                   outer_boundary_slide=0.0,
+                   elliptic_relaxation=0.2,
+                   protected_guide_relaxation=0.25,
+                   protected_guide_layers=5,
+                   protected_guide_decay=0.8,
+                   protected_guide_smoothing=3):
         settings = MeshBuilders.TunnelBlockSettings(
             name=name,
             tunnel_height=tunnel_height,
@@ -240,14 +247,180 @@ class Windtunnel:
             smoothing_algorithm=smoothing_algorithm,
             smoothing_iterations=smoothing_iterations,
             smoothing_tolerance=smoothing_tolerance,
+            outer_boundary_slide=outer_boundary_slide,
+            elliptic_relaxation=elliptic_relaxation,
+            protected_guide_relaxation=protected_guide_relaxation,
+            protected_guide_layers=protected_guide_layers,
+            protected_guide_decay=protected_guide_decay,
+            protected_guide_smoothing=protected_guide_smoothing,
         )
         block = self.getBlockBuilder().build_tunnel_block(
             self.block_airfoil,
             self.block_te,
             settings,
         )
+        if settings.smoothing_algorithm.strip().lower() == 'elliptic':
+            block = self._smoothProtectedTunnelBlock(block, settings)
         self.tunnel_height = settings.tunnel_height
         return self.registerBlock('block_tunnel', block)
+
+    @staticmethod
+    def _concatenateInterfaceSegments(*segments):
+        arrays = []
+        for index, segment in enumerate(segments):
+            coordinates = np.asarray(segment, dtype=float)
+            if coordinates.ndim != 2 or coordinates.shape[1] != 2:
+                raise ValueError('Expected interface segments with 2D coordinates.')
+            if index < len(segments) - 1:
+                coordinates = coordinates[:-1]
+            if len(coordinates):
+                arrays.append(coordinates)
+
+        if not arrays:
+            return np.empty((0, 2), dtype=float)
+        return np.vstack(arrays)
+
+    def _protectedTunnelBoundaryGuide(self):
+        if self.block_airfoil is None or self.block_te is None:
+            raise ValueError('Protected tunnel smoothing requires airfoil and trailing edge blocks.')
+
+        airfoil_ulines = self.block_airfoil.getULines()
+        trailing_edge_vlines = self.block_te.getVLines()
+
+        if len(airfoil_ulines) < 2:
+            raise ValueError('Airfoil block must contain at least two u-lines for protected tunnel smoothing.')
+        if len(trailing_edge_vlines) < 3:
+            raise ValueError('Trailing edge block must contain at least three v-lines for protected tunnel smoothing.')
+
+        boundary_line = self._concatenateInterfaceSegments(
+            trailing_edge_vlines[-1][::-1],
+            airfoil_ulines[-1],
+            trailing_edge_vlines[0],
+        )
+        adjacent_line = self._concatenateInterfaceSegments(
+            trailing_edge_vlines[-2][::-1],
+            airfoil_ulines[-2],
+            trailing_edge_vlines[1],
+        )
+
+        if boundary_line.shape != adjacent_line.shape:
+            raise ValueError(
+                'Protected tunnel interface lines must have matching shapes.'
+            )
+
+        return boundary_line, boundary_line - adjacent_line
+
+    @staticmethod
+    def _smoothInterfaceProfile(values, passes):
+        profile = np.asarray(values, dtype=float)
+        passes = max(0, int(passes))
+        if profile.ndim != 1 or profile.size < 3 or passes == 0:
+            return np.array(profile, copy=True, dtype=float)
+
+        smoothed = np.array(profile, copy=True, dtype=float)
+        for _ in range(passes):
+            updated = np.array(smoothed, copy=True, dtype=float)
+            updated[1:-1] = (
+                0.25 * smoothed[:-2] +
+                0.50 * smoothed[1:-1] +
+                0.25 * smoothed[2:]
+            )
+            smoothed = updated
+
+        return smoothed
+
+    def _protectedTunnelGuideProfile(self, tunnel_block, boundary_line, guide_vectors,
+                                     settings):
+        normals = EllipticSolver.curveNormals(boundary_line[:, 0], boundary_line[:, 1])
+        normal_strength = np.sum(guide_vectors * normals, axis=1)
+        normal_strength = self._smoothInterfaceProfile(
+            normal_strength,
+            settings.protected_guide_smoothing,
+        )
+        projected_vectors = normal_strength[:, None] * normals
+
+        tunnel_ulines = tunnel_block.getULines()
+        interior_layers = max(0, len(tunnel_ulines) - 2)
+        layer_count = min(
+            max(1, int(settings.protected_guide_layers)),
+            interior_layers,
+        )
+        if layer_count <= 0:
+            return projected_vectors, None
+
+        first_offsets = np.asarray(tunnel_ulines[1], dtype=float) - boundary_line
+        first_normal_strength = np.sum(first_offsets * normals, axis=1)
+        fallback_scale = np.ones_like(first_normal_strength)
+
+        scale_factors = []
+        for layer_index in range(1, layer_count + 1):
+            offsets = np.asarray(tunnel_ulines[layer_index], dtype=float) - boundary_line
+            layer_normal_strength = np.sum(offsets * normals, axis=1)
+            scale = np.divide(
+                layer_normal_strength,
+                first_normal_strength,
+                out=np.array(fallback_scale * float(layer_index), copy=True),
+                where=np.abs(first_normal_strength) > 1.0e-10,
+            )
+            scale = np.maximum(scale, 0.0)
+            scale = self._smoothInterfaceProfile(
+                scale,
+                max(0, settings.protected_guide_smoothing - 1),
+            )
+            scale_factors.append(scale)
+
+        return projected_vectors, np.asarray(scale_factors, dtype=float)
+
+    def _smoothProtectedTunnelBlock(self, tunnel_block, settings):
+        boundary_line, guide_vectors = self._protectedTunnelBoundaryGuide()
+        tunnel_inner_line = np.asarray(tunnel_block.getULines()[0], dtype=float)
+
+        if tunnel_inner_line.shape != boundary_line.shape:
+            raise ValueError(
+                'Tunnel block inner boundary does not match the protected interface layout.'
+            )
+        if not np.allclose(tunnel_inner_line, boundary_line):
+            raise ValueError(
+                'Tunnel block inner boundary coordinates do not match the protected interface coordinates.'
+            )
+        projected_vectors, layer_scale_factors = self._protectedTunnelGuideProfile(
+            tunnel_block,
+            boundary_line,
+            guide_vectors,
+            settings,
+        )
+
+        boundary_guides = {
+            'bottom': BoundaryGuide(
+                target_vectors=projected_vectors,
+                relaxation=settings.protected_guide_relaxation,
+                layers=settings.protected_guide_layers,
+                decay=settings.protected_guide_decay,
+                layer_scale_factors=layer_scale_factors,
+            ),
+        }
+        sliding_boundaries = None
+        if settings.outer_boundary_slide > 0.0:
+            outer_geometry = np.asarray(tunnel_block.getULines()[-1], dtype=float)
+            sliding_boundaries = {
+                'top': SlidingBoundary(
+                    geometry=outer_geometry,
+                    relaxation=float(np.clip(settings.outer_boundary_slide, 0.0, 1.0)),
+                    control_origins=boundary_line,
+                    control_directions=projected_vectors,
+                    control_segment='c_arc',
+                ),
+            }
+
+        smoother = SmootherFactory.create_smoother('elliptic')
+        return smoother.smooth(
+            tunnel_block,
+            iterations=settings.smoothing_iterations,
+            tolerance=settings.smoothing_tolerance,
+            boundary_guides=boundary_guides,
+            sliding_boundaries=sliding_boundaries,
+            relaxation=settings.elliptic_relaxation,
+        )
 
     def TunnelMeshWake(self, name='', tunnel_wake=2.0,
                        divisions=100, ratio=0.1, spread=0.4):
@@ -281,7 +454,7 @@ class Windtunnel:
         self.block_tunnel_wake = None
         self.tunnel_height = None
 
-        contour = airfoil.spline_data[0]
+        contour = airfoil.spline_data.coordinates
 
         # delete blocks outline if existing
         # because a new one will be generated
@@ -335,6 +508,12 @@ class Windtunnel:
             smoothing_algorithm=settings.tunnel.smoothing_algorithm,
             smoothing_iterations=settings.tunnel.smoothing_iterations,
             smoothing_tolerance=settings.tunnel.smoothing_tolerance,
+            outer_boundary_slide=settings.tunnel.outer_boundary_slide,
+            elliptic_relaxation=settings.tunnel.elliptic_relaxation,
+            protected_guide_relaxation=settings.tunnel.protected_guide_relaxation,
+            protected_guide_layers=settings.tunnel.protected_guide_layers,
+            protected_guide_decay=settings.tunnel.protected_guide_decay,
+            protected_guide_smoothing=settings.tunnel.protected_guide_smoothing,
         )
         progdialog.setValue(50)
 
@@ -355,8 +534,7 @@ class Windtunnel:
 
         # connect mesh blocks
         connect = Connect.Connect(progdialog)
-        vertices, connectivity, progdialog = \
-            connect.connectAllBlocks(self.blocks)
+        vertices, connectivity = connect.connectAllBlocks(self.blocks)
 
         self.setMesh(vertices, connectivity)
         self.publishMeshArtifacts(airfoil=airfoil)
@@ -436,34 +614,46 @@ class Windtunnel:
         vertices = np.asarray(vertices, dtype=float)
         connectivity = np.asarray(connectivity, dtype=int)
 
-        if crit == 'k2inf':
+        if crit != 'k2inf':
+            raise ValueError(f'Unknown mesh quality criterion: {crit}')
+
+        if connectivity.size == 0:
+            quality = np.array([], dtype=float)
+        else:
             v12 = vertices[connectivity[:, 1]] - vertices[connectivity[:, 0]]
             v23 = vertices[connectivity[:, 2]] - vertices[connectivity[:, 1]]
             v34 = vertices[connectivity[:, 3]] - vertices[connectivity[:, 2]]
             v41 = vertices[connectivity[:, 0]] - vertices[connectivity[:, 3]]
-            a = np.linalg.norm(v12)
-            b = np.linalg.norm(v23)
-            c = np.linalg.norm(v34)
-            d = np.linalg.norm(v41)
-            p = 0.5 * (a + b + c + d)
-            q2 = np.sqrt(a**2 + b**2 + c**2 + d**2)
+
+            a = np.linalg.norm(v12, axis=1)
+            b = np.linalg.norm(v23, axis=1)
+            c = np.linalg.norm(v34, axis=1)
+            d = np.linalg.norm(v41, axis=1)
 
             alpha = VectorUtils.angle_between(v12, -v41)
-            beta =  VectorUtils.angle_between(v23, -v12)
+            beta = VectorUtils.angle_between(v23, -v12)
             gamma = VectorUtils.angle_between(v34, -v23)
-            delta = VectorUtils.angle_between(v41, -v12)
-            theta = 0.5 * (alpha + gamma)
+            delta = VectorUtils.angle_between(v41, -v34)
 
-            # quad area using Bretschneider’s formula
-            A = np.sqrt((p -a)*(p-b)*(p-c)*(p-d) - a*b*c*d*np.cos(theta))
+            sin_alpha = np.sin(alpha)
+            sin_beta = np.sin(beta)
+            sin_gamma = np.sin(gamma)
+            sin_delta = np.sin(delta)
 
-            ka = (a**2 + d**2) / (a*d*np.sin(alpha))
-            kb = (a**2 + b**2) / (a*b*np.sin(beta))
-            kc = (b**2 + c**2) / (b*c*np.sin(gamma))
-            kd = (c**2 + d**2) / (c*d*np.sin(delta))
-            k = np.stack((ka, kb, kc, kd))
+            def _quality_ratio(first, second, sine_values):
+                denominator = first * second * sine_values
+                return np.divide(
+                    first**2 + second**2,
+                    denominator,
+                    out=np.full_like(first, np.inf, dtype=float),
+                    where=np.abs(denominator) > 1.0e-12,
+                )
 
-            quality = np.max(k, axis=0) / 2.
+            ka = _quality_ratio(a, d, sin_alpha)
+            kb = _quality_ratio(a, b, sin_beta)
+            kc = _quality_ratio(b, c, sin_gamma)
+            kd = _quality_ratio(c, d, sin_delta)
+            quality = 0.5 * np.max(np.stack((ka, kb, kc, kd)), axis=0)
 
         self.quality = quality
         if self.mesh_model is not None and self.mesh_model.data is not None:

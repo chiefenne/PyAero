@@ -2,7 +2,6 @@ import copy
 
 import numpy as np
 
-from PySide6 import QtGui, QtCore
 from MathUtils import VectorUtils
 import ContourAnalysis as ca
 from Utils import get_main_window
@@ -24,10 +23,12 @@ class TrailingEdge:
         # get LE radius, etc.
         spline_data = self.mw.airfoil.spline_data
         curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
-        rc, xc, yc, xle, yle, le_id = ca.ContourAnalysis.getLeRadius(spline_data,
-                                                               curvature_data)
+        _rc, _xc, _yc, _xle, _yle, le_id = ca.ContourAnalysis.getLeRadius(
+            spline_data,
+            curvature_data,
+        )
 
-        x, y = spline_data[0]
+        x, y = spline_data.coordinates
         upper = (x[:le_id + 1], y[:le_id + 1])
         lower = (x[le_id:], y[le_id:])
 
@@ -65,14 +66,14 @@ class TrailingEdge:
                                      side='lower')
         xt = np.concatenate([xnu, xnl[1:]])
         yt = np.concatenate([ynu, ynl[1:]])
-        self.mw.airfoil.spline_data[0] = (xt, yt)
+        self.mw.airfoil.spline_data.coordinates = (xt, yt)
 
     def trailing(self, xx, yy, blend, ex, thickness, side='upper'):
         xmin = np.min(xx)
         xmax = np.max(xx)
         chord = xmax - xmin
         thickness = chord * thickness / 100.0
-        blend_points = np.where(xx > (1.0 - blend) * xmax)
+        blend_points = np.where(xx > (1.0 - blend) * xmax)[0]
         x = copy.copy(xx)
         y = copy.copy(yy)
         if side == 'upper':
@@ -84,11 +85,10 @@ class TrailingEdge:
         e = VectorUtils.unit_vector(a)
         n = np.array([e[1], -e[0]])
         shift = 0.5 * thickness
-        for i in blend_points:
-            shift_blend = (x[i] - xmax * (1.0 - blend)) / \
-                          (xmax * blend)
-            x[i] = x[i] + signum * n[0] * shift_blend**ex * shift
-            y[i] = y[i] + signum * n[1] * shift_blend**ex * shift
+        for index in blend_points:
+            shift_blend = (x[index] - xmax * (1.0 - blend)) / (xmax * blend)
+            x[index] = x[index] + signum * n[0] * shift_blend**ex * shift
+            y[index] = y[index] + signum * n[1] * shift_blend**ex * shift
         return x, y
 
     def writeContour(self):

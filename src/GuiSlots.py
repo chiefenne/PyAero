@@ -1,5 +1,4 @@
 import sys
-import copy
 import webbrowser
 import html
 from pathlib import Path
@@ -12,6 +11,8 @@ from PySide6 import QtGui, QtCore, QtWidgets, QtPrintSupport
 import PyAero
 import Airfoil
 import FileDialog
+import FileOperations
+import Icons
 import Mesh as MeshModel
 from Utils import get_main_window
 import logging
@@ -38,25 +39,33 @@ class Slots:
     def onOpen(self):
         """Open an airfoil contour or a future mesh import target."""
         file_dialog = FileDialog.Dialog()
-        file_dialog.setFilter(self.openFileDialogFilter())
-        filename, _ = file_dialog.open_filename()
+        filename, _ = file_dialog.open_filename(
+            title='Open File',
+            filter=self.openFileDialogFilter(),
+        )
 
         if not filename:
-            logger.info('No file selected. Nothing saved.')
+            logger.info('No file selected. Nothing opened.')
             return
 
         self.openFile(filename)
 
     def openFileDialogFilter(self):
+        contour_filter = FileOperations.CONTOUR_FILTER
         mesh_filter = MeshModel.MeshImportRegistry.qt_file_dialog_filter()
         if not mesh_filter:
-            return self.mw.DIALOG_FILTER
-        return f'{self.mw.DIALOG_FILTER};;{mesh_filter}'
+            return contour_filter
+        return f'{contour_filter};;{mesh_filter}'
 
     @QtCore.Slot(str)
     def openFile(self, filename):
         if MeshModel.MeshImportRegistry.can_import(filename):
             return self.loadMesh(filename)
+        if Path(filename).suffix.lower() not in FileOperations.SUPPORTED_AIRFOIL_EXTENSIONS:
+            message = f'Unsupported file type: {Path(filename).name}'
+            logger.warning('%s (%s)', message, filename)
+            self.messageBox(message)
+            return None
         return self.loadAirfoil(filename)
 
     @QtCore.Slot()
@@ -72,6 +81,7 @@ class Slots:
         )
         if airfoil is None:
             logger.error(f'Failed to load airfoil from {filename}')
+            self.messageBox(f'Failed to load airfoil:\n{filename}')
             return
 
         self._registerAirfoil(airfoil)
@@ -114,6 +124,38 @@ class Slots:
         self.mw.mainArea.toolbox.refreshWorkflowState()
         self.fitAirfoilInView()
 
+    def _expandedRect(self, rectf, padding_factor=1.0):
+        rect = QtCore.QRectF(rectf)
+        if rect.isNull() or padding_factor == 1.0:
+            return rect
+
+        center = rect.center()
+        rect.setWidth(rect.width() * padding_factor)
+        rect.setHeight(rect.height() * padding_factor)
+        rect.moveCenter(center)
+        return rect
+
+    def _fitViewToRect(self, rectf, padding_factor=1.0):
+        rect = self._expandedRect(rectf, padding_factor=padding_factor)
+        if rect.isNull():
+            return
+
+        self.mw.view.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+        self.mw.view.adjustMarkerSize()
+        self.mw.view.getSceneFromView()
+
+    def _airfoilContourRect(self, airfoil):
+        contour = airfoil.current_contour(prefer_spline=True)
+        if contour is None:
+            return QtCore.QRectF()
+
+        x_values, y_values = contour
+        min_x = float(min(x_values))
+        max_x = float(max(x_values))
+        min_y = float(min(y_values))
+        max_y = float(max(y_values))
+        return QtCore.QRectF(min_x, min_y, max_x - min_x, max_y - min_y)
+
     @QtCore.Slot(str)
     def loadMesh(self, filename):
         try:
@@ -139,77 +181,52 @@ class Slots:
     @QtCore.Slot()
     def fitAirfoilInView(self):
 
-        if not self.mw.airfoil:
+        airfoil = getattr(self.mw, 'airfoil', None)
+        if airfoil is None:
             return
 
-        # get bounding rect in scene coordinates
-        item = self.mw.airfoil.contourPolygon
-        if item is None:
+        rect = self._airfoilContourRect(airfoil)
+        if rect.isNull():
             return
-        rectf = item.boundingRect()
-        rf = copy.deepcopy(rectf)
-
-        center = rf.center()
-        # make 4% smaller than width of graphicsview
-        w = 1.04 * rf.width()
-        h = 1.04 * rf.height()
-        # do not use setWidhtF and setHeightF here!!!
-        rf.setWidth(w)
-        rf.setHeight(h)
-
-        # shift center of rectf
-        cx = center.x()
-        cy = center.y()
-        rf.moveCenter(QtCore.QPointF(cx, cy))
-
-        self.mw.view.fitInView(rf,
-                                   aspectRadioMode=QtCore.Qt.KeepAspectRatio)
-
-        # it is IMPORTANT that this is called after fitInView
-        # adjust airfoil marker size to MARKER_SIZE setting
-        self.mw.view.adjustMarkerSize()
-
-        # cache view to be able to keep it during resize
-        self.mw.view.getSceneFromView()
+        self._fitViewToRect(rect, padding_factor=1.04)
 
     @QtCore.Slot()
     def onViewAll(self):
         """Zoom view in order to fit all items of the scene"""
 
         # take all items except markers (as they are adjusted in size for view)
-
-        rectf = self.mw.scene.itemsBoundingRect()
-        self.mw.view.fitInView(rectf,
-                                   aspectRadioMode=QtCore.Qt.KeepAspectRatio)
-
-        # it is IMPORTANT that this is called after fitInView
-        # adjust airfoil marker size to MARKER_SIZE setting
-        self.mw.view.adjustMarkerSize()
-
-        # cache view to be able to keep it during resize
-        self.mw.view.getSceneFromView()
+        self._fitViewToRect(self.mw.scene.itemsBoundingRect())
 
 
     @QtCore.Slot()
     def onSave(self):
-        file_dialog = FileDialog.Dialog()
-        file_dialog.setFilter(self.mw.DIALOG_FILTER)
-        fname, _thefilter = file_dialog.save_filename()
-        if not fname:
-            return
-
-        with open(fname, 'w') as f:
-            f.write('This test worked for me ...')
+        self.saveCurrentAirfoilContour(title='Save Contour')
 
     @QtCore.Slot()
     def onSaveAs(self):
-        file_dialog = FileDialog.Dialog()
-        file_dialog.setFilter(self.mw.DIALOG_FILTER)
-        fname, _thefilter = file_dialog.save_filename()
-        if not fname:
-            return
-        with open(fname, 'w') as f:
-            f.write('This test worked for me ...')
+        self.saveCurrentAirfoilContour(title='Save Contour As')
+
+    def saveCurrentAirfoilContour(self, title='Save Contour As'):
+        airfoil = getattr(self.mw, 'airfoil', None)
+        if airfoil is None:
+            self.messageBox('No airfoil loaded.')
+            return None
+
+        filename = FileOperations.choose_contour_save_filename(
+            airfoil,
+            title=title,
+            mainwindow=self.mw,
+        )
+        if not filename:
+            logger.info('No file selected. Nothing saved.')
+            return None
+
+        return FileOperations.write_contour(
+            airfoil,
+            filename,
+            prefer_spline=True,
+            mainwindow=self.mw,
+        )
 
     @QtCore.Slot()
     def onPrint(self):
@@ -649,7 +666,7 @@ class Slots:
         logo = QtWidgets.QLabel()
         logo.setFixedSize(84, 84)
         logo.setAlignment(QtCore.Qt.AlignCenter)
-        logo_pixmap = QtGui.QPixmap('resources/Icons/app_image_256x256.png')
+        logo_pixmap = Icons.app_icon().pixmap(72, 72)
         if not logo_pixmap.isNull():
             logo.setPixmap(
                 logo_pixmap.scaled(
