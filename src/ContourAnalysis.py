@@ -181,7 +181,7 @@ class ContourAnalysis(QFrame):
         """get specific curve properties"""
 
         if not self.mw.airfoil.spline_data:
-            self.mw.slots.messageBox('Please do splining first')
+            self.mw.slots.messageBox('Please prepare the contour first.')
             return
 
         spline_data = self.mw.airfoil.spline_data

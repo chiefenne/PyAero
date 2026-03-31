@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy import interpolate, optimize
+from scipy import optimize
 
 from ContourData import CamberData
 from MathUtils import VectorUtils
@@ -39,8 +39,7 @@ class CamberBuilder:
         display_circles=None,
     ):
         self.spline_data = spline_data
-        self.tck = spline_data.spline
-        self.t_le = float(spline_data.sample_parameters[le_id])
+        self.t_le = float(spline_data.leading_edge_parameter_value())
 
         point_count = calculation_points or max(
             self.DEFAULT_CALCULATION_POINTS,
@@ -78,17 +77,17 @@ class CamberBuilder:
         return inscribed
 
     def _upper_parameter(self, station):
-        return self.t_le * (1.0 - station)
+        return self.spline_data.upper_surface_parameters(station)
 
     def _lower_parameter(self, station):
-        return self.t_le + station * (1.0 - self.t_le)
+        return self.spline_data.lower_surface_parameters(station)
 
     def _evaluate_point(self, parameter):
-        x, y = interpolate.splev(parameter, self.tck, der=0)
+        x, y = self.spline_data.evaluate(parameter, der=0)
         return np.array((float(x), float(y)), dtype=float)
 
     def _evaluate_derivative(self, parameter):
-        dx, dy = interpolate.splev(parameter, self.tck, der=1)
+        dx, dy = self.spline_data.evaluate(parameter, der=1)
         return np.array((float(dx), float(dy)), dtype=float)
 
     def _point_and_derivative(self, parameter):
@@ -104,8 +103,14 @@ class CamberBuilder:
         stations, upper_parameters, lower_parameters = self._legacy_parameters(point_count)
         del stations
 
-        upper = np.array(interpolate.splev(upper_parameters, self.tck, der=0), dtype=float).T
-        lower = np.array(interpolate.splev(lower_parameters, self.tck, der=0), dtype=float).T
+        upper = np.array(
+            self.spline_data.evaluate(upper_parameters, der=0),
+            dtype=float,
+        ).T
+        lower = np.array(
+            self.spline_data.evaluate(lower_parameters, der=0),
+            dtype=float,
+        ).T
 
         centers = 0.5 * (upper + lower)
         radius = 0.5 * VectorUtils.vector_length(upper - lower)

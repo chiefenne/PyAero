@@ -1,9 +1,6 @@
-import copy
-
 import numpy as np
 
 from MathUtils import VectorUtils
-import ContourAnalysis as ca
 from Utils import get_main_window
 
 class TrailingEdge:
@@ -19,22 +16,16 @@ class TrailingEdge:
         Returns:
             TYPE: Coordinates of upper and lower contours
         """
-        # leading edge radius
-        # get LE radius, etc.
         spline_data = self.mw.airfoil.spline_data
-        curvature_data = ca.ContourAnalysis.getCurvature(spline_data)
-        _rc, _xc, _yc, _xle, _yle, le_id = ca.ContourAnalysis.getLeRadius(
-            spline_data,
-            curvature_data,
-        )
-
         x, y = spline_data.coordinates
+        le_id = int(np.argmin(x))
         upper = (x[:le_id + 1], y[:le_id + 1])
         lower = (x[le_id:], y[le_id:])
 
         return upper, lower
 
-    def trailingEdge(self, blend=0.3, ex=3.0, thickness=0.6, side='both'):
+    def trailingEdge(self, blend=0.3, ex=3.0, thickness=0.6, side='both',
+                     lower_blend=None, lower_exponent=None):
         """Implement a finite trailing edge thickness into the original
         contour (i.e. a blunt trailing edge)
 
@@ -50,19 +41,23 @@ class TrailingEdge:
             tuple: Updated spline coordinates
         """
         upper, lower = self.getUpperLower()
-        xu = copy.copy(upper[0])
-        yu = copy.copy(upper[1])
-        xl = copy.copy(lower[0])
-        yl = copy.copy(lower[1])
-        xnu = copy.copy(xu)
-        ynu = copy.copy(yu)
-        xnl = copy.copy(xl)
-        ynl = copy.copy(yl)
+        xu = np.array(upper[0], copy=True)
+        yu = np.array(upper[1], copy=True)
+        xl = np.array(lower[0], copy=True)
+        yl = np.array(lower[1], copy=True)
+        xnu = np.array(xu, copy=True)
+        ynu = np.array(yu, copy=True)
+        xnl = np.array(xl, copy=True)
+        ynl = np.array(yl, copy=True)
+
+        lower_blend = blend if lower_blend is None else lower_blend
+        lower_exponent = ex if lower_exponent is None else lower_exponent
+
         if side == 'upper' or side == 'both':
             xnu, ynu = self.trailing(xu, yu, blend, ex, thickness,
                                      side='upper')
         if side == 'lower' or side == 'both':
-            xnl, ynl = self.trailing(xl, yl, blend, ex, thickness,
+            xnl, ynl = self.trailing(xl, yl, lower_blend, lower_exponent, thickness,
                                      side='lower')
         xt = np.concatenate([xnu, xnl[1:]])
         yt = np.concatenate([ynu, ynl[1:]])
@@ -73,9 +68,15 @@ class TrailingEdge:
         xmax = np.max(xx)
         chord = xmax - xmin
         thickness = chord * thickness / 100.0
-        blend_points = np.where(xx > (1.0 - blend) * xmax)[0]
-        x = copy.copy(xx)
-        y = copy.copy(yy)
+        x = np.array(xx, copy=True)
+        y = np.array(yy, copy=True)
+        if blend <= 0.0 or xmax <= 0.0 or thickness == 0.0:
+            return x, y
+
+        blend_mask = x > (1.0 - blend) * xmax
+        if not np.any(blend_mask):
+            return x, y
+
         if side == 'upper':
             signum = 1.0
             a = np.array([x[1] - x[0], y[1] - y[0]])
@@ -85,10 +86,11 @@ class TrailingEdge:
         e = VectorUtils.unit_vector(a)
         n = np.array([e[1], -e[0]])
         shift = 0.5 * thickness
-        for index in blend_points:
-            shift_blend = (x[index] - xmax * (1.0 - blend)) / (xmax * blend)
-            x[index] = x[index] + signum * n[0] * shift_blend**ex * shift
-            y[index] = y[index] + signum * n[1] * shift_blend**ex * shift
+
+        shift_blend = (x[blend_mask] - xmax * (1.0 - blend)) / (xmax * blend)
+        delta = signum * np.power(shift_blend, ex) * shift
+        x[blend_mask] += n[0] * delta
+        y[blend_mask] += n[1] * delta
         return x, y
 
     def writeContour(self):

@@ -43,6 +43,7 @@ class Airfoil:
         self.camber_data = None
         self.camberline = None
         self.camber_circles = None
+        self.camberCircleMarkers = []
         self.le_circle = None
         self.mesh = None
         self.mesh_blocks = None
@@ -117,9 +118,15 @@ class Airfoil:
     def markerCollections(self):
         collections = []
         if self.raw_coordinates is not None and self.polygonMarkers:
-            collections.append((self.raw_coordinates, self.polygonMarkers))
+            collections.append((self.raw_coordinates, self.polygonMarkers, 1.0))
         if self.has_spline and self.splineMarkers:
-            collections.append((self.spline_data.coordinates, self.splineMarkers))
+            collections.append((self.spline_data.coordinates, self.splineMarkers, 1.0))
+        if self.camber_data is not None and self.camberCircleMarkers:
+            collections.append((
+                self.camber_data.display_coordinates(),
+                self.camberCircleMarkers,
+                0.6,
+            ))
         return collections
 
     def to_shape(self, prefer_spline=True, closed=True):
@@ -424,6 +431,7 @@ class Airfoil:
         self.camber_data = camber_data
 
         self._removeSceneItem(self.camber_circles)
+        self.camberCircleMarkers = []
 
         circles = []
         center_x, center_y = camber_data.display_coordinates()
@@ -445,6 +453,19 @@ class Airfoil:
             circle_item.setAcceptHoverEvents(False)
             circles.append(circle_item)
 
+            center_marker = gic.GraphicsCollection()
+            center_marker.pen.setColor(palette['camber_circle_pen'])
+            center_marker.pen.setWidthF(0.8)
+            center_marker.pen.setCosmetic(True)
+            center_marker.brush.setColor(palette['camber_circle_pen'])
+            center_marker.brush.setStyle(QtCore.Qt.SolidPattern)
+            center_marker.Circle(float(x), float(y), 0.0016)
+
+            center_marker_item = GraphicsItem.GraphicsItem(center_marker)
+            center_marker_item.setAcceptHoverEvents(False)
+            circles.append(center_marker_item)
+            self.camberCircleMarkers.append(center_marker_item)
+
         if not circles:
             self.camber_circles = None
             return
@@ -453,6 +474,8 @@ class Airfoil:
         self.camber_circles.setZValue(34)
         self.mw.mainArea.airfoil_camber_circles_checkbox.setChecked(True)
         self.mw.mainArea.airfoil_camber_circles_checkbox.setEnabled(True)
+        if hasattr(self.mw, 'view') and self.mw.view is not None:
+            self.mw.view.adjustMarkerSize()
 
     def setPenColor(self, r, g, b, a):
         self.pencolor = QtGui.QColor(r, g, b, a)

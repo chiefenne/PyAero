@@ -6,6 +6,11 @@ from scipy import interpolate
 from PySide6 import QtGui, QtCore
 
 from ContourData import SplineData
+from CSTAirfoil import (
+    METHOD_BSPLINE,
+    METHOD_CST_MODIFIED,
+    build_modified_cst_spline_data,
+)
 from MathUtils import VectorUtils
 import GraphicsItemsCollection as gic
 import GraphicsItem
@@ -22,30 +27,41 @@ class SplineRefine:
 
         # MainWindow instance
         self.mw = QtCore.QCoreApplication.instance().mainwindow
+        self.spline_data = None
 
     def doSplineRefine(self, tolerance=172.0, points=150, ref_te=3,
-                       ref_te_n=6, ref_te_ratio=3.0):
+                       ref_te_n=6, ref_te_ratio=3.0,
+                       method=METHOD_BSPLINE, cst_order=8):
 
         logger.debug('Arrived in doSplineRefine')
 
         # get raw coordinates
         x, y = self.mw.airfoil.raw_coordinates
 
-        # interpolate a spline through the raw contour points
-        # constant point distribution used here
-        # typically nose radius poorly resolved by that
-        self.spline_data = self.spline(x, y, points=points, degree=3)
+        if method == METHOD_CST_MODIFIED:
+            self.spline_data = build_modified_cst_spline_data(
+                (x, y),
+                point_count=points,
+                order=cst_order,
+            )
+            spline_data = copy.deepcopy(self.spline_data)
+            self.spline_data = self.refine(spline_data, tolerance=tolerance)
+        else:
+            # interpolate a spline through the raw contour points
+            # constant point distribution used here
+            # typically nose radius poorly resolved by that
+            self.spline_data = self.spline(x, y, points=points, degree=3)
 
-        # refine the contour in order to meet the tolerance
-        # this keeps the constant distribution but refines around the nose
-        spline_data = copy.deepcopy(self.spline_data)
-        self.spline_data = self.refine(spline_data, tolerance=tolerance)
+            # refine the contour in order to meet the tolerance
+            # this keeps the constant distribution but refines around the nose
+            spline_data = copy.deepcopy(self.spline_data)
+            self.spline_data = self.refine(spline_data, tolerance=tolerance)
 
-        # redo spline on refined contour
-        # spline only evaluated at refined contour points (evaluate=True)
-        x, y = self.spline_data.coordinates
-        self.spline_data = self.spline(x, y, points=points, degree=3,
-                                       evaluate=True)
+            # redo spline on refined contour
+            # spline only evaluated at refined contour points (evaluate=True)
+            x, y = self.spline_data.coordinates
+            self.spline_data = self.spline(x, y, points=points, degree=3,
+                                           evaluate=True)
 
         # refine the trailing edge of the spline
         self.refine_te(ref_te, ref_te_n, ref_te_ratio)
@@ -55,16 +71,12 @@ class SplineRefine:
 
     def getCamberThickness(self, spline_data, le_id):
 
-        # Split the current contour sampling at the leading edge.
-        # fit_parameters stores the input-point parameters returned by splprep,
-        # while sample_parameters tracks the active sampling used by
-        # coordinates/derivatives.
-        t_le = spline_data.sample_parameters[le_id]
-        upper = np.linspace(t_le, 0.0, 300)
-        lower = np.linspace(t_le, 1.0, 300)
-        tck = spline_data.spline
-        coo_upper = interpolate.splev(upper, tck, der=0)
-        coo_lower = interpolate.splev(lower, tck, der=0)
+        del le_id
+        stations = np.linspace(0.0, 1.0, 300)
+        upper = spline_data.upper_surface_parameters(stations)
+        lower = spline_data.lower_surface_parameters(stations)
+        coo_upper = spline_data.evaluate(upper, der=0)
+        coo_lower = spline_data.evaluate(lower, der=0)
 
         camber = 0.5 * (np.array(coo_upper) + np.array(coo_lower))
         thickness_vectors = np.array(coo_upper) - np.array(coo_lower)
@@ -185,9 +197,38 @@ class SplineRefine:
             first_derivative=der1,
             second_derivative=der2,
             spline=tck,
+            method=METHOD_BSPLINE,
+            metadata={
+                'degree': degree,
+                'label': 'B-spline',
+            },
+            leading_edge_parameter=float(t[int(np.argmin(coo[0]))]),
         )
 
-    def rebuildSplineData(self, coordinates=None, degree=3):
+    def _refreshSampledData(self, spline_data, parameters=None):
+        if parameters is not None:
+            spline_data.sample_parameters = np.asarray(parameters, dtype=float)
+
+        t = np.asarray(spline_data.sample_parameters, dtype=float)
+        spline_data.coordinates = tuple(
+            np.asarray(values, dtype=float)
+            for values in spline_data.evaluate(t, der=0)
+        )
+        spline_data.first_derivative = tuple(
+            np.asarray(values, dtype=float)
+            for values in spline_data.evaluate(t, der=1)
+        )
+        spline_data.second_derivative = tuple(
+            np.asarray(values, dtype=float)
+            for values in spline_data.evaluate(t, der=2)
+        )
+        spline_data.leading_edge_parameter = float(
+            t[int(np.argmin(spline_data.coordinates[0]))]
+        )
+        return spline_data
+
+    def rebuildSplineData(self, coordinates=None, degree=3, method=None,
+                          cst_order=None):
         coordinates = coordinates or (
             self.spline_data.coordinates if self.spline_data is not None else None
         )
@@ -199,6 +240,30 @@ class SplineRefine:
         if point_count < 2:
             return None
 
+        template = self.spline_data
+        if template is None:
+            template = getattr(getattr(self.mw, 'airfoil', None), 'spline_data', None)
+
+        active_method = method or getattr(template, 'method', METHOD_BSPLINE)
+        if active_method == METHOD_CST_MODIFIED:
+            order = cst_order
+            if order is None and template is not None:
+                order = getattr(template, 'metadata', {}).get('order')
+            order = 8 if order is None else int(order)
+
+            sample_parameters = None
+            if template is not None and \
+                    getattr(template, 'sample_parameters', None) is not None and \
+                    len(template.sample_parameters) == point_count:
+                sample_parameters = np.asarray(template.sample_parameters, dtype=float)
+
+            self.spline_data = build_modified_cst_spline_data(
+                (x, y),
+                order=order,
+                sample_parameters=sample_parameters,
+            )
+            return self.spline_data
+
         degree = max(1, min(degree, point_count - 1))
         self.spline_data = self.spline(
             x,
@@ -209,10 +274,8 @@ class SplineRefine:
         )
         return self.spline_data
 
-    def _finalizeRefinement(self, spline_data, tck, recursions, reason):
-        tn = spline_data.sample_parameters
-        spline_data.first_derivative = interpolate.splev(tn, tck, der=1)
-        spline_data.second_derivative = interpolate.splev(tn, tck, der=2)
+    def _finalizeRefinement(self, spline_data, recursions, reason):
+        self._refreshSampledData(spline_data)
 
         logger.debug(reason)
         logger.debug(
@@ -255,7 +318,6 @@ class SplineRefine:
 
         xx, yy = spline_data.coordinates
         t = spline_data.sample_parameters
-        tck = spline_data.spline
 
         logger.debug('\nPoints before refining: {} \n'.format(len(xx)))
         if recursions > 0:
@@ -264,7 +326,6 @@ class SplineRefine:
         if recursions >= max_recursions:
             return self._finalizeRefinement(
                 spline_data,
-                tck,
                 recursions,
                 'Reached maximum recursive refinement depth ({}).'
                 .format(max_recursions),
@@ -273,7 +334,6 @@ class SplineRefine:
         if len(xx) < 3:
             return self._finalizeRefinement(
                 spline_data,
-                tck,
                 recursions,
                 'Refinement stopped because fewer than three contour points remain.',
             )
@@ -323,7 +383,7 @@ class SplineRefine:
                     insert_midpoint = insert_midpoint or refined[segment_index]
                 if insert_midpoint:
                     t_mid = 0.5 * (t[segment_index] + t[segment_index + 1])
-                    p_mid = interpolate.splev(t_mid, tck, der=0)
+                    p_mid = spline_data.evaluate(t_mid, der=0)
                     xn.append(float(p_mid[0]))
                     yn.append(float(p_mid[1]))
                     tn.append(float(t_mid))
@@ -359,7 +419,7 @@ class SplineRefine:
                 'No more refinements. Minimum parameter spacing blocked {} '
                 'candidate insertions.'
             ).format(spacing_limited)
-        return self._finalizeRefinement(spline_data, tck, recursions, reason)
+        return self._finalizeRefinement(spline_data, recursions, reason)
 
     def refine_te(self, ref_te, ref_te_n, ref_te_ratio):
         """Refine the airfoil contour at the trailing edge
@@ -381,7 +441,6 @@ class SplineRefine:
 
         x, y = self.spline_data.coordinates
         t = self.spline_data.sample_parameters
-        tck = self.spline_data.spline
 
         # remove points which will be refined
         index = range(ref_te + 1)
@@ -397,24 +456,18 @@ class SplineRefine:
         # add refined points
         for s in spacing[::-1]:
             # upper side
-            p = interpolate.splev(s, tck, der=0)
+            p = self.spline_data.evaluate(s, der=0)
             x = np.insert(x, 0, p[0])
             y = np.insert(y, 0, p[1])
             t = np.insert(t, 0, s)
             # lower side
-            p = interpolate.splev(1. - s, tck, der=0)
+            p = self.spline_data.evaluate(1. - s, der=0)
             x = np.append(x, p[0])
             y = np.append(y, p[1])
             t = np.append(t, 1. - s)
 
-        # update coordinate array, including inserted points
         self.spline_data.coordinates = (x, y)
-        # Update the active sampling used by coo/derivatives. fit_parameters
-        # keeps the original splprep input-point parameters of the fitted spline.
-        self.spline_data.sample_parameters = t
-        # update derivatives, including inserted points
-        self.spline_data.first_derivative = interpolate.splev(t, tck, der=1)
-        self.spline_data.second_derivative = interpolate.splev(t, tck, der=2)
+        self._refreshSampledData(self.spline_data, parameters=t)
 
     def spacing(self, divisions=10, ratio=1.0, thickness=1.0):
         """Calculate point distribution on a line

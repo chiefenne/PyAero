@@ -347,8 +347,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
             return
 
         marker_radius = self._markerRadiusInScene()
-        for coordinates, markers in airfoil.markerCollections():
-            self._resizeMarkers(markers, coordinates, marker_radius)
+        for coordinates, markers, scale in airfoil.markerCollections():
+            self._resizeMarkers(markers, coordinates, marker_radius * scale)
 
     def _markerRadiusInScene(self):
         current_zoom = self.transform().m11()

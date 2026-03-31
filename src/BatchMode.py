@@ -91,15 +91,14 @@ class Batch:
                 te = self.batch_control['Airfoil trailing edge']
                 trailing = TrailingEdge.TrailingEdge()
 
-                trailing.trailingEdge(blend=te['Upper side blending length'] / 100.0,
-                                    ex=te['Upper blending polynomial exponent'],
-                                    thickness=te['Trailing edge thickness relative to chord'],
-                                    side='upper')
-
-                trailing.trailingEdge(blend=te['Lower side blending length'] / 100.0,
-                                    ex=te['Lower blending polynomial exponent'],
-                                    thickness=te['Trailing edge thickness relative to chord'],
-                                    side='lower')
+                trailing.trailingEdge(
+                    blend=te['Upper side blending length'] / 100.0,
+                    ex=te['Upper blending polynomial exponent'],
+                    thickness=te['Trailing edge thickness relative to chord'],
+                    side='both',
+                    lower_blend=te['Lower side blending length'] / 100.0,
+                    lower_exponent=te['Lower blending polynomial exponent'],
+                )
 
                 rebuilt = refine.rebuildSplineData(
                     self.app.mainwindow.airfoil.spline_data.coordinates

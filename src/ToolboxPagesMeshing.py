@@ -63,8 +63,8 @@ def _build_airfoil_mesh_form(toolbox):
     toolbox.form_mesh_airfoil = QtWidgets.QFormLayout()
     configure_form_layout(toolbox.form_mesh_airfoil)
 
-    label = make_page_label('Points on spline')
-    label.setToolTip('Number of points as derived from splining')
+    label = make_page_label('Points on contour')
+    label.setToolTip('Number of points as derived from the prepared contour')
     toolbox.points_on_airfoil = QtWidgets.QLineEdit('0')
     toolbox.points_on_airfoil.setEnabled(False)
     toolbox.form_mesh_airfoil.addRow(label, toolbox.points_on_airfoil)

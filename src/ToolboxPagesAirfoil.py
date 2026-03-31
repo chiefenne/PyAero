@@ -1,9 +1,11 @@
 from PySide6 import QtCore, QtWidgets
 
+from CSTAirfoil import METHOD_BSPLINE, METHOD_CST_MODIFIED
 import FileSystem
 from ToolboxWidgets import (
     configure_form_layout,
     make_page_label,
+    make_page_option,
     right_aligned_row,
 )
 
@@ -117,6 +119,13 @@ def build_spline_refine_panel(toolbox):
     refine_form = QtWidgets.QFormLayout()
     configure_form_layout(refine_form)
 
+    label = make_page_label('Geometry method')
+    toolbox.spline_method = QtWidgets.QComboBox()
+    toolbox.spline_method.addItem('B-spline (legacy)', METHOD_BSPLINE)
+    toolbox.spline_method.addItem('CST', METHOD_CST_MODIFIED)
+    toolbox.spline_method.setCurrentIndex(1)
+    refine_form.addRow(label, toolbox.spline_method)
+
     label = make_page_label(u'Refine tolerance (°)')
     toolbox.tolerance = QtWidgets.QDoubleSpinBox()
     toolbox.tolerance.setSingleStep(0.1)
@@ -131,6 +140,13 @@ def build_spline_refine_panel(toolbox):
     toolbox.points.setRange(10, 1000)
     toolbox.points.setValue(200)
     refine_form.addRow(label, toolbox.points)
+
+    toolbox.exact_inscribed_circles = make_page_option(
+        'Camber (exact)',
+        'Compute exact inscribed circles for camber analysis. Disable this for faster contour updates.',
+    )
+    toolbox.exact_inscribed_circles.setChecked(True)
+    refine_form.addRow(toolbox.exact_inscribed_circles)
     refine_layout.addLayout(refine_form)
 
     refine_advanced_form = QtWidgets.QFormLayout()
@@ -161,6 +177,13 @@ def build_spline_refine_panel(toolbox):
     toolbox.ref_te_ratio.setValue(3.0)
     refine_advanced_form.addRow(label, toolbox.ref_te_ratio)
 
+    label = make_page_label('CST order')
+    toolbox.cst_order = QtWidgets.QSpinBox()
+    toolbox.cst_order.setSingleStep(1)
+    toolbox.cst_order.setRange(1, 20)
+    toolbox.cst_order.setValue(8)
+    refine_advanced_form.addRow(label, toolbox.cst_order)
+
     refine_advanced = _create_advanced_widget(refine_advanced_form)
     refine_toggle = _create_advanced_toggle(
         'More refine options',
@@ -169,9 +192,17 @@ def build_spline_refine_panel(toolbox):
     refine_layout.addWidget(refine_toggle)
     refine_layout.addWidget(refine_advanced)
 
-    toolbox.splineButton = QtWidgets.QPushButton('Spline and Refine')
+    toolbox.splineButton = QtWidgets.QPushButton('Prepare and Refine')
     toolbox.splineButton.setObjectName('pagePrimaryActionButton')
     refine_layout.addLayout(right_aligned_row(toolbox.splineButton))
+
+    toolbox.cstParametersButton = QtWidgets.QPushButton('Show CST Parameters...')
+    toolbox.cstParametersButton.setObjectName('pageSecondaryActionButton')
+    toolbox.cstParametersButton.setEnabled(False)
+    toolbox.cstParametersButton.setToolTip(
+        'Display the current CST coefficients and export them as JSON or CSV.'
+    )
+    refine_layout.addLayout(right_aligned_row(toolbox.cstParametersButton))
 
     trailing_card, trailing_layout = _create_section_card(
         'Trailing Edge',
@@ -239,13 +270,25 @@ def build_spline_refine_panel(toolbox):
     trailing_layout.addLayout(right_aligned_row(toolbox.trailingButton))
 
     export_card, export_layout = _create_section_card(
-        'Export Contour',
-        'Save the refined working contour after geometry changes are complete.',
+        'Export',
+        'Save the prepared contour and any derived CST or camber data.',
     )
-    toolbox.exportContourButton = QtWidgets.QPushButton('Export Contour')
+    toolbox.exportContourButton = QtWidgets.QPushButton('Contour...')
     toolbox.exportContourButton.setObjectName('pageSecondaryActionButton')
     toolbox.exportContourButton.setEnabled(False)
-    export_layout.addLayout(right_aligned_row(toolbox.exportContourButton))
+    toolbox.exportCamberButton = QtWidgets.QPushButton('Camber...')
+    toolbox.exportCamberButton.setObjectName('pageSecondaryActionButton')
+    toolbox.exportCamberButton.setEnabled(False)
+    toolbox.exportCstButton = QtWidgets.QPushButton('CST...')
+    toolbox.exportCstButton.setObjectName('pageSecondaryActionButton')
+    toolbox.exportCstButton.setEnabled(False)
+    export_layout.addLayout(
+        right_aligned_row(
+            toolbox.exportContourButton,
+            toolbox.exportCamberButton,
+            toolbox.exportCstButton,
+        )
+    )
 
     vbl = QtWidgets.QVBoxLayout()
     vbl.setContentsMargins(0, 0, 0, 0)
@@ -259,8 +302,18 @@ def build_spline_refine_panel(toolbox):
     toolbox.item_cm.setLayout(vbl)
 
     toolbox.splineButton.clicked.connect(toolbox.spline_and_refine)
+    toolbox.cstParametersButton.clicked.connect(toolbox.showCstParameters)
     toolbox.trailingButton.clicked.connect(toolbox.makeTrailingEdge)
     toolbox.exportContourButton.clicked.connect(toolbox.exportContour)
+    toolbox.exportCamberButton.clicked.connect(toolbox.exportCamber)
+    toolbox.exportCstButton.clicked.connect(toolbox.exportCst)
+    toolbox.spline_method.currentIndexChanged.connect(
+        lambda *_: toolbox.updateSplineMethodControls()
+    )
+    toolbox.exact_inscribed_circles.toggled.connect(
+        toolbox.refreshCamberMethodSelection
+    )
+    toolbox.updateSplineMethodControls()
 
 
 def _create_section_card(title, hint=''):

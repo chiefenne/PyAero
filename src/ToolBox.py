@@ -5,6 +5,12 @@ import shutil
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from CSTAirfoil import (
+    METHOD_BSPLINE,
+    METHOD_CST_MODIFIED,
+    cst_parameters_from_spline_data,
+    format_cst_parameters_text,
+)
 import FileSystem
 import FileDialog
 import FileOperations
@@ -590,6 +596,8 @@ class Toolbox(QtWidgets.QWidget):
             if can_fill_spline:
                 self.applySplineFillPreference(airfoil)
 
+        self._updateGeometryActionButtons(airfoil)
+
         if not hasattr(self, 'tb1'):
             return
 
@@ -600,7 +608,7 @@ class Toolbox(QtWidgets.QWidget):
                 'Open or drag in an airfoil contour',
             )
             self._setPageStatus(self.tb2, 'disabled', 'Select an airfoil first')
-            self._setPageStatus(self.tb4, 'disabled', 'Spline first')
+            self._setPageStatus(self.tb4, 'disabled', 'Prepare contour first')
             self._setPageStatus(self.tb6, 'info', 'Freestream helper inputs')
             self._setPageStatus(self.tb5, 'info', 'Reserved for quick aero tools')
             self._setPageStatus(self.tb3, 'disabled', 'Secondary analysis workspace')
@@ -609,10 +617,11 @@ class Toolbox(QtWidgets.QWidget):
 
         self._setPageStatus(self.tb1, 'done', 'Working airfoil selected')
 
+        method_label = self._geometryMethodLabel(airfoil)
         if airfoil.has_TE:
-            geometry_status = ('done', 'Spline ready, trailing edge adjusted')
+            geometry_status = ('done', f'{method_label} ready, trailing edge adjusted')
         elif airfoil.has_spline:
-            geometry_status = ('done', 'Spline ready for meshing')
+            geometry_status = ('done', f'{method_label} ready for meshing')
         else:
             geometry_status = ('ready', 'Raw contour ready for refinement')
         self._setPageStatus(self.tb2, *geometry_status)
@@ -624,7 +633,7 @@ class Toolbox(QtWidgets.QWidget):
         elif airfoil.has_spline:
             self._setPageStatus(self.tb4, 'ready', 'Ready to generate the mesh')
         else:
-            self._setPageStatus(self.tb4, 'disabled', 'Spline first')
+            self._setPageStatus(self.tb4, 'disabled', 'Prepare contour first')
 
         self._setPageStatus(self.tb6, 'ready', 'Freestream and y+ helper inputs')
         self._setPageStatus(self.tb5, 'info', 'Future quick-aero workspace')
@@ -632,7 +641,7 @@ class Toolbox(QtWidgets.QWidget):
         contour_detail = (
             'Secondary analysis workspace'
             if airfoil.has_spline else
-            'Spline first'
+            'Prepare contour first'
         )
         self._setPageStatus(self.tb3, contour_status, contour_detail)
         self._updateCurrentPageHeader()
@@ -640,11 +649,28 @@ class Toolbox(QtWidgets.QWidget):
     def _setPageStatus(self, index, status, detail):
         self._page_buttons[index].set_status(status, detail)
 
+    def _updateGeometryActionButtons(self, airfoil):
+        has_spline = airfoil is not None and airfoil.has_spline
+        has_camber = has_spline and getattr(airfoil, 'camber_data', None) is not None
+        has_cst = self._activeCstParameterData(airfoil) is not None
+
+        for attribute_name, enabled in (
+            ('trailingButton', has_spline),
+            ('exportContourButton', has_spline),
+            ('exportCamberButton', has_camber),
+            ('exportCstButton', has_cst),
+            ('cstParametersButton', has_cst),
+        ):
+            button = getattr(self, attribute_name, None)
+            if button is not None:
+                button.setEnabled(enabled)
+
     def _geometryStatusText(self, airfoil):
+        method_label = self._geometryMethodLabel(airfoil)
         if airfoil.has_TE:
-            return 'spline ready, trailing edge adjusted'
+            return f'{method_label} ready, trailing edge adjusted'
         if airfoil.has_spline:
-            return 'spline ready'
+            return f'{method_label} ready'
         return 'raw contour loaded'
 
     def _meshStatusText(self, airfoil):
@@ -981,6 +1007,57 @@ class Toolbox(QtWidgets.QWidget):
             return 1.0e-5
         return float(text)
 
+    def selectedSplineMethod(self):
+        method_selector = getattr(self, 'spline_method', None)
+        if method_selector is None:
+            return METHOD_CST_MODIFIED
+        method = method_selector.currentData()
+        return method or METHOD_CST_MODIFIED
+
+    def selectedSplineMethodLabel(self):
+        if self.selectedSplineMethod() == METHOD_CST_MODIFIED:
+            return 'CST'
+        return 'B-spline'
+
+    def _activeCstParameterData(self, airfoil=None):
+        airfoil = airfoil or self._active_airfoil()
+        if airfoil is None or not getattr(airfoil, 'has_spline', False):
+            return None
+
+        spline_data = getattr(airfoil, 'spline_data', None)
+        if spline_data is None:
+            return None
+
+        try:
+            return cst_parameters_from_spline_data(spline_data)
+        except ValueError:
+            return None
+
+    def useExactInscribedCircles(self):
+        option = getattr(self, 'exact_inscribed_circles', None)
+        if option is None:
+            return True
+        return option.isChecked()
+
+    def updateSplineMethodControls(self):
+        cst_enabled = self.selectedSplineMethod() == METHOD_CST_MODIFIED
+        cst_order = getattr(self, 'cst_order', None)
+        if cst_order is not None:
+            cst_order.setEnabled(cst_enabled)
+
+    def _geometryMethodLabel(self, airfoil):
+        spline_data = getattr(airfoil, 'spline_data', None)
+        if spline_data is None:
+            return self.selectedSplineMethodLabel()
+
+        metadata = getattr(spline_data, 'metadata', {}) or {}
+        label = metadata.get('label')
+        if label:
+            return label
+        if getattr(spline_data, 'method', METHOD_BSPLINE) == METHOD_CST_MODIFIED:
+            return 'CST'
+        return 'B-spline'
+
     def spline_refine_settings(self):
         return ToolboxServices.SplineRefineSettings(
             tolerance=self.tolerance.value(),
@@ -988,6 +1065,8 @@ class Toolbox(QtWidgets.QWidget):
             ref_te=self.ref_te.value(),
             ref_te_n=self.ref_te_n.value(),
             ref_te_ratio=self.ref_te_ratio.value(),
+            method=self.selectedSplineMethod(),
+            cst_order=self.cst_order.value(),
         )
 
     def trailing_edge_settings(self):
@@ -1115,6 +1194,75 @@ class Toolbox(QtWidgets.QWidget):
     def toggleSplineFill(self, _checked=None):
         self.applySplineFillPreference()
 
+    def refreshCamberMethodSelection(self, _checked=None):
+        airfoil = self._active_airfoil()
+        if airfoil is None or not getattr(airfoil, 'has_spline', False):
+            return
+        self.workflow.refresh_camber_geometry(airfoil)
+        self.refreshWorkflowState()
+
+    def showCstParameters(self, _checked=None):
+        airfoil = self._active_airfoil()
+        if airfoil is None:
+            self.mw.slots.messageBox('No airfoil loaded.')
+            return
+
+        parameter_data = self._activeCstParameterData(airfoil)
+        if parameter_data is None:
+            self.mw.slots.messageBox(
+                'The current prepared contour does not have CST parameters.'
+            )
+            return
+
+        dialog = QtWidgets.QDialog(self.mw)
+        dialog.setWindowTitle('CST Parameters')
+        dialog.resize(760, 560)
+
+        layout = QtWidgets.QVBoxLayout()
+        textedit = QtWidgets.QTextEdit()
+        textedit.setReadOnly(True)
+        textedit.setAcceptRichText(False)
+        textedit.setLineWrapMode(QtWidgets.QTextEdit.LineWrapMode.NoWrap)
+        textedit.setFont(
+            QtGui.QFontDatabase.systemFont(
+                QtGui.QFontDatabase.SystemFont.FixedFont
+            )
+        )
+        textedit.setPlainText(
+            f'Airfoil: {airfoil.name}\n\n'
+            f'{format_cst_parameters_text(parameter_data)}'
+        )
+        layout.addWidget(textedit)
+
+        button_row = QtWidgets.QHBoxLayout()
+        copy_button = QtWidgets.QPushButton('Copy')
+        export_json_button = QtWidgets.QPushButton('Export JSON...')
+        export_csv_button = QtWidgets.QPushButton('Export CSV...')
+        close_button = QtWidgets.QPushButton('Close')
+
+        copy_button.clicked.connect(
+            lambda *_: QtGui.QGuiApplication.clipboard().setText(
+                textedit.toPlainText()
+            )
+        )
+        export_json_button.clicked.connect(
+            lambda *_: self.exportCst(default_extension='.json')
+        )
+        export_csv_button.clicked.connect(
+            lambda *_: self.exportCst(default_extension='.csv')
+        )
+        close_button.clicked.connect(dialog.accept)
+
+        button_row.addWidget(copy_button)
+        button_row.addStretch(1)
+        button_row.addWidget(export_json_button)
+        button_row.addWidget(export_csv_button)
+        button_row.addWidget(close_button)
+        layout.addLayout(button_row)
+
+        dialog.setLayout(layout)
+        dialog.exec()
+
     def spline_and_refine(self):
         self.workflow.spline_and_refine(self.spline_refine_settings())
         self.refreshWorkflowState()
@@ -1168,7 +1316,7 @@ class Toolbox(QtWidgets.QWidget):
             export_settings,
         )
 
-    def exportContour(self):
+    def exportContour(self, _checked=None):
         airfoil = self._active_airfoil()
         if airfoil is None:
             self.mw.slots.messageBox('No airfoil loaded.')
@@ -1183,3 +1331,36 @@ class Toolbox(QtWidgets.QWidget):
             logger.info('No file selected. Nothing saved.')
             return
         self.workflow.export_contour(filename)
+
+    def exportCamber(self, _checked=None):
+        airfoil = self._active_airfoil()
+        if airfoil is None:
+            self.mw.slots.messageBox('No airfoil loaded.')
+            return
+
+        filename = FileOperations.choose_camber_save_filename(
+            airfoil,
+            title='Export Camber',
+            mainwindow=self.mw,
+        )
+        if not filename:
+            logger.info('No file selected. Nothing saved.')
+            return
+        self.workflow.export_camber(filename)
+
+    def exportCst(self, _checked=None, default_extension='.json'):
+        airfoil = self._active_airfoil()
+        if airfoil is None:
+            self.mw.slots.messageBox('No airfoil loaded.')
+            return
+
+        filename = FileOperations.choose_cst_save_filename(
+            airfoil,
+            title='Export CST Parameters',
+            default_extension=default_extension,
+            mainwindow=self.mw,
+        )
+        if not filename:
+            logger.info('No file selected. Nothing saved.')
+            return
+        self.workflow.export_cst(filename)

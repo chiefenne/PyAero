@@ -445,7 +445,7 @@ class Windtunnel:
         if airfoil is None:
             raise ValueError('No airfoil loaded.')
         if not airfoil.has_spline:
-            raise ValueError('Splining needs to be done first.')
+            raise ValueError('The contour needs to be prepared first.')
 
         self.blocks = []
         self.block_airfoil = None

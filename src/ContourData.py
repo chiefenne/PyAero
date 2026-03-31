@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
+from scipy import interpolate
 
 
 @dataclass(slots=True)
@@ -13,11 +14,46 @@ class SplineData:
     sample_parameters: Any
     first_derivative: tuple[Any, Any]
     second_derivative: tuple[Any, Any]
-    spline: Any
+    spline: Any = None
+    method: str = 'bspline'
+    evaluator: Any = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    leading_edge_parameter: float | None = None
 
     @property
     def point_count(self) -> int:
         return len(self.coordinates[0])
+
+    def evaluate(self, parameters, der: int = 0):
+        if self.evaluator is not None:
+            return self.evaluator.evaluate(parameters, der=der)
+        if self.spline is None:
+            raise ValueError('No contour evaluator available.')
+        return interpolate.splev(parameters, self.spline, der=der)
+
+    def leading_edge_parameter_value(self) -> float:
+        if self.leading_edge_parameter is not None:
+            return float(self.leading_edge_parameter)
+        if self.sample_parameters is None or len(self.sample_parameters) == 0:
+            return 0.5
+        le_index = int(np.argmin(self.coordinates[0]))
+        return float(self.sample_parameters[le_index])
+
+    def upper_surface_parameters(self, stations):
+        stations = np.asarray(stations, dtype=float)
+        if self.evaluator is not None and \
+                hasattr(self.evaluator, 'surface_parameters'):
+            return self.evaluator.surface_parameters(stations, side='upper')
+        t_le = self.leading_edge_parameter_value()
+        return t_le * (1.0 - stations)
+
+    def lower_surface_parameters(self, stations):
+        stations = np.asarray(stations, dtype=float)
+        if self.evaluator is not None and \
+                hasattr(self.evaluator, 'surface_parameters'):
+            return self.evaluator.surface_parameters(stations, side='lower')
+        t_le = self.leading_edge_parameter_value()
+        return t_le + stations * (1.0 - t_le)
 
 
 @dataclass(slots=True)

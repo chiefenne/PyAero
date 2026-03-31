@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 import Camber
 import ContourAnalysis as ca
+from CSTAirfoil import METHOD_CST_MODIFIED
 import FileOperations
 import Meshing
 import SplineRefine
@@ -21,6 +22,8 @@ class SplineRefineSettings:
     ref_te: int
     ref_te_n: int
     ref_te_ratio: float
+    method: str = METHOD_CST_MODIFIED
+    cst_order: int = 8
 
 
 @dataclass(slots=True)
@@ -64,6 +67,8 @@ class ToolboxWorkflowController:
             ref_te=settings.ref_te,
             ref_te_n=settings.ref_te_n,
             ref_te_ratio=settings.ref_te_ratio,
+            method=settings.method,
+            cst_order=settings.cst_order,
         )
 
         airfoil.makeContourSpline()
@@ -91,13 +96,9 @@ class ToolboxWorkflowController:
             blend=settings.upper_blend,
             ex=settings.upper_exponent,
             thickness=settings.thickness,
-            side='upper',
-        )
-        trailing.trailingEdge(
-            blend=settings.lower_blend,
-            ex=settings.lower_exponent,
-            thickness=settings.thickness,
-            side='lower',
+            side='both',
+            lower_blend=settings.lower_blend,
+            lower_exponent=settings.lower_exponent,
         )
         refine = SplineRefine.SplineRefine()
         rebuilt = refine.rebuildSplineData(airfoil.spline_data.coordinates)
@@ -187,6 +188,13 @@ class ToolboxWorkflowController:
         self.mw.contourview.analyze()
         return airfoil
 
+    def refresh_camber_geometry(self, airfoil=None):
+        airfoil = airfoil or getattr(self.mw, 'airfoil', None)
+        if airfoil is None or not getattr(airfoil, 'has_spline', False):
+            return None
+        self._update_derived_contour_geometry(airfoil)
+        return airfoil
+
     def draw_contour_analysis(self, quantity: str):
         airfoil = self._require_airfoil(require_spline=True)
         if airfoil is None:
@@ -238,6 +246,28 @@ class ToolboxWorkflowController:
             mainwindow=self.mw,
         )
 
+    def export_camber(self, filename: str):
+        airfoil = self._require_airfoil(require_spline=True)
+        if airfoil is None:
+            return None
+
+        return FileOperations.write_camber(
+            airfoil,
+            filename,
+            mainwindow=self.mw,
+        )
+
+    def export_cst(self, filename: str):
+        airfoil = self._require_airfoil(require_spline=True)
+        if airfoil is None:
+            return None
+
+        return FileOperations.write_cst_parameters(
+            airfoil,
+            filename,
+            mainwindow=self.mw,
+        )
+
     def _require_airfoil(self, require_spline: bool = False):
         airfoil = getattr(self.mw, 'airfoil', None)
         if airfoil is None:
@@ -245,7 +275,7 @@ class ToolboxWorkflowController:
             return None
 
         if require_spline and not airfoil.has_spline:
-            self._show_message('Splining needs to be done first.')
+            self._show_message('Please prepare the contour first.')
             return None
 
         return airfoil
@@ -265,6 +295,11 @@ class ToolboxWorkflowController:
         refine.makeLeCircle(rc, xc, yc, xle, yle)
 
         camber_builder = Camber.CamberBuilder()
+        camber_method = (
+            Camber.CAMBER_METHOD_INSCRIBED_CIRCLES
+            if self.toolbox.useExactInscribedCircles()
+            else Camber.CAMBER_METHOD_LEGACY
+        )
         camber_data = camber_builder.build(
             spline_data,
             le_id,
@@ -273,6 +308,7 @@ class ToolboxWorkflowController:
             yc,
             xle,
             yle,
+            method=camber_method,
         )
         airfoil.camber_data = camber_data
         airfoil.drawCamber(camber_data)
