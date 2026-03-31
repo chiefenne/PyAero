@@ -2,6 +2,7 @@
 
 import os
 import shutil
+from string import Template
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -59,7 +60,27 @@ class Toolbox(QtWidgets.QWidget):
         self.refreshWorkflowState()
 
     def _buildShell(self):
-        style = """
+        palette = {
+            'airfoil_bg': '#fdf8fb',
+            'airfoil_border': '#e7dae4',
+            'airfoil_inner_bg': '#f6edf3',
+            'airfoil_inner_border': '#dccad6',
+            'airfoil_title': '#926178',
+            'airfoil_hover_border': '#c9a7b8',
+            'workflow_bg': '#f5fbfc',
+            'workflow_border': '#d6e8ea',
+            'workflow_title': '#4f7e84',
+            'workflow_hover': '#edf7f8',
+            'current_bg': '#f7fbf5',
+            'current_border': '#d8e4d0',
+            'current_title': '#667d52',
+            'current_subtitle': '#718562',
+            'current_nav_bg': '#eef5e8',
+            'current_nav_border': '#cadabf',
+            'current_nav_accent': '#84aa67',
+            'current_nav_text': '#4b623d',
+        }
+        style = Template("""
             QWidget {
                 color: #1f2933;
             }
@@ -71,14 +92,24 @@ class Toolbox(QtWidgets.QWidget):
                 font-weight: 700;
                 letter-spacing: 0.08em;
             }
-            QFrame#workflowSummaryCard {
-                background: #fbfcfe;
-                border: 1px solid #dbe6f0;
+            QFrame#workflowSummaryCard[paneTone="airfoil"] {
+                background: $airfoil_bg;
+                border: 1px solid $airfoil_border;
                 border-radius: 12px;
             }
-            QFrame#summaryNameCard {
-                background: #f2f7fb;
-                border: 1px solid #d7e4ef;
+            QFrame#workflowSummaryCard[paneTone="airfoil"] QLabel#summaryEyebrow {
+                color: $airfoil_title;
+            }
+            QFrame#workflowSummaryCard[paneTone="airfoil"] QPushButton#summaryActionButton {
+                border-color: $airfoil_inner_border;
+            }
+            QFrame#workflowSummaryCard[paneTone="airfoil"] QPushButton#summaryActionButton:hover {
+                background: #fffafc;
+                border-color: $airfoil_hover_border;
+            }
+            QFrame#summaryNameCard[paneTone="airfoil"] {
+                background: $airfoil_inner_bg;
+                border: 1px solid $airfoil_inner_border;
                 border-radius: 10px;
             }
             QLabel#summaryName {
@@ -111,12 +142,15 @@ class Toolbox(QtWidgets.QWidget):
                 background: #f5f7fa;
                 border-color: #e5ebf1;
             }
-            QFrame#workflowNavCard {
-                background: #f8fbfd;
-                border: 1px solid #dbe7ef;
+            QFrame#workflowNavCard[paneTone="workflow"] {
+                background: $workflow_bg;
+                border: 1px solid $workflow_border;
                 border-radius: 12px;
             }
-            QPushButton[navRole="step"] {
+            QFrame#workflowNavCard[paneTone="workflow"] QLabel#sectionTitle {
+                color: $workflow_title;
+            }
+            QFrame#workflowNavCard[paneTone="workflow"] QPushButton[navRole="step"] {
                 background: transparent;
                 border: none;
                 border-radius: 8px;
@@ -126,26 +160,32 @@ class Toolbox(QtWidgets.QWidget):
                 text-align: left;
                 padding: 11px 12px 11px 18px;
             }
-            QPushButton[navRole="step"]:hover {
-                background: rgba(255, 255, 255, 0.72);
+            QFrame#workflowNavCard[paneTone="workflow"] QPushButton[navRole="step"]:hover {
+                background: $workflow_hover;
             }
-            QPushButton[navRole="step"]:checked {
-                background: #f2f8fc;
-                border-top: 1px solid #d3e4ef;
-                border-right: 1px solid #d3e4ef;
-                border-bottom: 1px solid #d3e4ef;
-                border-left: 10px solid #6ea2c6;
-                color: #6b7788;
+            QFrame#workflowNavCard[paneTone="workflow"] QPushButton[navRole="step"]:checked {
+                background: $current_nav_bg;
+                border-top: 1px solid $current_nav_border;
+                border-right: 1px solid $current_nav_border;
+                border-bottom: 1px solid $current_nav_border;
+                border-left: 10px solid $current_nav_accent;
+                color: $current_nav_text;
                 font-weight: 700;
                 padding: 11px 12px 11px 10px;
             }
-            QPushButton[navRole="step"][workflowStatus="disabled"] {
+            QFrame#workflowNavCard[paneTone="workflow"] QPushButton[navRole="step"][workflowStatus="disabled"] {
                 color: #6b7788;
             }
-            QFrame#workflowPageCard {
-                background: #f8fbfd;
-                border: 1px solid #dbe7ef;
+            QFrame#workflowPageCard[paneTone="current"] {
+                background: $current_bg;
+                border: 1px solid $current_border;
                 border-radius: 12px;
+            }
+            QFrame#workflowPageCard[paneTone="current"] QLabel#pageTitle {
+                color: $current_title;
+            }
+            QFrame#workflowPageCard[paneTone="current"] QLabel#pageSubtitle {
+                color: $current_subtitle;
             }
             QGroupBox {
                 background: #ffffff;
@@ -350,10 +390,11 @@ class Toolbox(QtWidgets.QWidget):
             QWidget#workflowPageBody {
                 background: transparent;
             }
-        """
+        """).substitute(palette)
         self.setStyleSheet(style)
 
         self.summary_card = self._buildSummaryCard()
+        self.summary_card.setProperty('paneTone', 'airfoil')
 
         self.workflow_steps = QtWidgets.QWidget()
         self.workflow_steps_layout = QtWidgets.QVBoxLayout()
@@ -363,6 +404,7 @@ class Toolbox(QtWidgets.QWidget):
 
         self.workflow_card = QtWidgets.QFrame()
         self.workflow_card.setObjectName('workflowNavCard')
+        self.workflow_card.setProperty('paneTone', 'workflow')
         workflow_card_layout = QtWidgets.QVBoxLayout()
         workflow_card_layout.setContentsMargins(14, 14, 14, 14)
         workflow_card_layout.setSpacing(8)
@@ -375,6 +417,7 @@ class Toolbox(QtWidgets.QWidget):
 
         self.page_card = QtWidgets.QFrame()
         self.page_card.setObjectName('workflowPageCard')
+        self.page_card.setProperty('paneTone', 'current')
         page_layout = QtWidgets.QVBoxLayout()
         page_layout.setContentsMargins(18, 16, 18, 18)
         page_layout.setSpacing(8)
@@ -431,6 +474,7 @@ class Toolbox(QtWidgets.QWidget):
 
         self.summary_name_card = QtWidgets.QFrame()
         self.summary_name_card.setObjectName('summaryNameCard')
+        self.summary_name_card.setProperty('paneTone', 'airfoil')
         summary_name_layout = QtWidgets.QHBoxLayout()
         summary_name_layout.setContentsMargins(12, 9, 12, 9)
         summary_name_layout.setSpacing(0)
@@ -1033,12 +1077,6 @@ class Toolbox(QtWidgets.QWidget):
         except ValueError:
             return None
 
-    def useExactInscribedCircles(self):
-        option = getattr(self, 'exact_inscribed_circles', None)
-        if option is None:
-            return True
-        return option.isChecked()
-
     def updateSplineMethodControls(self):
         cst_enabled = self.selectedSplineMethod() == METHOD_CST_MODIFIED
         cst_order = getattr(self, 'cst_order', None)
@@ -1177,6 +1215,12 @@ class Toolbox(QtWidgets.QWidget):
     def toggleCamberCircles(self):
         self._toggleAirfoilItem('camber_circles')
 
+    def toggleMaxThicknessMarker(self):
+        self._toggleAirfoilItem('max_thickness_marker')
+
+    def toggleMaxCamberMarker(self):
+        self._toggleAirfoilItem('max_camber_marker')
+
     def splineFillEnabled(self):
         fill_toggle = getattr(
             getattr(self.mw, 'mainArea', None),
@@ -1193,13 +1237,6 @@ class Toolbox(QtWidgets.QWidget):
 
     def toggleSplineFill(self, _checked=None):
         self.applySplineFillPreference()
-
-    def refreshCamberMethodSelection(self, _checked=None):
-        airfoil = self._active_airfoil()
-        if airfoil is None or not getattr(airfoil, 'has_spline', False):
-            return
-        self.workflow.refresh_camber_geometry(airfoil)
-        self.refreshWorkflowState()
 
     def showCstParameters(self, _checked=None):
         airfoil = self._active_airfoil()

@@ -104,6 +104,7 @@ class SplineRefine:
         return camber
 
     def makeLeCircle(self, rc, xc, yc, xle, yle):
+        palette = self.mw.airfoil._display_palette()
 
         # delete exitsing LE circle ItemGroup from scene
         if hasattr(self.mw.airfoil, 'le_circle') and \
@@ -114,36 +115,39 @@ class SplineRefine:
         circles = list()
 
         circle = gic.GraphicsCollection()
-        circle.pen.setColor(QtGui.QColor(0, 150, 0, 255))
-        circle.pen.setWidthF(0.3)
+        circle.pen.setColor(palette['le_circle_pen'])
+        circle.pen.setWidthF(0.9)
         # no pen thickness change when zoomed
         circle.pen.setCosmetic(True)
-        circle.brush.setColor(QtGui.QColor(10, 200, 10, 150))
+        circle.brush.setColor(palette['le_circle_fill'])
         circle.Circle(xc, yc, rc)
 
         circle = GraphicsItem.GraphicsItem(circle)
+        circle.setAcceptHoverEvents(False)
         circles.append(circle)
 
         circle = gic.GraphicsCollection()
-        circle.pen.setColor(QtGui.QColor(255, 0, 0, 255))
-        circle.pen.setWidthF(0.3)
+        circle.pen.setColor(palette['le_center_pen'])
+        circle.pen.setWidthF(0.95)
         # no pen thickness change when zoomed
         circle.pen.setCosmetic(True)
-        circle.brush.setColor(QtGui.QColor(255, 0, 0, 255))
+        circle.brush.setColor(palette['le_center_fill'])
         circle.Circle(xc, yc, 0.0002)
 
         circle = GraphicsItem.GraphicsItem(circle)
+        circle.setAcceptHoverEvents(False)
         circles.append(circle)
 
         circle = gic.GraphicsCollection()
-        circle.pen.setColor(QtGui.QColor(255, 0, 0, 255))
-        circle.pen.setWidthF(1.6)
+        circle.pen.setColor(palette['le_tangent_pen'])
+        circle.pen.setWidthF(1.2)
         # no pen thickness change when zoomed
         circle.pen.setCosmetic(True)
-        circle.brush.setColor(QtGui.QColor(255, 0, 0, 255))
+        circle.brush.setColor(palette['le_tangent_fill'])
         circle.Circle(xle, yle, 0.0002)
 
         circle = GraphicsItem.GraphicsItem(circle)
+        circle.setAcceptHoverEvents(False)
         circles.append(circle)
 
         self.mw.airfoil.le_circle = \

@@ -5,7 +5,6 @@ import FileSystem
 from ToolboxWidgets import (
     configure_form_layout,
     make_page_label,
-    make_page_option,
     right_aligned_row,
 )
 
@@ -113,7 +112,7 @@ def build_file_system_panel(toolbox):
 def build_spline_refine_panel(toolbox):
     refine_card, refine_layout = _create_section_card(
         'Refine Contour',
-        'Create a smoother working contour before meshing.',
+        'Create a smoother working contour before meshing. CST uses analytic camber/thickness, while B-spline keeps the legacy simple camber.',
     )
 
     refine_form = QtWidgets.QFormLayout()
@@ -140,13 +139,6 @@ def build_spline_refine_panel(toolbox):
     toolbox.points.setRange(10, 1000)
     toolbox.points.setValue(200)
     refine_form.addRow(label, toolbox.points)
-
-    toolbox.exact_inscribed_circles = make_page_option(
-        'Camber (exact)',
-        'Compute exact inscribed circles for camber analysis. Disable this for faster contour updates.',
-    )
-    toolbox.exact_inscribed_circles.setChecked(True)
-    refine_form.addRow(toolbox.exact_inscribed_circles)
     refine_layout.addLayout(refine_form)
 
     refine_advanced_form = QtWidgets.QFormLayout()
@@ -309,9 +301,6 @@ def build_spline_refine_panel(toolbox):
     toolbox.exportCstButton.clicked.connect(toolbox.exportCst)
     toolbox.spline_method.currentIndexChanged.connect(
         lambda *_: toolbox.updateSplineMethodControls()
-    )
-    toolbox.exact_inscribed_circles.toggled.connect(
-        toolbox.refreshCamberMethodSelection
     )
     toolbox.updateSplineMethodControls()
 

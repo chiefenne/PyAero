@@ -44,6 +44,12 @@ class Airfoil:
         self.camberline = None
         self.camber_circles = None
         self.camberCircleMarkers = []
+        self.max_thickness_marker = None
+        self.maxThicknessMarkers = []
+        self.max_thickness_marker_coordinates = None
+        self.max_camber_marker = None
+        self.maxCamberMarkers = []
+        self.max_camber_marker_coordinates = None
         self.le_circle = None
         self.mesh = None
         self.mesh_blocks = None
@@ -75,6 +81,16 @@ class Airfoil:
             'camber_pen': QtGui.QColor('#d07c4d'),
             'camber_circle_pen': QtGui.QColor('#d07c4d'),
             'camber_circle_fill': QtGui.QColor(208, 124, 77, 22),
+            'max_thickness_pen': QtGui.QColor('#3d8f8b'),
+            'max_thickness_fill': QtGui.QColor('#73d0c7'),
+            'max_camber_pen': QtGui.QColor('#9e5c7f'),
+            'max_camber_fill': QtGui.QColor('#db8eb4'),
+            'le_circle_pen': QtGui.QColor('#5f7ea4'),
+            'le_circle_fill': QtGui.QColor(95, 126, 164, 24),
+            'le_center_pen': QtGui.QColor('#3f5b82'),
+            'le_center_fill': QtGui.QColor('#3f5b82'),
+            'le_tangent_pen': QtGui.QColor('#7f9ec4'),
+            'le_tangent_fill': QtGui.QColor('#7f9ec4'),
         }
 
     def _apply_spline_fill_style(self):
@@ -126,6 +142,18 @@ class Airfoil:
                 self.camber_data.display_coordinates(),
                 self.camberCircleMarkers,
                 0.6,
+            ))
+        if self.max_thickness_marker_coordinates and self.maxThicknessMarkers:
+            collections.append((
+                self.max_thickness_marker_coordinates,
+                self.maxThicknessMarkers,
+                1.3,
+            ))
+        if self.max_camber_marker_coordinates and self.maxCamberMarkers:
+            collections.append((
+                self.max_camber_marker_coordinates,
+                self.maxCamberMarkers,
+                1.3,
             ))
         return collections
 
@@ -198,6 +226,9 @@ class Airfoil:
         return True
 
     def makeAirfoil(self):
+        if hasattr(self.mw, 'mainArea') and self.mw.mainArea is not None:
+            self.mw.mainArea.resetAirfoilViewControls()
+
         # make polygon graphicsitem from coordinates
         self.makeContourPolygon()
         self.makeChord()
@@ -474,6 +505,121 @@ class Airfoil:
         self.camber_circles.setZValue(34)
         self.mw.mainArea.airfoil_camber_circles_checkbox.setChecked(True)
         self.mw.mainArea.airfoil_camber_circles_checkbox.setEnabled(True)
+        if hasattr(self.mw, 'view') and self.mw.view is not None:
+            self.mw.view.adjustMarkerSize()
+
+    def _camberMaximumMarkerIndex(self, camber_data, quantity):
+        if camber_data.point_count == 0:
+            return None, None
+
+        if quantity == 'thickness':
+            values = 2.0 * np.asarray(camber_data.radius, dtype=float)
+            minimum_value = 1.0e-9
+        elif quantity == 'camber':
+            values = np.asarray(camber_data.coordinates[1], dtype=float)
+            minimum_value = 1.0e-6
+        else:
+            raise ValueError(f'Unsupported camber quantity: {quantity}')
+
+        finite = np.isfinite(values)
+        if not np.any(finite):
+            return None, None
+
+        masked_values = np.where(finite, values, -np.inf)
+        index = int(np.argmax(masked_values))
+        value = float(masked_values[index])
+        if not np.isfinite(value) or value <= minimum_value:
+            return None, None
+        return index, value
+
+    def _makeMaximumMarker(self, x_value, y_value, pen_color, fill_color):
+        marker = gic.GraphicsCollection()
+        marker.pen.setColor(pen_color)
+        marker.pen.setWidthF(1.55)
+        marker.pen.setCosmetic(True)
+        marker.brush.setColor(fill_color)
+        marker.brush.setStyle(QtCore.Qt.SolidPattern)
+        marker.Circle(float(x_value), float(y_value), 0.0044)
+
+        marker_item = GraphicsItem.GraphicsItem(marker)
+        marker_item.setAcceptHoverEvents(False)
+        marker_item.setZValue(146)
+        return marker_item
+
+    def _setMarkerToggleState(self, name, visible):
+        toggle = getattr(getattr(self.mw, 'mainArea', None), name, None)
+        if toggle is None:
+            return
+        toggle.setChecked(visible)
+        toggle.setEnabled(visible)
+
+    def drawCamberMaximumMarkers(self, camber_data):
+        palette = self._display_palette()
+
+        self._removeSceneItem(self.max_thickness_marker)
+        self._removeSceneItem(self.max_camber_marker)
+        self.max_thickness_marker = None
+        self.maxThicknessMarkers = []
+        self.max_thickness_marker_coordinates = None
+        self.max_camber_marker = None
+        self.maxCamberMarkers = []
+        self.max_camber_marker_coordinates = None
+
+        if not isinstance(camber_data, CamberData):
+            self._setMarkerToggleState('airfoil_max_thickness_checkbox', False)
+            self._setMarkerToggleState('airfoil_max_camber_checkbox', False)
+            return
+
+        self.camber_data = camber_data
+        x_coordinates = np.asarray(camber_data.coordinates[0], dtype=float)
+        y_coordinates = np.asarray(camber_data.coordinates[1], dtype=float)
+
+        thickness_index, _ = self._camberMaximumMarkerIndex(
+            camber_data,
+            quantity='thickness',
+        )
+        if thickness_index is not None:
+            x_value = x_coordinates[thickness_index]
+            y_value = y_coordinates[thickness_index]
+            self.max_thickness_marker = self._makeMaximumMarker(
+                x_value,
+                y_value,
+                palette['max_thickness_pen'],
+                palette['max_thickness_fill'],
+            )
+            self.mw.scene.addItem(self.max_thickness_marker)
+            self.maxThicknessMarkers = [self.max_thickness_marker]
+            self.max_thickness_marker_coordinates = (
+                np.array((x_value,), dtype=float),
+                np.array((y_value,), dtype=float),
+            )
+            self._setMarkerToggleState('airfoil_max_thickness_checkbox', True)
+        else:
+            self._setMarkerToggleState('airfoil_max_thickness_checkbox', False)
+
+        camber_index, _ = self._camberMaximumMarkerIndex(
+            camber_data,
+            quantity='camber',
+        )
+        if camber_index is not None:
+            x_value = x_coordinates[camber_index]
+            y_value = y_coordinates[camber_index]
+            self.max_camber_marker = self._makeMaximumMarker(
+                x_value,
+                y_value,
+                palette['max_camber_pen'],
+                palette['max_camber_fill'],
+            )
+            self.mw.scene.addItem(self.max_camber_marker)
+            self.maxCamberMarkers = [self.max_camber_marker]
+            self.max_camber_marker_coordinates = (
+                np.array((x_value,), dtype=float),
+                np.array((y_value,), dtype=float),
+            )
+            self._setMarkerToggleState('airfoil_max_camber_checkbox', True)
+        else:
+            self._setMarkerToggleState('airfoil_max_camber_checkbox', False)
+
         if hasattr(self.mw, 'view') and self.mw.view is not None:
             self.mw.view.adjustMarkerSize()
 

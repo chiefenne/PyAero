@@ -300,6 +300,7 @@ class Slots:
         if is_active_airfoil:
             self.mw.scene.clear()
             self.mw.airfoil = None
+            self.mw.mainArea.resetAirfoilViewControls()
         self._removeAirfoilListEntry(airfoil.name)
 
         if is_active_airfoil:

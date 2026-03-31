@@ -256,6 +256,12 @@ class MainContentArea(QtWidgets.QWidget):
                 font-size: 12px;
                 line-height: 1.4em;
             }
+            QLabel[viewerSectionLabel="true"] {
+                color: #6b7788;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+            }
             QTextEdit#messageTextEdit {
                 background: transparent;
                 border: none;
@@ -308,6 +314,11 @@ class MainContentArea(QtWidgets.QWidget):
             QToolButton[viewAction="true"]:hover {
                 background: #f3f6fa;
                 border-color: #b8c8db;
+            }
+            QFrame[viewerActionGroup="true"] {
+                background: #f6f9fc;
+                border: 1px solid #dde6ef;
+                border-radius: 6px;
             }
             """
         )
@@ -406,12 +417,28 @@ class MainContentArea(QtWidgets.QWidget):
         controls_page_layout = QtWidgets.QVBoxLayout()
         controls_page_layout.setContentsMargins(0, 0, 0, 0)
         controls_page_layout.setSpacing(0)
+
+        controls_content = QtWidgets.QWidget()
+        controls_content.setSizePolicy(
+            QtWidgets.QSizePolicy.Maximum,
+            QtWidgets.QSizePolicy.Maximum,
+        )
+        controls_content_layout = QtWidgets.QVBoxLayout()
+        controls_content_layout.setContentsMargins(0, 0, 0, 0)
+        controls_content_layout.setSpacing(12)
+        controls_content.setLayout(controls_content_layout)
+
+        controls_group = QtWidgets.QWidget()
+        controls_group.setSizePolicy(
+            QtWidgets.QSizePolicy.Maximum,
+            QtWidgets.QSizePolicy.Maximum,
+        )
         controls_grid = QtWidgets.QGridLayout()
         controls_grid.setContentsMargins(0, 0, 0, 0)
         controls_grid.setHorizontalSpacing(8)
         controls_grid.setVerticalSpacing(8)
-        controls_page_layout.addLayout(controls_grid)
-        controls_page_layout.addStretch(1)
+        controls_group.setLayout(controls_grid)
+        controls_content_layout.addWidget(controls_group)
         controls_page.setLayout(controls_page_layout)
         controls_columns = 4
 
@@ -439,7 +466,11 @@ class MainContentArea(QtWidgets.QWidget):
             ('Camber', 'airfoil_camber_line_checkbox', False, False,
              self.toolbox.toggleCamberLine, 'Airfoil Camber Line'),
             ('C Circles', 'airfoil_camber_circles_checkbox', False, False,
-             self.toolbox.toggleCamberCircles, 'Airfoil Camber Inscribed Circles'),
+             self.toolbox.toggleCamberCircles, 'Airfoil Camber Circles'),
+            ('Max Thick', 'airfoil_max_thickness_checkbox', False, False,
+             self.toolbox.toggleMaxThicknessMarker, 'Maximum Thickness Marker'),
+            ('Max Camber', 'airfoil_max_camber_checkbox', False, False,
+             self.toolbox.toggleMaxCamberMarker, 'Maximum Camber Marker'),
         ]
 
         for index, control in enumerate(controls):
@@ -467,24 +498,36 @@ class MainContentArea(QtWidgets.QWidget):
             'Background',
             self.parent.slots.onBackground,
         )
-        action_index = len(controls)
-        controls_grid.addWidget(
-            fit_airfoil_button,
-            action_index // controls_columns,
-            action_index % controls_columns,
+        action_group = QtWidgets.QFrame()
+        action_group.setProperty('viewerActionGroup', 'true')
+        action_group.setSizePolicy(
+            QtWidgets.QSizePolicy.Maximum,
+            QtWidgets.QSizePolicy.Maximum,
         )
-        action_index += 1
-        controls_grid.addWidget(
-            fit_button,
-            action_index // controls_columns,
-            action_index % controls_columns,
+        action_group_layout = QtWidgets.QVBoxLayout()
+        action_group_layout.setContentsMargins(10, 10, 10, 10)
+        action_group_layout.setSpacing(8)
+        action_group.setLayout(action_group_layout)
+
+        action_label = QtWidgets.QLabel('VIEW ACTIONS')
+        action_label.setProperty('viewerSectionLabel', 'true')
+        action_group_layout.addWidget(action_label)
+
+        action_row = QtWidgets.QHBoxLayout()
+        action_row.setContentsMargins(0, 0, 0, 0)
+        action_row.setSpacing(8)
+        action_row.addWidget(fit_airfoil_button)
+        action_row.addWidget(fit_button)
+        action_row.addWidget(background_button)
+        action_group_layout.addLayout(action_row)
+
+        controls_content_layout.addWidget(action_group)
+        controls_page_layout.addWidget(
+            controls_content,
+            0,
+            QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft,
         )
-        action_index += 1
-        controls_grid.addWidget(
-            background_button,
-            action_index // controls_columns,
-            action_index % controls_columns,
-        )
+        controls_page_layout.addStretch(1)
 
         placeholder_page = QtWidgets.QWidget()
         placeholder_layout = QtWidgets.QVBoxLayout()
@@ -502,6 +545,31 @@ class MainContentArea(QtWidgets.QWidget):
 
         self.viewer_controls_stack.addWidget(controls_page)
         self.viewer_controls_stack.addWidget(placeholder_page)
+
+    def resetAirfoilViewControls(self):
+        toggle_names = (
+            'airfoil_points_checkbox',
+            'airfoil_raw_contour_checkbox',
+            'airfoil_spline_points_checkbox',
+            'airfoil_spline_contour_checkbox',
+            'airfoil_spline_fill_checkbox',
+            'airfoil_chord_checkbox',
+            'mesh_checkbox',
+            'leading_edge_circle_checkbox',
+            'mesh_blocks_checkbox',
+            'airfoil_camber_line_checkbox',
+            'airfoil_camber_circles_checkbox',
+            'airfoil_max_thickness_checkbox',
+            'airfoil_max_camber_checkbox',
+        )
+        for name in toggle_names:
+            button = getattr(self, name, None)
+            if button is None:
+                continue
+            blocker = QtCore.QSignalBlocker(button)
+            button.setChecked(False)
+            button.setEnabled(False)
+            del blocker
 
     def _makeWorkspaceModeButton(self, text):
         button = QtWidgets.QToolButton()

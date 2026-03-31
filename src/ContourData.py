@@ -88,6 +88,7 @@ class CamberData:
     display_indices: Any
     valid: Any
     fallback_used: Any
+    circle_radius: Any | None = None
 
     @property
     def point_count(self) -> int:
@@ -148,7 +149,8 @@ class CamberData:
         return x_coordinates, y_coordinates
 
     def display_radius(self):
-        return self.radius[self.display_indices]
+        radii = self.circle_radius if self.circle_radius is not None else self.radius
+        return radii[self.display_indices]
 
     def display_upper_contact(self):
         return (

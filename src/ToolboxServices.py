@@ -296,8 +296,8 @@ class ToolboxWorkflowController:
 
         camber_builder = Camber.CamberBuilder()
         camber_method = (
-            Camber.CAMBER_METHOD_INSCRIBED_CIRCLES
-            if self.toolbox.useExactInscribedCircles()
+            Camber.CAMBER_METHOD_CST
+            if getattr(spline_data, 'method', None) == METHOD_CST_MODIFIED
             else Camber.CAMBER_METHOD_LEGACY
         )
         camber_data = camber_builder.build(
@@ -313,6 +313,7 @@ class ToolboxWorkflowController:
         airfoil.camber_data = camber_data
         airfoil.drawCamber(camber_data)
         airfoil.drawCamberCircles(camber_data)
+        airfoil.drawCamberMaximumMarkers(camber_data)
         return rc, le_id
 
     def _remove_scene_item(self, item):

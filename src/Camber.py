@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 from scipy import optimize
 
+from CSTAirfoil import METHOD_CST_MODIFIED
 from ContourData import CamberData
 from MathUtils import VectorUtils
 
@@ -11,19 +12,28 @@ logger = logging.getLogger(__name__)
 
 
 CAMBER_METHOD_INSCRIBED_CIRCLES = 'inscribed_circles'
+CAMBER_METHOD_CST = 'cst_camber_thickness'
 CAMBER_METHOD_LEGACY = 'legacy_midpoint'
 
 
 class CamberBuilder:
-    DEFAULT_METHOD = CAMBER_METHOD_INSCRIBED_CIRCLES
+    DEFAULT_METHOD = None
     DEFAULT_CALCULATION_POINTS = 240
     DEFAULT_DISPLAY_CIRCLES = 17
+    CLEARANCE_MAX_ITERATIONS = 48
+    CLEARANCE_PARAMETER_TOLERANCE = 1.0e-7
+    CLEARANCE_SAMPLE_COUNT = 320
     NORMAL_SEARCH_MARGIN = 0.08
     MAX_INSCRIBED_ITERATIONS = 7
+    MAX_OPTIMIZATION_ITERATIONS = 200
     CENTER_TOLERANCE = 1.0e-7
     RADIUS_TOLERANCE = 1.0e-5
     MIN_RADIUS = 1.0e-8
     MIN_NORMAL_DETERMINANT = 1.0e-8
+    OPTIMIZATION_RADIUS_WEIGHT = 2.0e4
+    OPTIMIZATION_CENTER_X_WEIGHT = 80.0
+    OPTIMIZATION_CENTER_Y_WEIGHT = 10.0
+    OPTIMIZATION_SEED_EPSILON = 1.0e-4
 
     def build(
         self,
@@ -40,6 +50,7 @@ class CamberBuilder:
     ):
         self.spline_data = spline_data
         self.t_le = float(spline_data.leading_edge_parameter_value())
+        self._clearance_samples = None
 
         point_count = calculation_points or max(
             self.DEFAULT_CALCULATION_POINTS,
@@ -48,15 +59,26 @@ class CamberBuilder:
         point_count = max(40, int(point_count))
         display_count = max(3, int(display_circles or self.DEFAULT_DISPLAY_CIRCLES))
 
-        legacy = self._build_legacy(point_count=point_count, display_count=display_count)
-        active_method = method or self.DEFAULT_METHOD
+        active_method = method or self._default_method()
 
         if active_method == CAMBER_METHOD_LEGACY:
+            legacy = self._build_legacy(
+                point_count=point_count,
+                display_count=display_count,
+            )
             self._log_metrics(legacy, label='legacy midpoint')
             return legacy
+        if active_method == CAMBER_METHOD_CST:
+            cst_camber = self._build_cst(
+                point_count=point_count,
+                display_count=display_count,
+            )
+            self._log_metrics(cst_camber, label='CST camber/thickness')
+            return cst_camber
         if active_method != CAMBER_METHOD_INSCRIBED_CIRCLES:
             raise ValueError(f'Unsupported camber method: {active_method}')
 
+        legacy = self._build_legacy(point_count=point_count, display_count=display_count)
         inscribed = self._build_inscribed(
             legacy,
             rc=rc,
@@ -75,6 +97,11 @@ class CamberBuilder:
                 inscribed.point_count,
             )
         return inscribed
+
+    def _default_method(self):
+        if getattr(self.spline_data, 'method', None) == METHOD_CST_MODIFIED:
+            return CAMBER_METHOD_CST
+        return CAMBER_METHOD_LEGACY
 
     def _upper_parameter(self, station):
         return self.spline_data.upper_surface_parameters(station)
@@ -99,7 +126,13 @@ class CamberBuilder:
         lower_parameters = self._lower_parameter(stations)
         return stations, upper_parameters, lower_parameters
 
-    def _build_legacy(self, point_count, display_count):
+    def _surface_midline_data(
+        self,
+        point_count,
+        display_count,
+        method_name,
+        use_clearance_circles=False,
+    ):
         stations, upper_parameters, lower_parameters = self._legacy_parameters(point_count)
         del stations
 
@@ -115,13 +148,23 @@ class CamberBuilder:
         centers = 0.5 * (upper + lower)
         radius = 0.5 * VectorUtils.vector_length(upper - lower)
         display_indices = self._display_indices(centers, display_count)
+        circle_radius = None
+
+        if use_clearance_circles:
+            circle_radius = np.array(radius, copy=True)
+            self._prepare_clearance_samples()
+            for index in display_indices:
+                clearance = self._clearance_radius(centers[index])
+                circle_radius[index] = min(circle_radius[index], clearance)
+
         valid = np.ones(point_count, dtype=bool)
         fallback_used = np.zeros(point_count, dtype=bool)
 
         return CamberData(
-            method=CAMBER_METHOD_LEGACY,
+            method=method_name,
             coordinates=(centers[:, 0], centers[:, 1]),
             radius=radius,
+            circle_radius=circle_radius,
             upper_contact=(upper[:, 0], upper[:, 1]),
             lower_contact=(lower[:, 0], lower[:, 1]),
             upper_parameters=upper_parameters,
@@ -130,6 +173,87 @@ class CamberBuilder:
             valid=valid,
             fallback_used=fallback_used,
         )
+
+    def _build_legacy(self, point_count, display_count):
+        return self._surface_midline_data(
+            point_count=point_count,
+            display_count=display_count,
+            method_name=CAMBER_METHOD_LEGACY,
+            use_clearance_circles=False,
+        )
+
+    def _build_cst(self, point_count, display_count):
+        return self._surface_midline_data(
+            point_count=point_count,
+            display_count=display_count,
+            method_name=CAMBER_METHOD_CST,
+            use_clearance_circles=True,
+        )
+
+    def _prepare_clearance_samples(self):
+        if self._clearance_samples is not None:
+            return
+
+        sample_count = max(24, int(self.CLEARANCE_SAMPLE_COUNT))
+        sample_sets = []
+        for bounds in ((0.0, self.t_le), (self.t_le, 1.0)):
+            lower, upper = bounds
+            if upper <= lower:
+                parameters = np.array((lower,), dtype=float)
+            else:
+                parameters = np.linspace(lower, upper, sample_count)
+            points = np.column_stack(self.spline_data.evaluate(parameters, der=0))
+            sample_sets.append((parameters, points))
+        self._clearance_samples = tuple(sample_sets)
+
+    def _distance_squared_to_center(self, parameter, center):
+        delta = self._evaluate_point(parameter) - center
+        return float(np.dot(delta, delta))
+
+    def _side_clearance_radius(self, center, parameters, points):
+        if len(parameters) == 0:
+            return np.inf
+
+        distances_sq = np.sum((points - center) ** 2, axis=1)
+        index = int(np.argmin(distances_sq))
+        best_sq = float(distances_sq[index])
+
+        lower_index = max(0, index - 1)
+        upper_index = min(len(parameters) - 1, index + 1)
+        lower_parameter = float(parameters[lower_index])
+        upper_parameter = float(parameters[upper_index])
+
+        if upper_parameter > lower_parameter:
+            result = optimize.minimize_scalar(
+                lambda parameter: self._distance_squared_to_center(parameter, center),
+                bounds=(lower_parameter, upper_parameter),
+                method='bounded',
+                options={
+                    'xatol': self.CLEARANCE_PARAMETER_TOLERANCE,
+                    'maxiter': self.CLEARANCE_MAX_ITERATIONS,
+                },
+            )
+            candidates = [lower_parameter, upper_parameter]
+            if result.success:
+                candidates.append(float(result.x))
+            for parameter in candidates:
+                best_sq = min(
+                    best_sq,
+                    self._distance_squared_to_center(parameter, center),
+                )
+
+        return np.sqrt(max(0.0, best_sq))
+
+    def _clearance_radius(self, center):
+        best_radius = np.inf
+        for parameters, points in self._clearance_samples:
+            best_radius = min(
+                best_radius,
+                self._side_clearance_radius(center, parameters, points),
+            )
+        if not np.isfinite(best_radius):
+            return 0.0
+        return float(best_radius)
 
     def _build_inscribed(self, legacy, rc, xc, yc, xle, yle, display_count):
         point_count = legacy.point_count
@@ -158,6 +282,8 @@ class CamberBuilder:
 
         previous_upper = upper_parameters[0]
         previous_lower = lower_parameters[0]
+        previous_guess_upper = upper_parameters[0]
+        previous_guess_lower = lower_parameters[0]
 
         for index in range(1, point_count):
             seed_center = legacy_centers[index]
@@ -168,10 +294,20 @@ class CamberBuilder:
                 legacy_upper=legacy.upper_parameters[index],
                 legacy_lower=legacy.lower_parameters[index],
             )
+            if result is None:
+                result = self._solve_station_optimized(
+                    center_seed=seed_center,
+                    previous_upper=previous_guess_upper,
+                    previous_lower=previous_guess_lower,
+                    legacy_upper=legacy.upper_parameters[index],
+                    legacy_lower=legacy.lower_parameters[index],
+                )
 
             if result is None:
                 previous_upper = legacy.upper_parameters[index]
                 previous_lower = legacy.lower_parameters[index]
+                previous_guess_upper = legacy.upper_parameters[index]
+                previous_guess_lower = legacy.lower_parameters[index]
                 continue
 
             centers[index] = result['center']
@@ -184,6 +320,8 @@ class CamberBuilder:
             fallback_used[index] = False
             previous_upper = result['upper_parameter']
             previous_lower = result['lower_parameter']
+            previous_guess_upper = result['upper_parameter']
+            previous_guess_lower = result['lower_parameter']
 
         display_indices = self._display_indices(centers, display_count)
         return CamberData(
@@ -297,6 +435,48 @@ class CamberBuilder:
             'lower_parameter': lower_parameter,
         }
 
+    def _contact_solution(self, upper_parameter, lower_parameter, center_reference):
+        upper_point, upper_derivative = self._point_and_derivative(upper_parameter)
+        lower_point, lower_derivative = self._point_and_derivative(lower_parameter)
+        upper_normal = self._inward_normal(
+            upper_derivative,
+            upper_point,
+            center_reference,
+        )
+        lower_normal = self._inward_normal(
+            lower_derivative,
+            lower_point,
+            center_reference,
+        )
+
+        intersection = self._intersect_normals(
+            upper_point,
+            upper_normal,
+            lower_point,
+            lower_normal,
+        )
+        if intersection is None:
+            return None
+
+        center, upper_radius, lower_radius = intersection
+        radius = 0.5 * (upper_radius + lower_radius)
+        if radius <= self.MIN_RADIUS:
+            return None
+
+        if abs(upper_radius - lower_radius) > max(self.RADIUS_TOLERANCE, 0.01 * radius):
+            return None
+
+        return {
+            'center': center,
+            'radius': radius,
+            'upper_point': upper_point,
+            'lower_point': lower_point,
+            'upper_parameter': upper_parameter,
+            'lower_parameter': lower_parameter,
+            'upper_radius': upper_radius,
+            'lower_radius': lower_radius,
+        }
+
     def _solve_station(self, center_seed, previous_upper, previous_lower, legacy_upper, legacy_lower):
         upper_bounds = self._station_bounds(
             previous_upper,
@@ -347,6 +527,84 @@ class CamberBuilder:
             upper_bounds,
             lower_bounds,
         )
+
+    def _optimization_objective(self, candidate, center_seed):
+        center = candidate['center']
+        radius_delta = candidate['upper_radius'] - candidate['lower_radius']
+        dx = center[0] - center_seed[0]
+        dy = center[1] - center_seed[1]
+        return (
+            self.OPTIMIZATION_RADIUS_WEIGHT * radius_delta ** 2
+            + self.OPTIMIZATION_CENTER_X_WEIGHT * dx ** 2
+            + self.OPTIMIZATION_CENTER_Y_WEIGHT * dy ** 2
+        )
+
+    def _solve_station_optimized(
+        self,
+        center_seed,
+        previous_upper,
+        previous_lower,
+        legacy_upper,
+        legacy_lower,
+    ):
+        bounds = [
+            (0.0, self.t_le),
+            (self.t_le, 1.0),
+        ]
+        center_seed = np.asarray(center_seed, dtype=float)
+
+        guesses = [
+            np.array((legacy_upper, legacy_lower), dtype=float),
+            np.array((
+                max(0.0, self.t_le - self.OPTIMIZATION_SEED_EPSILON),
+                self.t_le,
+            ), dtype=float),
+            np.array((
+                self.t_le,
+                min(1.0, self.t_le + self.OPTIMIZATION_SEED_EPSILON),
+            ), dtype=float),
+        ]
+        if previous_upper != previous_lower:
+            guesses.insert(
+                0,
+                np.array((previous_upper, previous_lower), dtype=float),
+            )
+
+        best_result = None
+        best_score = None
+
+        def objective(parameters):
+            candidate = self._contact_solution(
+                upper_parameter=float(parameters[0]),
+                lower_parameter=float(parameters[1]),
+                center_reference=center_seed,
+            )
+            if candidate is None:
+                return 1.0e6
+            return self._optimization_objective(candidate, center_seed)
+
+        for guess in guesses:
+            result = optimize.minimize(
+                objective,
+                guess,
+                method='L-BFGS-B',
+                bounds=bounds,
+                options={'maxiter': self.MAX_OPTIMIZATION_ITERATIONS},
+            )
+            candidate = self._contact_solution(
+                upper_parameter=float(result.x[0]),
+                lower_parameter=float(result.x[1]),
+                center_reference=center_seed,
+            )
+            if candidate is None:
+                continue
+
+            score = self._optimization_objective(candidate, center_seed)
+            if best_score is None or score < best_score:
+                best_score = score
+                best_result = candidate
+
+        return best_result
 
     def _display_indices(self, centers, display_count):
         count = len(centers)
