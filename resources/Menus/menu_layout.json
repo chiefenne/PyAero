@@ -22,6 +22,7 @@
         "view.fit_all",
         "separator",
         "view.toggle_background",
+        "view.toggle_magnifier",
         "view.toggle_messages"
       ]
     },

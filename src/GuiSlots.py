@@ -237,9 +237,11 @@ class Slots:
     @QtCore.Slot()
     def onPreview(self):
         printer = QtPrintSupport.QPrinter(QtPrintSupport.QPrinter.HighResolution)
+        printer.setPageSize(QtGui.QPageSize(QtGui.QPageSize.A4))
+        printer.setPageOrientation(QtGui.QPageLayout.Landscape)
         layout = QtGui.QPageLayout()
         layout.setOrientation(QtGui.QPageLayout.Landscape)
-        layout.setPageSize(QtGui.QPageSize.A3)
+        layout.setPageSize(QtGui.QPageSize(QtGui.QPageSize.A4))
         printer.setPageLayout(layout)
 
         preview = QtPrintSupport.QPrintPreviewDialog(printer, self.mw)
@@ -248,8 +250,31 @@ class Slots:
 
     @QtCore.Slot()
     def handlePaintRequest(self, printer):
-        # render QGraphicsView
-        self.mw.view.render(QtGui.QPainter(printer))
+        page_rect = QtCore.QRectF(
+            printer.pageLayout().paintRectPixels(printer.resolution())
+        )
+        source_rect = self.mw.view.viewport().rect()
+        target_size = QtCore.QSizeF(source_rect.size())
+        target_size.scale(page_rect.size(), QtCore.Qt.KeepAspectRatio)
+
+        target_rect = QtCore.QRectF(
+            0.0,
+            0.0,
+            target_size.width(),
+            target_size.height(),
+        )
+        target_rect.moveCenter(page_rect.center())
+
+        painter = QtGui.QPainter(printer)
+        try:
+            self.mw.view.render(
+                painter,
+                target=target_rect,
+                source=source_rect,
+                aspectRatioMode=QtCore.Qt.KeepAspectRatio,
+            )
+        finally:
+            painter.end()
 
     def toggleLogDock(self, _sender=None):
         """Switch message log window on/off"""

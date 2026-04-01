@@ -2,6 +2,7 @@ import os
 
 from PySide6 import QtGui, QtCore, QtWidgets
 
+import MagnifierLens
 from Utils import get_main_window
 import logging
 logger = logging.getLogger(__name__)
@@ -18,6 +19,15 @@ class GraphicsView(QtWidgets.QGraphicsView):
                            used for zooming and selecting
         sceneview (QRectF): stores current view in scene coordinates
     """
+    MAGNIFIER_SIZE_STEP = 24
+    MAGNIFIER_MIN_SIZE = 96
+    MAGNIFIER_MAX_SIZE = 700
+    MAGNIFIER_MIN_OUTLINE_WIDTH = 1.0
+    MAGNIFIER_MAX_OUTLINE_WIDTH = 8.0
+    MAGNIFIER_MAGNIFICATION_STEP = 0.25
+    MAGNIFIER_MIN_MAGNIFICATION = 1.25
+    MAGNIFIER_MAX_MAGNIFICATION = 6.0
+
     def __init__(self, scene=None):
         """Default settings for graphicsview instance"""
 
@@ -26,6 +36,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.mw = get_main_window()
 
         self._leftMousePressed = False
+        self._magnifier_active = False
+        self._magnifier_size = 180
+        self._magnifier_outline_width = 2.0
+        self._magnifier_magnification = 2.0
+        self._magnifier_last_pos = None
+        self._magnifier_wheel_accumulator = 0.0
+        self._magnifier_action_states = {}
 
         # allow drops from drag and drop
         self.setAcceptDrops(True)
@@ -58,6 +75,11 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # cache view to be able to keep it during resize
         self.getSceneFromView()
 
+        self._magnifier_lens = MagnifierLens.MagnifierLensWidget(self)
+        self.applyMagnifierSettings()
+        self.setMouseTracking(False)
+        self.viewport().setMouseTracking(False)
+
     def applyViewSettings(self):
         # view behaviour when zooming
         if self.mw.ZOOM_ANCHOR == 'mouse':
@@ -77,6 +99,38 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.mw.RUBBERBAND_MIN = min(self.mw.RUBBERBAND_MIN, 1.0)
         self.mw.RUBBERBAND_MIN = max(self.mw.RUBBERBAND_MIN, 0.05)
 
+        self.applyMagnifierSettings()
+
+    def applyMagnifierSettings(self):
+        size = getattr(self.mw, 'MAGNIFIER_SIZE', self._magnifier_size)
+        outline_width = getattr(
+            self.mw,
+            'MAGNIFIER_OUTLINE_WIDTH',
+            self._magnifier_outline_width,
+        )
+        magnification = getattr(
+            self.mw,
+            'MAGNIFIER_MAGNIFICATION',
+            self._magnifier_magnification,
+        )
+
+        self._magnifier_size = self._clampMagnifierSize(size)
+        self._magnifier_outline_width = self._clampMagnifierOutlineWidth(
+            outline_width
+        )
+        self._magnifier_magnification = self._clampMagnification(magnification)
+
+        if not hasattr(self, '_magnifier_lens'):
+            return
+
+        self._magnifier_lens.setLensSize(self._magnifier_size)
+        self._magnifier_lens.setOutlineWidth(self._magnifier_outline_width)
+        self._magnifier_lens.setMagnification(self._magnifier_magnification)
+        self._magnifier_lens.syncFromMainView()
+
+        if self._magnifier_active and self._magnifier_last_pos is not None:
+            self._updateMagnifier(self._magnifier_last_pos)
+
     def setBackground(self, styletype):
         """Switches between gradient and simple background using style sheets.
         border-color (in HTML) works only if border-style is set.
@@ -95,10 +149,14 @@ class GraphicsView(QtWidgets.QGraphicsView):
             background-color: white;""")
 
         self.setStyleSheet(style)
+        if hasattr(self, '_magnifier_lens'):
+            self._magnifier_lens.syncFromMainView()
 
     def fitInView(self, *args, **kwargs):
         result = super().fitInView(*args, **kwargs)
         self.refreshCustomItemGeometry()
+        if self._magnifier_active and self._magnifier_last_pos is not None:
+            self._updateMagnifier(self._magnifier_last_pos)
         return result
 
     def refreshCustomItemGeometry(self):
@@ -123,8 +181,19 @@ class GraphicsView(QtWidgets.QGraphicsView):
                        aspectRadioMode=QtCore.Qt.KeepAspectRatio)
         self.adjustMarkerSize()
 
+        if self._magnifier_active and self._magnifier_last_pos is not None:
+            self._updateMagnifier(self._magnifier_last_pos)
+
     def mousePressEvent(self, event):
         """Re-implement QGraphicsView's mousePressEvent handler"""
+
+        if self._magnifier_active:
+            self.setFocus()
+            if event.button() == QtCore.Qt.RightButton:
+                event.ignore()
+            else:
+                event.accept()
+            return
 
         # status of CTRL key
         ctrl = event.modifiers() == QtCore.Qt.ControlModifier
@@ -156,6 +225,12 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def mouseMoveEvent(self, event):
         """Re-implement QGraphicsView's mouseMoveEvent handler"""
+
+        if self._magnifier_active:
+            self.setFocus()
+            self._updateMagnifier(event.pos())
+            event.accept()
+            return
 
         # if a mouse event happens in the graphics view
         # put the keyboard focus to the view as well
@@ -189,6 +264,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
     def mouseReleaseEvent(self, event):
         """Re-implement QGraphicsView's mouseReleaseEvent handler"""
 
+        if self._magnifier_active:
+            if event.button() == QtCore.Qt.RightButton:
+                event.ignore()
+            else:
+                event.accept()
+            return
+
         self._leftMousePressed = False
         self.setCursor(QtCore.Qt.ArrowCursor)
 
@@ -221,6 +303,17 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def wheelEvent(self, event):
         """Re-implement QGraphicsView's wheelEvent handler"""
+
+        if self._magnifier_active:
+            steps = self._magnifierWheelSteps(event)
+            if steps:
+                self._adjustMagnifierMagnification(
+                    steps * self.MAGNIFIER_MAGNIFICATION_STEP
+                )
+                if self._magnifier_last_pos is not None:
+                    self._updateMagnifier(self._magnifier_last_pos)
+            event.accept()
+            return
 
         # detect if event comes from a touchpad or similar (e.g., Apple magic mouse)
         # then zoom based on pixel delta
@@ -256,6 +349,62 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def zoomOut(self):
         self._scaleFromKeyboard(1.0 / self.mw.SCALE_INCREMENT)
+
+    def toggleMagnifier(self):
+        self.setMagnifierEnabled(not self._magnifier_active)
+
+    def setMagnifierEnabled(self, enabled):
+        enabled = bool(enabled)
+        if enabled == self._magnifier_active:
+            return
+
+        self._magnifier_active = enabled
+        self._magnifier_wheel_accumulator = 0.0
+        self._leftMousePressed = False
+        self.rubberband.hide()
+        self._setMagnifierActionStates(enabled)
+
+        self.setMouseTracking(enabled)
+        self.viewport().setMouseTracking(enabled)
+
+        if not enabled:
+            self._magnifier_lens.hide()
+            self._magnifier_last_pos = None
+            return
+
+        view_pos = self.viewport().mapFromGlobal(QtGui.QCursor.pos())
+        if self.viewport().rect().contains(view_pos):
+            self._updateMagnifier(view_pos)
+        else:
+            self._magnifier_lens.hide()
+
+    def magnifierZoomIn(self):
+        if not self._magnifier_active:
+            return
+        self._adjustMagnifierMagnification(self.MAGNIFIER_MAGNIFICATION_STEP)
+        if self._magnifier_last_pos is not None:
+            self._updateMagnifier(self._magnifier_last_pos)
+
+    def magnifierZoomOut(self):
+        if not self._magnifier_active:
+            return
+        self._adjustMagnifierMagnification(-self.MAGNIFIER_MAGNIFICATION_STEP)
+        if self._magnifier_last_pos is not None:
+            self._updateMagnifier(self._magnifier_last_pos)
+
+    def magnifierIncreaseSize(self):
+        if not self._magnifier_active:
+            return
+        self._adjustMagnifierSize(self.MAGNIFIER_SIZE_STEP)
+        if self._magnifier_last_pos is not None:
+            self._updateMagnifier(self._magnifier_last_pos)
+
+    def magnifierDecreaseSize(self):
+        if not self._magnifier_active:
+            return
+        self._adjustMagnifierSize(-self.MAGNIFIER_SIZE_STEP)
+        if self._magnifier_last_pos is not None:
+            self._updateMagnifier(self._magnifier_last_pos)
 
     def keyPressEvent(self, event):
         """Forward keypress events to Qt's action system."""
@@ -312,6 +461,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
         # cache view to be able to keep it during resize
         self.getSceneFromView()
+
+        if self._magnifier_active and self._magnifier_last_pos is not None:
+            self._updateMagnifier(self._magnifier_last_pos)
 
     def adjustMarkerSize(self):
         """Adjust marker size during zoom. Marker items are circles
@@ -374,6 +526,21 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # this is needed during resizing to be able to keep the view
         self.sceneview = QtCore.QRectF(polygon[0], polygon[2])
 
+    def enterEvent(self, event):
+        super().enterEvent(event)
+        if not self._magnifier_active:
+            return
+
+        view_pos = self.viewport().mapFromGlobal(QtGui.QCursor.pos())
+        if self.viewport().rect().contains(view_pos):
+            self._updateMagnifier(view_pos)
+
+    def leaveEvent(self, event):
+        if self._magnifier_active:
+            self._magnifier_lens.hide()
+            self._magnifier_last_pos = None
+        super().leaveEvent(event)
+
     def contextMenuEvent(self, event):
         """Creates context menu (popup menu) for the graphicsview.
 
@@ -393,15 +560,47 @@ class GraphicsView(QtWidgets.QGraphicsView):
             """
             )
 
+        if self._magnifier_active:
+            toggle_magnifier = self.mw.action_registry.action('view.toggle_magnifier')
+            magnifier_zoom_in = self.mw.action_registry.action('view.magnifier_zoom_in')
+            magnifier_zoom_out = self.mw.action_registry.action('view.magnifier_zoom_out')
+            magnifier_size_up = self.mw.action_registry.action('view.magnifier_size_up')
+            magnifier_size_down = self.mw.action_registry.action('view.magnifier_size_down')
+            settings_action = self.mw.action_registry.action('tools.settings')
+
+            if toggle_magnifier is not None:
+                menu.addAction(toggle_magnifier)
+            menu.addSeparator()
+            if magnifier_zoom_in is not None:
+                menu.addAction(magnifier_zoom_in)
+            if magnifier_zoom_out is not None:
+                menu.addAction(magnifier_zoom_out)
+            menu.addSeparator()
+            if magnifier_size_up is not None:
+                menu.addAction(magnifier_size_up)
+            if magnifier_size_down is not None:
+                menu.addAction(magnifier_size_down)
+            if settings_action is not None:
+                menu.addSeparator()
+                menu.addAction(settings_action)
+
+            menu.exec_(self.mapToGlobal(event.pos()))
+            event.accept()
+            return
+
         fit_airfoil = self.mw.action_registry.action('view.fit_airfoil')
         fit_all = self.mw.action_registry.action('view.fit_all')
         delete_airfoil = self.mw.action_registry.action('airfoil.delete_active')
         toggle_background = self.mw.action_registry.action('view.toggle_background')
+        toggle_magnifier = self.mw.action_registry.action('view.toggle_magnifier')
 
         if fit_airfoil is not None:
             menu.addAction(fit_airfoil)
         if fit_all is not None:
             menu.addAction(fit_all)
+        menu.addSeparator()
+        if toggle_magnifier is not None:
+            menu.addAction(toggle_magnifier)
         menu.addSeparator()
         if delete_airfoil is not None:
             menu.addAction(delete_airfoil)
@@ -410,9 +609,95 @@ class GraphicsView(QtWidgets.QGraphicsView):
             menu.addAction(toggle_background)
 
         menu.exec_(self.mapToGlobal(event.pos()))
+        event.accept()
 
-        # call corresponding base class method
-        super().contextMenuEvent(event)
+    def _updateMagnifier(self, view_pos):
+        if not self._magnifier_active:
+            return
+
+        viewport_rect = self.viewport().rect()
+        if not viewport_rect.contains(view_pos):
+            self._magnifier_lens.hide()
+            self._magnifier_last_pos = None
+            return
+
+        self._magnifier_last_pos = QtCore.QPoint(view_pos)
+        self._magnifier_lens.setMagnification(self._magnifier_magnification)
+        self._magnifier_lens.setLensSize(self._magnifier_size)
+        self._magnifier_lens.updateLens(view_pos)
+
+    def _adjustMagnifierSize(self, delta):
+        self._magnifier_size = self._clampMagnifierSize(self._magnifier_size + delta)
+        self._magnifier_lens.setLensSize(self._magnifier_size)
+
+    def _adjustMagnifierMagnification(self, delta):
+        self._magnifier_magnification = self._clampMagnification(
+            self._magnifier_magnification + delta
+        )
+        self._magnifier_lens.setMagnification(self._magnifier_magnification)
+
+    def _setMagnifierActionStates(self, magnifier_active):
+        action_registry = getattr(self.mw, 'action_registry', None)
+        if action_registry is None:
+            return
+
+        managed_action_ids = (
+            'view.fit_airfoil',
+            'view.fit_all',
+            'view.toggle_background',
+            'view.zoom_in',
+            'view.zoom_out',
+            'airfoil.delete_active',
+        )
+
+        if magnifier_active:
+            self._magnifier_action_states = {}
+            for action_id in managed_action_ids:
+                action = action_registry.action(action_id)
+                if action is None:
+                    continue
+                self._magnifier_action_states[action_id] = action.isEnabled()
+                action.setEnabled(False)
+            return
+
+        for action_id, was_enabled in self._magnifier_action_states.items():
+            action = action_registry.action(action_id)
+            if action is not None:
+                action.setEnabled(was_enabled)
+        self._magnifier_action_states = {}
+
+    def _magnifierWheelSteps(self, event):
+        angle_delta = event.angleDelta().y()
+        pixel_delta = event.pixelDelta().y()
+
+        if angle_delta:
+            self._magnifier_wheel_accumulator += angle_delta / 120.0
+        elif pixel_delta:
+            self._magnifier_wheel_accumulator += pixel_delta / 40.0
+        else:
+            return 0
+
+        steps = int(self._magnifier_wheel_accumulator)
+        self._magnifier_wheel_accumulator -= steps
+        return steps
+
+    def _clampMagnifierSize(self, size):
+        return max(
+            self.MAGNIFIER_MIN_SIZE,
+            min(self.MAGNIFIER_MAX_SIZE, int(round(size))),
+        )
+
+    def _clampMagnifierOutlineWidth(self, width):
+        return max(
+            self.MAGNIFIER_MIN_OUTLINE_WIDTH,
+            min(self.MAGNIFIER_MAX_OUTLINE_WIDTH, float(width)),
+        )
+
+    def _clampMagnification(self, magnification):
+        return max(
+            self.MAGNIFIER_MIN_MAGNIFICATION,
+            min(self.MAGNIFIER_MAX_MAGNIFICATION, float(magnification)),
+        )
 
 
 class RubberBand(QtWidgets.QRubberBand):

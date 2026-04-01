@@ -78,7 +78,7 @@ class SettingsEditorDialog(QtWidgets.QDialog):
             for key in self._parser.options(section):
                 raw_value = self._parser.get(section, key, raw=True)
                 widget = self._make_editor(section, key, raw_value)
-                form.addRow(key, widget)
+                form.addRow(self._display_label(section, key), widget)
                 self._fields[(section, key)] = widget
 
             page_layout.addLayout(form)
@@ -183,6 +183,13 @@ class SettingsEditorDialog(QtWidgets.QDialog):
         with Settings.CONFIG_FILE.open('w', encoding='utf-8') as handle:
             handle.write(CONFIG_HEADER)
             self._parser.write(handle)
+
+    @staticmethod
+    def _display_label(section, key):
+        section_prefix = f'{section.upper()}_'
+        if key.startswith(section_prefix):
+            key = key[len(section_prefix):]
+        return key.replace('_', ' ').title()
 
     @staticmethod
     def _infer_kind(raw_value):

@@ -40,20 +40,29 @@
     "view.toggle_background": [
       "B"
     ],
+    "view.toggle_magnifier": [
+      "Ctrl+Alt+M"
+    ],
     "view.toggle_messages": [
       "Ctrl+Shift+M"
     ],
     "view.zoom_in": [
-      {
-        "standard_key": "ZoomIn"
-      },
       "PageDown"
     ],
     "view.zoom_out": [
-      {
-        "standard_key": "ZoomOut"
-      },
       "PageUp"
+    ],
+    "view.magnifier_zoom_in": [
+      "+"
+    ],
+    "view.magnifier_zoom_out": [
+      "-"
+    ],
+    "view.magnifier_size_up": [
+      "Ctrl++"
+    ],
+    "view.magnifier_size_down": [
+      "Ctrl+-"
     ],
     "airfoil.delete_active": [
       {
