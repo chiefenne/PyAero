@@ -1,0 +1,48 @@
+{
+  "menus": [
+    {
+      "name": "File",
+      "items": [
+        "file.open",
+        "file.save",
+        "file.save_as",
+        "separator",
+        "file.print",
+        "file.print_preview",
+        "separator",
+        "app.exit"
+      ]
+    },
+    {
+      "name": "View",
+      "items": [
+        "view.fit_airfoil",
+        "view.fit_all",
+        "separator",
+        "view.toggle_background",
+        "view.toggle_messages"
+      ]
+    },
+    {
+      "name": "Tools",
+      "items": [
+        "tools.calculator",
+        "separator",
+        "tools.settings",
+        "tools.icon_preview"
+      ]
+    },
+    {
+      "name": "Help",
+      "items": [
+        "help.manual_online",
+        "help.manual_pdf",
+        "separator",
+        "help.shortcuts",
+        "separator",
+        "help.about_qt",
+        "help.about_pyaero"
+      ]
+    }
+  ]
+}

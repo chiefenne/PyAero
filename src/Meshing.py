@@ -30,6 +30,32 @@ class WindtunnelMeshSettings:
     wake: MeshBuilders.WakeBlockSettings
 
 
+class NullProgressDialog:
+    def setFixedWidth(self, _width):
+        return None
+
+    def setMinimumDuration(self, _duration):
+        return None
+
+    def setWindowTitle(self, _title):
+        return None
+
+    def setWindowModality(self, _modality):
+        return None
+
+    def setCancelButtonText(self, _text):
+        return None
+
+    def show(self):
+        return None
+
+    def setValue(self, _value):
+        return None
+
+    def wasCanceled(self):
+        return False
+
+
 class Windtunnel:
     """
     The Windtunnel class is responsible for generating a computational fluid dynamics (CFD) mesh 
@@ -463,14 +489,23 @@ class Windtunnel:
             self.mw.scene.removeItem(airfoil.mesh_blocks)
             airfoil.mesh_blocks = None
 
-        progdialog = QtWidgets.QProgressDialog(
-            "Meshing in progress", "Cancel", 0, 100, self.mw)
-        progdialog.setFixedWidth(300)
-        progdialog.setMinimumDuration(0)
-        progdialog.setWindowTitle('Generating the CFD mesh')
-        progdialog.setWindowModality(QtCore.Qt.WindowModal)
-        progdialog.setCancelButtonText('Abort meshing ...')
-        progdialog.show()
+        if isinstance(self.mw, QtWidgets.QWidget) and \
+                QtWidgets.QApplication.instance() is not None:
+            progdialog = QtWidgets.QProgressDialog(
+                'Meshing in progress',
+                'Cancel',
+                0,
+                100,
+                self.mw,
+            )
+            progdialog.setFixedWidth(300)
+            progdialog.setMinimumDuration(0)
+            progdialog.setWindowTitle('Generating the CFD mesh')
+            progdialog.setWindowModality(QtCore.Qt.WindowModal)
+            progdialog.setCancelButtonText('Abort meshing ...')
+            progdialog.show()
+        else:
+            progdialog = NullProgressDialog()
 
         progdialog.setValue(10)
         # progdialog.setLabelText('making blocks')

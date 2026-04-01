@@ -41,7 +41,7 @@ class MeshExportSettings:
     formats: list[str] = field(default_factory=list)
 
 
-class ToolboxWorkflowController:
+class WorkflowService:
     mesh_export_extensions = {
         'flma': '.flma',
         'su2': '.su2',
@@ -49,15 +49,21 @@ class ToolboxWorkflowController:
         'vtu': '.vtu',
     }
 
-    def __init__(self, toolbox, mainwindow=None):
-        self.toolbox = toolbox
+    def __init__(self, mainwindow=None):
         self.mw = mainwindow or get_main_window()
 
-    def spline_and_refine(self, settings: SplineRefineSettings):
-        airfoil = self._require_airfoil()
+    def require_airfoil(self, require_spline: bool = False):
+        airfoil = getattr(self.mw, 'airfoil', None)
         if airfoil is None:
-            return None
+            raise ValueError('No airfoil loaded.')
 
+        if require_spline and not airfoil.has_spline:
+            raise ValueError('Please prepare the contour first.')
+
+        return airfoil
+
+    def spline_and_refine(self, settings: SplineRefineSettings):
+        airfoil = self.require_airfoil()
         airfoil.has_TE = False
 
         refine = SplineRefine.SplineRefine()
@@ -70,25 +76,10 @@ class ToolboxWorkflowController:
             method=settings.method,
             cst_order=settings.cst_order,
         )
-
-        airfoil.makeContourSpline()
-        rc, le_id = self._update_derived_contour_geometry(airfoil, refine=refine)
-        self.invalidate_contour_analysis(airfoil)
-        self.invalidate_mesh_state(airfoil)
-
-        logger.info('Leading edge radius: {:11.8f}'.format(rc))
-        logger.info('Leading edge circle tangent at point: {}'.format(le_id))
-
-        self.toolbox.trailingButton.setEnabled(True)
-        self.toolbox.exportContourButton.setEnabled(True)
-        self.toolbox.refreshWorkflowState()
-        return airfoil
+        return airfoil, refine
 
     def add_trailing_edge(self, settings: TrailingEdgeSettings):
-        airfoil = self._require_airfoil(require_spline=True)
-        if airfoil is None:
-            return None
-
+        airfoil = self.require_airfoil(require_spline=True)
         airfoil.has_TE = True
 
         trailing = TrailingEdge.TrailingEdge()
@@ -104,6 +95,106 @@ class ToolboxWorkflowController:
         rebuilt = refine.rebuildSplineData(airfoil.spline_data.coordinates)
         if rebuilt is not None:
             airfoil.spline_data = rebuilt
+        return airfoil, refine
+
+    def generate_mesh(self, settings):
+        airfoil = self.require_airfoil(require_spline=True)
+
+        wind_tunnel = Meshing.Windtunnel()
+        completed = wind_tunnel.makeMesh(settings=settings, airfoil=airfoil)
+        if not completed:
+            return None
+        return wind_tunnel
+
+    def export_mesh(self, wind_tunnel, filename: str,
+                    settings: MeshExportSettings):
+        if wind_tunnel is None:
+            raise ValueError('Please generate a mesh first.')
+        if not settings.formats:
+            raise ValueError('Please select at least one export format.')
+
+        wind_tunnel.setBoundaryDefinitions(settings.boundary_definitions)
+        exported_files = []
+        for mesh_format in settings.formats:
+            output_name = filename + self.mesh_export_extensions[mesh_format]
+            try:
+                wind_tunnel.export_mesh(mesh_format, name=output_name)
+            except (OSError, ValueError) as error:
+                FileOperations.report_io_error(
+                    'export mesh',
+                    output_name,
+                    error,
+                    mainwindow=self.mw,
+                )
+                return exported_files
+            exported_files.append(output_name)
+        return exported_files
+
+    def export_contour(self, filename: str):
+        airfoil = self.require_airfoil()
+        return FileOperations.write_contour(
+            airfoil,
+            filename,
+            prefer_spline=True,
+            mainwindow=self.mw,
+        )
+
+    def export_camber(self, filename: str):
+        airfoil = self.require_airfoil(require_spline=True)
+        return FileOperations.write_camber(
+            airfoil,
+            filename,
+            mainwindow=self.mw,
+        )
+
+    def export_cst(self, filename: str):
+        airfoil = self.require_airfoil(require_spline=True)
+        return FileOperations.write_cst_parameters(
+            airfoil,
+            filename,
+            mainwindow=self.mw,
+        )
+
+
+class ToolboxWorkflowController:
+    mesh_export_extensions = {
+        'flma': '.flma',
+        'su2': '.su2',
+        'gmsh': '.msh',
+        'vtu': '.vtu',
+    }
+
+    def __init__(self, toolbox, mainwindow=None):
+        self.toolbox = toolbox
+        self.mw = mainwindow or get_main_window()
+        self.service = WorkflowService(self.mw)
+
+    def spline_and_refine(self, settings: SplineRefineSettings):
+        try:
+            airfoil, refine = self.service.spline_and_refine(settings)
+        except ValueError as error:
+            self._show_message(str(error))
+            return None
+
+        airfoil.makeContourSpline()
+        rc, le_id = self._update_derived_contour_geometry(airfoil, refine=refine)
+        self.invalidate_contour_analysis(airfoil)
+        self.invalidate_mesh_state(airfoil)
+
+        logger.info('Leading edge radius: {:11.8f}'.format(rc))
+        logger.info('Leading edge circle tangent at point: {}'.format(le_id))
+
+        self.toolbox.trailingButton.setEnabled(True)
+        self.toolbox.exportContourButton.setEnabled(True)
+        self.toolbox.refreshWorkflowState()
+        return airfoil
+
+    def add_trailing_edge(self, settings: TrailingEdgeSettings):
+        try:
+            airfoil, refine = self.service.add_trailing_edge(settings)
+        except ValueError as error:
+            self._show_message(str(error))
+            return None
         self.refresh_modified_contour_scene()
         self._update_derived_contour_geometry(airfoil, refine=refine)
         self.invalidate_contour_analysis(airfoil)
@@ -159,18 +250,12 @@ class ToolboxWorkflowController:
         self.toolbox.refreshWorkflowState()
 
     def generate_mesh(self, settings):
-        airfoil = self._require_airfoil(require_spline=True)
-        if airfoil is None:
-            return None
-
-        wind_tunnel = Meshing.Windtunnel()
         try:
-            completed = wind_tunnel.makeMesh(settings=settings, airfoil=airfoil)
+            wind_tunnel = self.service.generate_mesh(settings)
         except ValueError as error:
             self._show_message(str(error))
             return None
-
-        if not completed:
+        if wind_tunnel is None:
             return None
 
         self.toolbox.box_meshexport.setEnabled(True)
@@ -210,63 +295,32 @@ class ToolboxWorkflowController:
 
     def export_mesh(self, wind_tunnel, filename: str,
                     settings: MeshExportSettings):
-        if wind_tunnel is None:
-            self._show_message('Please generate a mesh first.')
+        try:
+            return self.service.export_mesh(wind_tunnel, filename, settings)
+        except ValueError as error:
+            self._show_message(str(error))
             return []
-        if not settings.formats:
-            self._show_message('Please select at least one export format.')
-            return []
-
-        wind_tunnel.setBoundaryDefinitions(settings.boundary_definitions)
-        exported_files = []
-        for mesh_format in settings.formats:
-            output_name = filename + self.mesh_export_extensions[mesh_format]
-            try:
-                wind_tunnel.export_mesh(mesh_format, name=output_name)
-            except (OSError, ValueError) as error:
-                FileOperations.report_io_error(
-                    'export mesh',
-                    output_name,
-                    error,
-                    mainwindow=self.mw,
-                )
-                return exported_files
-            exported_files.append(output_name)
-        return exported_files
 
     def export_contour(self, filename: str):
-        airfoil = self._require_airfoil()
-        if airfoil is None:
+        try:
+            return self.service.export_contour(filename)
+        except ValueError as error:
+            self._show_message(str(error))
             return None
-
-        return FileOperations.write_contour(
-            airfoil,
-            filename,
-            prefer_spline=True,
-            mainwindow=self.mw,
-        )
 
     def export_camber(self, filename: str):
-        airfoil = self._require_airfoil(require_spline=True)
-        if airfoil is None:
+        try:
+            return self.service.export_camber(filename)
+        except ValueError as error:
+            self._show_message(str(error))
             return None
-
-        return FileOperations.write_camber(
-            airfoil,
-            filename,
-            mainwindow=self.mw,
-        )
 
     def export_cst(self, filename: str):
-        airfoil = self._require_airfoil(require_spline=True)
-        if airfoil is None:
+        try:
+            return self.service.export_cst(filename)
+        except ValueError as error:
+            self._show_message(str(error))
             return None
-
-        return FileOperations.write_cst_parameters(
-            airfoil,
-            filename,
-            mainwindow=self.mw,
-        )
 
     def _require_airfoil(self, require_spline: bool = False):
         airfoil = getattr(self.mw, 'airfoil', None)

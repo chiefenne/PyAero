@@ -263,11 +263,11 @@ class Slots:
         else:
             self.mw.messagedock.setVisible(not visible)
 
-        # update the checkbox if toggling is done via keyboard shortcut
-        if _sender == 'shortcut':
-            # variable message_window_checkbox is defined in the viewer controls panel
-            checkbox = self.mw.mainArea.message_window_checkbox
-            checkbox.setChecked(not checkbox.isChecked())
+        checkbox = getattr(self.mw.mainArea, 'message_window_checkbox', None)
+        if checkbox is not None:
+            blocker = QtCore.QSignalBlocker(checkbox)
+            checkbox.setChecked(not visible)
+            del blocker
 
     @QtCore.Slot(str)
     def getAirfoilByName(self, name):
@@ -370,27 +370,31 @@ class Slots:
 
     @QtCore.Slot()
     def onKeyBd(self):
-        # automatically populate shortcuts from PMenu.xml
-        text = '<table> \
-                '
-        for eachMenu in self.mw.menudata:
-            for pulldown in eachMenu[1]:
-                if pulldown[2]:
-                    if self.mw.platform == 'Darwin':
-                        shortcut = pulldown[2].replace('CTRL', 'CMD')
-                        # print(pulldown[2], '...', shortcut)
-                    else:
-                        shortcut = pulldown[2]
-                    text += f' \
-                        <tr> \
-                            <td>{shortcut}</td> \
-                            <hr> \
-                            <td colspan=5></td> \
-                            <td>{pulldown[1]}</td> \
-                            <hr> \
-                        </tr> \
-                        '
-        text += '</table>'
+        entries = self.mw.action_registry.shortcut_help()
+        grouped_entries = {}
+        for entry in entries:
+            grouped_entries.setdefault(entry.category, []).append(entry)
+
+        sections = ['<html><body>']
+        for category, category_entries in grouped_entries.items():
+            sections.append(f'<h3>{html.escape(category)}</h3>')
+            sections.append(
+                '<table cellspacing="0" cellpadding="4" '
+                'style="border-collapse: collapse; width: 100%;">'
+            )
+            for entry in category_entries:
+                shortcut_text = ' / '.join(html.escape(text) for text in entry.shortcuts)
+                description = html.escape(entry.description)
+                sections.append(
+                    '<tr>'
+                    f'<td style="white-space: nowrap; font-weight: 600;">{shortcut_text}</td>'
+                    '<td style="width: 16px;"></td>'
+                    f'<td>{description}</td>'
+                    '</tr>'
+                )
+            sections.append('</table>')
+        sections.append('</body></html>')
+        text = ''.join(sections)
 
         textedit = QtWidgets.QTextEdit()
         textedit.setReadOnly(True)

@@ -1,0 +1,27 @@
+{
+  "toolbars": [
+    {
+      "name": "Toolbar",
+      "items": [
+        "file.open",
+        "file.save",
+        "separator",
+        "file.print",
+        "file.print_preview",
+        "separator",
+        "file.open_predefined",
+        "separator",
+        "airfoil.delete_active",
+        "separator",
+        "view.fit_airfoil",
+        "view.fit_all",
+        "separator",
+        "debug.autorun",
+        "separator",
+        "help.about_pyaero",
+        "separator",
+        "app.exit"
+      ]
+    }
+  ]
+}

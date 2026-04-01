@@ -24,6 +24,7 @@ from PySide6 import QtGui, QtCore, QtWidgets
 
 import Settings
 import MenusTools
+import ActionRegistry
 import GraphicsView
 import GraphicsScene
 import GuiSlots
@@ -70,21 +71,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # The central widget is the widget that occupies this main content area.
         self.mainArea = MainContentArea(self)
         self.setCentralWidget(self.mainArea)
+        self.action_registry = ActionRegistry.ActionRegistry(self)
+        self.action_registry.install()
 
-        self._setupShortcuts()
         self.checkEnvironment()
         self.init_GUI()
 
         Logger.log(self)
-
-    def _setupShortcuts(self):
-        self.shortcut_message_dock = QtGui.QShortcut(
-            QtGui.QKeySequence('ALT+m'), self
-        )
-        self.shortcut_message_dock.activated.connect(
-            lambda: self.slots.toggleLogDock('shortcut')
-        )
-        self.shortcut_message_dock.setContext(QtCore.Qt.ApplicationShortcut)
 
     def init_GUI(self):
 
@@ -140,21 +133,8 @@ class MainWindow(QtWidgets.QMainWindow):
         os.makedirs(self.LOGS, mode=0o777, exist_ok=True)
 
     def keyPressEvent(self, event):
-        """Catch keypress events in main window
-
-        Args:
-            event (QKeyEvent): key event sent to the widget with
-            keyboard input focus
-        """
-        key = event.key()
-
-        if key == QtCore.Qt.Key_Escape and self.EXIT_ON_ESCAPE:
-            QtCore.QCoreApplication.quit()
-        elif key == QtCore.Qt.Key_Home:
-            self.slots.onViewAll()
-        else:
-            # progress event
-            super().keyPressEvent(event)
+        """Forward keypress events to Qt's action system."""
+        super().keyPressEvent(event)
 
 
 class MainContentArea(QtWidgets.QWidget):

@@ -31,8 +31,8 @@ Load via the inline file browser
 As outlined above there are more ways to load airfoils. A very handy way to browse airfoils is to use the 
 implemented file browser. This browser is restricted in terms of navigation. Only files and folders below a 
 predefined root path are visible. The default root is the :file:`data/Airfoils` subfolder from the 
-standard installation. The root path for airfoils can be changed by the user in the file :file:`src/Settings.py` 
-by changing the value of the variable :code:`AIRFOILS`.
+standard installation. The root path for airfoils can be changed by the user in :file:`config/config.ini`
+by adjusting the :code:`AIRFOILS` entry in the :code:`[Paths]` section.
 
 The file browser is located in the toolbox on the left side of the application. It is the uppermost tab in 
 the toolbox area.
@@ -52,8 +52,8 @@ Load via the *Toolbar*
 ----------------------
 
 Another way to open the file dialog is to click on the :menuselection:`Open` icon in the toolbar. 
-The toolbar consists of a row of icons just below the menu bar. The toolbar and its icons can be customized by 
-editing the file :file:`data/PToolBar.xml`.
+The toolbar consists of a row of icons just below the menu bar. Its layout can be customized by
+editing :file:`resources/Menus/toolbar_layout.json`.
 
 .. _figure_toolbar_open:
 .. figure::  images/toolbar_open.png

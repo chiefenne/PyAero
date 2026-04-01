@@ -36,7 +36,9 @@ Menus
 Menus in `PyAero <index.html>`_ try to behave much the same as in typical desktop software. For standard menus as :guilabel:`File` or :guilabel:`Print` the documentation will be kept short.
 See figure above for the location of the menubar in the GUI and the figure below for an overview of the menu structure.
 
-The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in a dynamic way. That is, all menus and toolbar items (and their respective handlers/callbacks) are read from XML files (see ``PMenu.xml``, ``PToolbar.xml`` in the ``data/Menus`` folder of the installation). The graphical user interface is automatically populated using the entries of those files. With this structure in place, menus and toolbar items can easily be extended and customized. When adding new menus and thus functionality, it is required to provide corresponding functions in the code or handlers (in *Qt for Python* nomenclature so-called “slots”) to take care of the newly introduced functionality.
+The menus in the menubar and the tools in the toolbar (see Toolbar) are populated dynamically. Their layout is read from the JSON files :file:`resources/Menus/menu_layout.json` and :file:`resources/Menus/toolbar_layout.json`. Actions, callbacks, icons and built-in keyboard shortcuts are defined centrally in :file:`src/ActionRegistry.py`.
+
+With this structure in place, menus and toolbar items can be extended without duplicating shortcut or handler definitions. Adding a new command usually means defining a new action in the registry and placing its action id in the menu or toolbar layout.
 
 .. _figure_menu_structure:
 .. figure::  images/menu_structure_NEW.png
@@ -47,10 +49,6 @@ The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in
 
    PyAero menu structure
 
-.. note::
-   Most probably, the XML files will be changed to JSON format sooner or later.
-   This will not change the functionality.
-
 .. include:: ui_menu_file.inc
 .. include:: ui_menu_view.inc
 .. include:: ui_menu_tools.inc
@@ -59,7 +57,7 @@ The menus in the menubar and the tools in the toolbar (see Toolbar) are coded in
 Toolbar
 -------
 
-The toolbar in `PyAero <index.html>`_  allows fast access to actions which are otherwise triggered by menus. Each of the toolbar buttons launch a specific action. The toolbar can be customized by editing the file :file:`$PYAEROPATH/data/PToolBar.xml`.
+The toolbar in `PyAero <index.html>`_ allows fast access to actions which are otherwise triggered by menus. Each toolbar button launches a specific shared action. The toolbar layout can be customized by editing :file:`resources/Menus/toolbar_layout.json`.
 
 .. figure::  images/toolbar_animated_NEW.gif
    :align:   center
@@ -118,9 +116,9 @@ In order to pan (drag) the contour or any other item press and hold :kbd:`CTRL` 
 Zooming
 ^^^^^^^
 
-Zooming is activated by pressing and holding the left mouse button. While dragging the mouse, a rubberband rectangle is drawn. This rectangle indicates the area which will be zoomed when releasing the left mouse button. In order to avoid accidential zooming too deep, a minimum size rectangle has to show up. A valid zoom rectangle is indicated by changing its background to a transparent blueish color (the minimum allowed size can be set in ``Settings.py`` by changing the value of **RUBBERBAND_MIN**). In order to zoom in deeper, the rubberband rectangle can be subsequently used.
+Zooming is activated by pressing and holding the left mouse button. While dragging the mouse, a rubberband rectangle is drawn. This rectangle indicates the area which will be zoomed when releasing the left mouse button. In order to avoid accidential zooming too deep, a minimum size rectangle has to show up. A valid zoom rectangle is indicated by changing its background to a transparent blueish color. The minimum allowed size can be configured in :file:`config/config.ini` via the :code:`RUBBERBAND_MIN` entry in the :code:`[Graphics]` section. In order to zoom in deeper, the rubberband rectangle can be subsequently used.
 
-Zoom limits (**MIN_ZOOM**, **MAX_ZOOM**) are set in the file ``Settings.py``.
+Zoom limits (:code:`MIN_ZOOM`, :code:`MAX_ZOOM`) are set in :file:`config/config.ini` in the :code:`[Graphics]` section.
 
 .. figure::  images/zoom_view.gif
    :align:   center
@@ -138,9 +136,8 @@ A reset to the initial (home) position can either be achieved by pressing the :k
 Keyboard shortcuts
 ------------------
 
-To speed up some operations, a set of keyboard shortcuts are defined. In some of the menus the shortcuts for the respective actions are defined at the right side of the menu. Furthermore, the shortcut :kbd:`CTRL+k` on Windows and :kbd:`CMD+k` on MacOS are used to access an overview of the keyboard shortcuts.
+To speed up some operations, a set of keyboard shortcuts is defined centrally in :file:`src/ActionRegistry.py`. Menus show the currently assigned shortcuts next to the corresponding actions, and the shortcut overview dialog is generated from the same registry. By default, :kbd:`CTRL+k` on Windows and Linux and :kbd:`CMD+k` on MacOS open the overview of available keyboard shortcuts. User-specific shortcut overrides can be stored in :file:`config/shortcuts.json`.
 
 .. note::
-   The keyboard shortcuts are rendered as uppercase letters in the GUI.
-   Nevertheless, always lowercase letters need to be used, unless the :kbd:`SHIFT` key 
-   is a part of the shortcut.
+   Keyboard shortcuts are rendered by Qt using platform conventions.
+   Depending on the operating system, modifiers and letters can therefore appear with slightly different capitalization or symbols.

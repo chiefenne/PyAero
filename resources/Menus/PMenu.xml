@@ -1,38 +1,39 @@
 <!--
-   The XML structure in this file allows for a dynamic menu population in PyAero
-   If new menus are added, there need to be written respective handlers (aka "slots")
+   Legacy menu layout reference.
+   Runtime menu and toolbar population now uses menu_layout.json and toolbar_layout.json.
+   Keyboard shortcuts are owned by ActionRegistry.py and optional config/shortcuts.json.
 -->
 <PyAero>
     <Menubar name='File'>
-        <Submenu name='Open' tip='Open airfoil contour file' short='CTRL+o' icon='open' handler='onOpen'></Submenu>
-        <Submenu name='Save' tip='Save airfoil contour file' short='CTRL+s' icon='save' handler='onSave'></Submenu>
-        <Submenu name='Save as' tip='Save airfoil contour file with different name' short='CTRL+SHIFT+s' icon='save-as' handler='onSaveAs'></Submenu>
-        <Submenu name='Separator' tip=' ' short=' ' icon=' ' handler=' '></Submenu>
-        <Submenu name='Print' tip='Print current view' short='CTRL+p' icon='print' handler='onPrint'></Submenu>
-        <Submenu name='Print preview' tip='Print preview' short='CTRL+SHIFT+p' icon='print-preview' handler='onPreview'></Submenu>
-        <Submenu name='Separator' tip=' ' short=' ' icon=' ' handler=' '></Submenu>
-        <Submenu name='Exit' tip='Shut down PyAero' short='CTRL+x' icon='exit' handler='onExit'></Submenu>
+        <Submenu name='Open' tip='Open airfoil contour file' icon='open' handler='onOpen'></Submenu>
+        <Submenu name='Save' tip='Save airfoil contour file' icon='save' handler='onSave'></Submenu>
+        <Submenu name='Save as' tip='Save airfoil contour file with different name' icon='save-as' handler='onSaveAs'></Submenu>
+        <Submenu name='Separator' tip=' ' icon=' ' handler=' '></Submenu>
+        <Submenu name='Print' tip='Print current view' icon='print' handler='onPrint'></Submenu>
+        <Submenu name='Print preview' tip='Print preview' icon='print-preview' handler='onPreview'></Submenu>
+        <Submenu name='Separator' tip=' ' icon=' ' handler=' '></Submenu>
+        <Submenu name='Exit' tip='Shut down PyAero' icon='exit' handler='onExit'></Submenu>
     </Menubar>
     <Menubar name='View'>
-        <Submenu name='Fit airfoil in view' tip='Set view to selected airfoil' short='CTRL+f' icon='' handler='fitAirfoilInView'></Submenu>
-        <Submenu name='Fit all in view' tip='Set view to all items visible' short='CTRL+SHIFT+f' icon='' handler='onViewAll'></Submenu>
-        <Submenu name='Separator' tip=' ' short=' ' icon=' ' handler=' '></Submenu>
-        <Submenu name='Toggle background' tip='Toggle background color' short='CTRL+b' icon='' handler='onBackground'></Submenu>
-        <Submenu name='Toggle message window' tip='Toggle the message window to have more space for the viewer' short='CTRL+m' icon='' handler='toggleLogDock'></Submenu>
+        <Submenu name='Fit airfoil in view' tip='Set view to selected airfoil' icon='' handler='fitAirfoilInView'></Submenu>
+        <Submenu name='Fit all in view' tip='Set view to all items visible' icon='' handler='onViewAll'></Submenu>
+        <Submenu name='Separator' tip=' ' icon=' ' handler=' '></Submenu>
+        <Submenu name='Toggle background' tip='Toggle background color' icon='' handler='onBackground'></Submenu>
+        <Submenu name='Toggle message window' tip='Toggle the message window to have more space for the viewer' icon='' handler='toggleLogDock'></Submenu>
     </Menubar>
     <Menubar name='Tools'>
-        <Submenu name='Calculator' tip='Start the internal calculator' short='CTRL+SHIFT+l' icon='calculator' handler='onCalculator'></Submenu>
-        <Submenu name='Separator' tip=' ' short=' ' icon=' ' handler=' '></Submenu>
-        <Submenu name='Settings' tip='Customize PyAero' short='CTRL+e' icon='settings' handler='onCalculator'></Submenu>
-        <Submenu name='Icon Preview' tip='Preview semantic icons and app assets' short='' icon='' handler='onIconPreview'></Submenu>
+        <Submenu name='Calculator' tip='Start the internal calculator' icon='calculator' handler='onCalculator'></Submenu>
+        <Submenu name='Separator' tip=' ' icon=' ' handler=' '></Submenu>
+        <Submenu name='Settings' tip='Customize PyAero' icon='settings' handler='onCalculator'></Submenu>
+        <Submenu name='Icon Preview' tip='Preview semantic icons and app assets' icon='' handler='onIconPreview'></Submenu>
     </Menubar>
     <Menubar name='Help'>
-        <Submenu name='Manual (online)' tip='Open PyAero online documentation' short='CTRL+SHIFT+h' icon='manual' handler='onHelpOnline'></Submenu>
-        <Submenu name='Manual (PDF)' tip='Open PyAero manual' short='CTRL+h' icon='manual' handler='onHelpPDF'></Submenu>
-        <Submenu name='Separator' tip=' ' short=' ' icon=' ' handler=' '></Submenu>
-        <Submenu name='Keyboard shortcuts' tip='Show available keyboard shortcuts' short='CTRL+k' icon='keyboard-shortcuts' handler='onKeyBd'></Submenu>
-        <Submenu name='Separator' tip=' ' short=' ' icon=' ' handler=' '></Submenu>
-        <Submenu name='About Qt' tip='Show the Qt librarys about box' short='' icon='' handler='onAboutQt'></Submenu>
-        <Submenu name='About PyAero' tip='Information about the PyAero and its licensing' short='' icon='about' handler='onAbout'></Submenu>
+        <Submenu name='Manual (online)' tip='Open PyAero online documentation' icon='manual' handler='onHelpOnline'></Submenu>
+        <Submenu name='Manual (PDF)' tip='Open PyAero manual' icon='manual' handler='onHelpPDF'></Submenu>
+        <Submenu name='Separator' tip=' ' icon=' ' handler=' '></Submenu>
+        <Submenu name='Keyboard shortcuts' tip='Show available keyboard shortcuts' icon='keyboard-shortcuts' handler='onKeyBd'></Submenu>
+        <Submenu name='Separator' tip=' ' icon=' ' handler=' '></Submenu>
+        <Submenu name='About Qt' tip='Show the Qt librarys about box' icon='' handler='onAboutQt'></Submenu>
+        <Submenu name='About PyAero' tip='Information about the PyAero and its licensing' icon='about' handler='onAbout'></Submenu>
     </Menubar>
 </PyAero>

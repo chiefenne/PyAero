@@ -115,13 +115,6 @@ class ListWidget(QtWidgets.QListWidget):
         self.mw = get_main_window()
 
     def keyPressEvent(self, event):
-        key = event.key()
-
-        if key == QtCore.Qt.Key_Delete:
-            items = self.selectedItems()
-            if items:
-                self.mw.slots.removeAirfoil(name=items[0].text())
-
         super().keyPressEvent(event)
 
     def listItemClicked(self, item):

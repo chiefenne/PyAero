@@ -4,6 +4,17 @@
 Settings
 ========
 
-`PyAero <index.html>`_ supports customizing its behaviour. The parameters which can be modified are 
-stored in a file called :file:`Settings.py`.
+`PyAero <index.html>`_ supports customizing its behaviour through configuration files.
+
+Most application settings are stored in :file:`config/config.ini`. The values from that file are
+loaded by :file:`src/Settings.py` and made available throughout the application.
+
+Typical examples are:
+
+- default airfoil and data paths in the :code:`[Paths]` and :code:`[Application]` sections
+- graphics settings such as :code:`MIN_ZOOM`, :code:`MAX_ZOOM` and :code:`RUBBERBAND_MIN` in the :code:`[Graphics]` section
+- dialog and logging related options in the :code:`[Dialogs]` and :code:`[Logging]` sections
+
+Keyboard shortcuts are defined centrally in :file:`src/ActionRegistry.py`. Optional user overrides can be
+stored in :file:`config/shortcuts.json`.
 

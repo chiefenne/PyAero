@@ -241,46 +241,20 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # call corresponding base class method
         # super().wheelEvent(event)
 
+    def _scaleFromKeyboard(self, factor):
+        anchor = self.transformationAnchor()
+        self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
+        self.scaleView(factor)
+        self.setTransformationAnchor(anchor)
+
+    def zoomIn(self):
+        self._scaleFromKeyboard(self.mw.SCALE_INCREMENT)
+
+    def zoomOut(self):
+        self._scaleFromKeyboard(1.0 / self.mw.SCALE_INCREMENT)
+
     def keyPressEvent(self, event):
-        """Re-implement QGraphicsView's keyPressEvent handler"""
-
-        key = event.key()
-
-        if key == QtCore.Qt.Key_Plus or key == QtCore.Qt.Key_PageDown:
-            f = self.mw.SCALE_INCREMENT
-            # if scaling with the keys, the do not use mouse as zoom anchor
-            anchor = self.transformationAnchor()
-            self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
-            self.scaleView(f)
-            self.setTransformationAnchor(anchor)
-
-            if key == QtCore.Qt.Key_PageDown:
-                # return here so that later base class is NOT called
-                # because QAbstractScrollArea would otherwise handle
-                # the event and do something we do not want
-                return
-
-        elif key == QtCore.Qt.Key_Minus or key == QtCore.Qt.Key_PageUp:
-            f = 1.0 / self.mw.SCALE_INCREMENT
-            # if scaling with the keys, the do not use mouse as zoom anchor
-            anchor = self.transformationAnchor()
-            self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
-            self.scaleView(f)
-            self.setTransformationAnchor(anchor)
-
-            if key == QtCore.Qt.Key_PageUp:
-                # return here so that later base class is NOT called
-                # because QAbstractScrollArea would otherwise handle
-                # the event and do something we do not want
-                return
-
-        elif key == QtCore.Qt.Key_Home:
-            self.mw.slots.onViewAll()
-        elif key == QtCore.Qt.Key_Delete:
-            # removes all selected airfoils
-            self.mw.slots.removeAirfoil()
-
-        # call corresponding base class method
+        """Forward keypress events to Qt's action system."""
         super().keyPressEvent(event)
 
     def keyReleaseEvent(self, event):
@@ -415,33 +389,23 @@ class GraphicsView(QtWidgets.QGraphicsView):
             """
             )
 
-        fitairfoil = menu.addAction('Fit airfoil in view')
-        fitairfoil.setShortcut('CTRL+f')
+        fit_airfoil = self.mw.action_registry.action('view.fit_airfoil')
+        fit_all = self.mw.action_registry.action('view.fit_all')
+        delete_airfoil = self.mw.action_registry.action('airfoil.delete_active')
+        toggle_background = self.mw.action_registry.action('view.toggle_background')
 
-        fitall = menu.addAction('Fit all items in view')
-        fitall.setShortcut('HOME, CTRL+SHIFT+f')
-
+        if fit_airfoil is not None:
+            menu.addAction(fit_airfoil)
+        if fit_all is not None:
+            menu.addAction(fit_all)
         menu.addSeparator()
-
-        delitems = menu.addAction('Delete airfoil')
-        delitems.setShortcut('Del')
-
+        if delete_airfoil is not None:
+            menu.addAction(delete_airfoil)
         menu.addSeparator()
+        if toggle_background is not None:
+            menu.addAction(toggle_background)
 
-        togglebg = menu.addAction('Toggle background')
-        togglebg.setShortcut('CTRL+b')
-
-        action = menu.exec_(self.mapToGlobal(event.pos()))
-
-        if action == togglebg:
-            self.mw.slots.onBackground()
-        elif action == fitairfoil:
-            self.mw.slots.fitAirfoilInView()
-        elif action == fitall:
-            self.mw.slots.onViewAll()
-        # remove all selected items from the scene
-        elif action == delitems:
-            self.mw.slots.removeAirfoil()
+        menu.exec_(self.mapToGlobal(event.pos()))
 
         # call corresponding base class method
         super().contextMenuEvent(event)
