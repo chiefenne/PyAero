@@ -1,209 +1,99 @@
-
 # PyAero
-![](docs/images/SD7003_velocity_AOA6.png)
-PyAero generated mesh (Solver: [SU2](https://su2code.github.io), Visualization: [ParaView](https://www.paraview.org/))
-<br>
+
+![PyAero generated mesh](docs/images/SD7003_velocity_AOA6.png)
 
 [![readthedocs](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://pyaero.readthedocs.io/en/latest/?badge=latest)
 [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://en.wikipedia.org/wiki/MIT_License)
 
+PyAero is an open-source desktop tool for airfoil contour preparation, contour analysis, and 2D block-structured CFD mesh generation. It focuses on the workflow that typically happens before a solver run: cleaning up geometry, refining point distributions, creating a practical trailing edge, building a structured wind-tunnel mesh, and exporting the result in solver-friendly formats.
 
-PyAero is an open-source airfoil contour analysis and CFD meshing tool written in Python. The graphical user interface is based on [Qt for Python](https://www.qt.io/qt-for-python) (Pyside6).
+The current application is built with Python and PySide6 and ships with a redesigned workflow-oriented user interface. PyAero does not solve the CFD case itself; it prepares geometry and meshes for downstream tools such as SU2, Gmsh, ParaView, or AVL FIRE workflows.
 
-## Features
+## Highlights
 
- - Load and display airfoil contour files
- - Airfoil splining and refining
-   - Get a smooth contour and sufficient contour points
-   - Refine leading edge and trailing edge
-   - Prepare contour for meshing
-   - Automatic calculation of leading edge radius
-   - Point distribution on spline used as mesh distribution around airfoil
- - Automatic generation of block-strcuctured mesh
-   - Single element C-type mesh
-   - **Strictly orthogonal** mesh in the vicinity of the airfoil
-   - Mesh resolution control for airfoil, leading edge, trailing edge and windtunnel
- - Sharp or blunt trailing edges
- - Mesh smoothing (to be improved)
- - Mesh export
-   - [AVL FIRE](https://www.avl.com/fire) (.flma)
-   - Some other file formats are exported as well (only listed formats)
-     - [SU2](https://su2code.github.io) (.su2)
-       - Including boundary markers
-     - [GMSH](http://gmsh.info) (.msh)
-     - [VTK](https://vtk.org) (.vtk)
+- Workflow sidebar with airfoil library, geometry prep, meshing, contour analysis, and CFD helper tools
+- Bundled and local airfoil library with search, import, and quick loading
+- Geometry preparation with CST and legacy B-spline modes
+- Recursive leading-edge refinement plus dedicated trailing-edge segment refinement
+- Optional finite-thickness trailing edge with independent upper and lower blending controls
+- Derived geometry outputs including prepared contour, camber line, and CST parameters
+- 2D block-structured C-type wind-tunnel mesh generation with dedicated airfoil, trailing-edge, tunnel, and wake blocks
+- Simple, elliptic, and angle-based smoothing options, including protected tunnel guide controls
+- Mesh export to `FLMA`, `SU2`, `Gmsh`, and `VTU`
+- Batch mode for generating and exporting meshes without the GUI
+- Registry-driven menus, toolbars, and keyboard shortcuts, including a shortcut editor
 
-   - Automatic definition of boundary elements (edges, faces)
-     - Airfoil, inlet, outlet, symmetry
- - Run in batch mode (i.e. run PyAero from the command line)
-   - Mesh multiple airfoils and export the meshes in multiple formats in one run without user interaction
-   - Using the ``-no-gui`` option and a [control file](data/Batch/batch_control.json) in json format
-   - Example command: ``python src/PyAero.py -no-gui data/Batch/batch_control.json``
- - Airfoil contour analysis (gradient, curvature and curvature circle)
- - NOT YET IMPLEMENTED:
-   - Decent smoothing algorithm for the mesh regions outside the orthogonal blocks
-   - Advanced aerodynamic analysis (i.e. linking to open source CFD software, e.g. SU2)
+## Typical Workflow
 
-## Header image
- - Airfoil SD7003
- - Meshing with PyAero
- - Calculation with the CFD code [SU2](https://su2code.github.io)
- - Post-processing done in [ParaView](https://www.paraview.org/)
+1. Load an airfoil from the bundled library, local library, or an external `.dat` or `.txt` file.
+2. Prepare the contour with CST or legacy B-spline refinement.
+3. Optionally add a finite-thickness trailing edge.
+4. Generate the structured tunnel mesh.
+5. Export the mesh in one or more formats.
 
-## Sample screenshots
+## Current Interface
 
-![](docs/images/gui_airfoil1_new.png)
-**PyAero GUI at a glance**
-<br><br>
+![PyAero interface overview](docs/images/main_screen_new1.png)
 
-![](docs/images/mesh_RAE2822_MAC.png)
-**Example mesh around RAE2822 airfoil**
-<br><br>
-
-![](docs/images/LE_mesh_RAE2822_MAC.png)
-**Example mesh around RAE2822 airfoil - Leading Edge**
-<br><br>
-
-![](docs/images/TE_mesh_RAE2822_MAC.png)
-**Example mesh around RAE2822 airfoil with a blunt Trailing Edge (with finite thickness)**
-<br><br>
-
-![](docs/images/TE_mesh_sharp_MAC.png)
-**Example mesh with a sharp Trailing Edge**
-<br><br>
-
-![](docs/images/MAKAROV_KPS_mesh_MAC.png)
-**Example mesh around MAKAROV KPS airfoil as used in the CFD code AVL-FIRE**
-<br><br>
-
-![](docs/images/MAKAROV_KPS_Veloyity.gif)
-**Velocity field (RE=50000) around MAKAROV KPS airfoil using the CFD code AVL-FIRE**
-<br><br>
-
-![](docs/images/MAKAROV_KPS_TKE.gif)
-**Turbulence kinetic energy field (RE=50000) around MAKAROV KPS airfoil using the CFD code AVL-FIRE**
-<br><br>
-
-![](docs/movies/RG14_3D_laminar_Iso-Q_pressure.gif)
-**Unsteady 3D calculation of the RG14 airfoil using the CFD code AVL-FIRE**
-<br>
-**RE=330000, AOA=2°, 20 million cells.**
-<br>
-**Laminar calculation: CD=0.0079, CL=0.371**
-<br>
-**LES calculation (subgrid scale model: Kobayashi CSM): CD=0.0078, CL=0.362**
-<br><br>
-
-![](docs/images/SD7003_CP_RE200000_AOA3.png)
-**Steady 2D calculation of the SD7003 airfoil using the CFD code SU2 (RE=200000, AOA=3), post-processing with ParaView**
-<br><br>
-
-## Documentation
-
-The PyAero documentation can be found at the following link:
-
-**[http://pyaero.readthedocs.io](http://pyaero.readthedocs.io)**
-
-The documentation is automatically generated using the markdown files in the [docs](https://github.com/chiefenne/PyAero/tree/master/docs) folder via [Sphinx](http://www.sphinx-doc.org/en/stable/index.html).
-
-## Dependencies
-
- - [Python 3.x](https://www.python.org/)
- - [Qt for Python (PySide6)](https://www.qt.io/qt-for-python)
- - [Numpy](http://www.numpy.org/)
- - [Scipy](https://www.scipy.org/)
-
-At the moment no binary is available for Windows.
-
-## Download
-The $ symbol at the beginning the following command examples represents the prompt at command shell. It is not part of the command.
-
-### Option 1: Download source version using Git:
-
-```bash
-$ cd anywhere_on_your_computer
-$ git clone https://github.com/chiefenne/PyAero.git
-```
-or if you want a specific branch (e.g. develop):
-
-```bash
-$ git clone https://github.com/chiefenne/PyAero.git -b develop
-```
-
-
-### Option 2: Download source version as a ZIP file:
-
-From the [PyAero GitHub repository](https://github.com/chiefenne/PyAero). There is on the upper right side a green pull down menu ***Clone or download***. Click on it and then click ***Download ZIP***. You get a file ***PyAero-master.zip*** which you store anywhere on your computer.
-
-```bash
-$ cd anywhere_on_your_computer
-$ unzip PyAero-master.zip
-```
+The application now centers around a workflow sidebar on the left and a workspace on the right. Geometry preparation, mesh generation, export, contour analysis, and CFD helper tools are grouped into dedicated pages so the main path from raw airfoil to exported mesh is easier to follow.
 
 ## Installation
 
-After cloning from Git, or downloading and unzipping, set the environment variable for the PyAero installation path.
-
-### Linux
-
-If your shell is **bash**:
-```bash
-$ export PYAEROPATH=path_to_your_installation
-```
-
-And if you want to set it permanently across sessions (one of the following):
-```bash
-$ echo 'export PYAEROPATH=path_to_your_installation' >> ~/.bashrc
-$ echo 'export PYAEROPATH=path_to_your_installation' >> ~/.bash_profile
-```
-
-For **csh** or **tcsh** use:
-```bash
-$ setenv PYAEROPATH path_to_your_installation
-```
-
-And if you want to set it permanently across sessions:
-```bash
-$ echo 'setenv PYAEROPATH path_to_your_installation' >> ~/.cshrc
-```
-
-Run PyAero using:
+PyAero currently runs from the source tree. Start it from the repository root so the application can resolve its bundled resources.
 
 ```bash
-$ python $PYAEROPATH/src/PyAero.py
+git clone https://github.com/chiefenne/PyAero.git
+cd PyAero
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python src/PyAero.py
 ```
 
-To simplify the command, set an *alias* (the upper beeing for bash and the lower for csh/tcsh).
+For batch mode:
 
 ```bash
-$ alias pyaero="python $PYAEROPATH/src/PyAero.py"
-$ alias pyaero "python $PYAEROPATH/src/PyAero.py"
+python src/PyAero.py -no-gui data/Batch/batch_control.json
 ```
 
-To keep this across sessions, again append the *alias* command to the respective *.zshrc, *.bashrc, etc.
+## Runtime Dependencies
 
-Then start PyAero using:
+- Python 3
+- PySide6
+- NumPy
+- SciPy
 
-```bash
-$ pyaero
-```
+`meshio` is no longer part of the active runtime dependency set.
 
-## Qt for Python version
+## Documentation
 
-PyAero version based on the [Qt for Python](https://www.qt.io/qt-for-python) API (alias PySide2 for QT5 or PySide6 for QT6).
+The documentation lives in [docs/](docs) and is published at:
 
-PyAero started based on the PyQt4 framework which for me was the API to go at the time when I started development.
+<https://pyaero.readthedocs.io>
 
-After a small creative break I decided to upgrade to PyQt5 and continue development. I soon realized that the PyQt5 documentation lacks information, i.e. there were only links to the Qt C++ documentation and no Python related docs, I had the feeling that the PyQt5 development probably stagnates.
+The refreshed docs cover:
 
-Short online research revealed to me that meanwhile Qt themselves are developing now **Qt for Python** which is based on the legacy Pyside API. This made me think that it is possibly best to go with Qt for Python as it is tightly coupled to Qt.
+- the redesigned interface
+- airfoil library usage
+- geometry preparation and CST workflows
+- meshing and export
+- contour analysis
+- CFD input helpers
+- settings, shortcuts, and UI customization
+- batch processing
+
+## Project Scope
+
+PyAero is currently focused on:
+
+- 2D airfoil contour preparation
+- 2D structured mesh generation
+- mesh export for external CFD workflows
+
+PyAero is not a full CFD solver, and mesh import remains future-facing compared with the export path.
 
 ## License
 
-Distributed under the MIT license. See [LICENSE](https://raw.githubusercontent.com/chiefenne/PyAero/master/LICENSE) for more information.
+Distributed under the MIT license. See [LICENSE](LICENSE).
 
-2026 Andreas Ennemoser – andreas.ennemoser@aon.at
-
-## Stargazers over time
-
-[![Stargazers over time](https://starchart.cc/chiefenne/PyAero.svg?variant=adaptive)](https://starchart.cc/chiefenne/PyAero)
+2026 Andreas Ennemoser - andreas.ennemoser@aon.at

@@ -1,39 +1,70 @@
-.. |br| raw:: html
-
-   <br />
-
-.. make a label for this file
 .. _quickstart:
 
-Quick start guide
+Quick Start Guide
 =================
 
-The general steps for mesh generation in `PyAero <index.html>`_ can be explained as follows:
+This chapter walks through the main path from a raw airfoil file to an exported mesh.
 
-1. Load an airfoil contour file |br|
-   This is to get the raw data decribing the airfoil contour.
+Start PyAero from the repository root:
 
-2. Spline and refine the airfoil contour |br|
-   This is to update/improve the contour and prepare the mesh resolution along the airfoil.
+.. code-block:: bash
 
-3. Make a trailing edge with finite thickness |br|
-   This adds a so called blunt trailing edge to the contour. |br|
-   Skip this step if the trailing edge should be sharp.
+   python src/PyAero.py
 
-4. Mesh the refined airfoil contour |br|
-   Start the meshing process.
+Main Workflow
+=============
 
-5. Export the mesh in the required format |br|
-   Save the mesh in the specified format to the harddrive.
+1. Load an airfoil contour.
 
-This is it.
+   Use the airfoil library page, the regular file dialog, or drag and drop a ``.dat`` or ``.txt`` contour into the application.
 
-Check the animation below, on how this looks in the graphical user interface (version 2.1.5).
+2. Prepare the contour.
 
-.. _figure_quickstart_steps:
-.. figure::  images/quickstart.gif
-   :align:   center
-   :target:  _images/quickstart.gif
-   :name: quickstart_steps
+   Open :guilabel:`Geometry Prep`, choose ``CST`` or ``B-spline (legacy)``, and click :guilabel:`Prepare and Refine`.
 
-   Step by step mesh generation with predefined airfoil contour
+3. Optionally add a finite-thickness trailing edge.
+
+   If the downstream mesh should resolve a blunt trailing edge, configure the blending parameters and click :guilabel:`Add Trailing Edge`.
+
+4. Generate the mesh.
+
+   Open :guilabel:`Mesh`, adjust the block sizes if needed, and click :guilabel:`Create Mesh`.
+
+5. Export the result.
+
+   In the :guilabel:`Mesh Export` section, choose one or more formats, define boundary names if needed, and click :guilabel:`Export Mesh`.
+
+That is the complete primary workflow.
+
+Quick Demo
+==========
+
+The animation below still shows the overall sequence well even though the styling of the current interface has evolved.
+
+.. figure:: images/quickstart.gif
+   :align: center
+   :target: _images/quickstart.gif
+
+   The basic PyAero workflow from loaded contour to exported mesh.
+
+Good Defaults
+=============
+
+For a first run, the shipped defaults are a good baseline:
+
+- use the bundled default airfoil
+- keep the CST method selected
+- keep the default refinement settings
+- skip trailing-edge thickening unless you specifically need it
+- generate the mesh with the default block settings
+- export ``SU2`` and ``VTU`` if you want one solver file and one visualization file
+
+Next Steps
+==========
+
+After you are comfortable with the basic path, continue with:
+
+- :ref:`user_interface` for the redesigned workflow shell
+- :ref:`loading_airfoils` for library-based loading and importing
+- :ref:`spline_refine` for contour preparation details
+- :ref:`meshing` for block controls, smoothing, and export

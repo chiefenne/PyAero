@@ -704,28 +704,18 @@ class BlockMesh(LegacyBlockMesh):
         return wind_tunnel.export_mesh('flma', name=name, depth=depth)
 
     @staticmethod
-    def writeSU2_nolib(wind_tunnel, name=''):
-        return wind_tunnel.export_mesh('su2', name=name)
-
-    @staticmethod
-    def writeVTK_nolib(wind_tunnel, name=''):
-        return wind_tunnel.export_mesh('vtu', name=name)
-
-    @staticmethod
-    def writeGMSH_nolib(wind_tunnel, name=''):
-        return wind_tunnel.export_mesh('gmsh', name=name)
-
-    @staticmethod
     def writeSU2(wind_tunnel, name=''):
         return wind_tunnel.export_mesh('su2', name=name)
 
     @staticmethod
-    def writeVTK(wind_tunnel, name=''):
+    def writeVTU(wind_tunnel, name=''):
         return wind_tunnel.export_mesh('vtu', name=name)
 
     @staticmethod
     def writeGMSH(wind_tunnel, name=''):
         return wind_tunnel.export_mesh('gmsh', name=name)
+
+    writeVTK = writeVTU
 
 
 Smooth = LegacySmooth

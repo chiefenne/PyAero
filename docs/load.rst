@@ -1,97 +1,96 @@
-.. make a label for this file
 .. _loading_airfoils:
-
-.. |right_Arrow| unicode:: U+025BA .. BLACK RIGHT-POINTING POINTER
-.. |right_medium_Arrow| unicode:: U+023F5 .. BLACK MEDIUM RIGHT-POINTING TRIANGLE
-.. |down_right_Arrow| unicode:: U+021B3 .. DOWNWARDS ARROW WITH TIP RIGHTWARDS
 
 Loading Airfoils
 ================
 
-Loading airfoils can be done in different ways.
+PyAero now centers the loading workflow around the :guilabel:`Airfoil Library` page, while still supporting direct file loading and drag-and-drop for quick use.
 
-Load via menu :guilabel:`Open`
-------------------------------
+Airfoil Library
+===============
 
-The :menuselection:`File --> Open` menu is the standard way to load airfoil contour data. 
-The shortcut assigned to this menu is :kbd:`CTRL-o`. When clicking this menu or applying the 
-respective shortcut, a file dialog pops up. It allows to select files or browse directories.
+The library page is the main entry point for airfoil files. It provides:
 
-.. _figure_menu_open:
-.. figure::  images/menu_open.png
-   :align:   center
-   :target:  _images/menu_open.png
-   :name: MenuOpen
+- a searchable list of available airfoils
+- source filters for :guilabel:`Bundled`, :guilabel:`Local`, and :guilabel:`All`
+- a status area showing where the selected entry lives
+- direct actions for opening an external file, importing a file into the local library, or loading the selected entry
 
-   *Open* menu to load an airfoil contour via the file browser
+Bundled entries come from the repository's configured airfoil root. Local entries live under the automatically managed local library folder inside that root.
 
-Load via the inline file browser
---------------------------------
-
-As outlined above there are more ways to load airfoils. A very handy way to browse airfoils is to use the 
-implemented file browser. This browser is restricted in terms of navigation. Only files and folders below a 
-predefined root path are visible. The default root is the :file:`data/Airfoils` subfolder from the 
-standard installation. The root path for airfoils can be changed by the user in :file:`config/config.ini`
-by adjusting the :code:`AIRFOILS` entry in the :code:`[Paths]` section.
-
-The file browser is located in the toolbox on the left side of the application. It is the uppermost tab in 
-the toolbox area.
-
-.. _figure_toolbox_area:
-.. figure::  images/toolbox_area_1_NEW.png
-   :align:   center
+.. figure:: images/toolbox_area_1_NEW.png
+   :align: center
    :width: 60%
-   :target:  _images/toolbox_area_1_NEW.png
-   :name: Toolbar_Open
+   :target: _images/toolbox_area_1_NEW.png
 
-   File browser integrated in the *Toolbox*.
+   The library page in the workflow sidebar.
 
-.. seealso:: For more information on configuring the root path to airfoil data see :ref:`tutorial_settings`.
+Supported File Types
+====================
 
-Load via the *Toolbar*
-----------------------
+The main airfoil loading workflow accepts:
 
-Another way to open the file dialog is to click on the :menuselection:`Open` icon in the toolbar. 
-The toolbar consists of a row of icons just below the menu bar. Its layout can be customized by
-editing :file:`resources/Menus/toolbar_layout.json`.
+- ``.dat``
+- ``.txt``
 
-.. _figure_toolbar_open:
-.. figure::  images/toolbar_open.png
-   :align:   center
-   :target:  _images/toolbar_open.png
-   :name: Toolbar_Open
+These are interpreted as airfoil contour files.
 
-   Toolbar icon to load an airfoil contour via the file browser
+Open an External File
+=====================
 
-.. seealso:: For more information on configuring the menubar and the toolbar see :ref:`tutorial_settings`.
+There are two straightforward ways to open a contour file from outside the library:
 
-Load a predefined airfoil
--------------------------
+- :menuselection:`File --> Open`
+- :guilabel:`Open File...` in the library page
 
-For testing purposes a predefined airfoil can be loaded without the need of a file dialog. The airfoil which is predefined can be configured.
+.. figure:: images/menu_open.png
+   :align: center
+   :target: _images/menu_open.png
 
-.. _figure_toolbar_open_predefined:
-.. figure::  images/toolbar_open_predefined.png
-   :align:   center
-   :target:  _images/toolbar_open_predefined.png
-   :name: Toolbar_Open
+   Opening an external contour file through the standard file dialog.
 
-   Toolbar icon to load a predefined airfoil contour
+Import into the Local Library
+=============================
 
-.. seealso:: See tutorial :ref:`tutorial_settings` on how to change the default airfoil.
+If you want an external file to become part of your recurring working set, use :guilabel:`Add To Local...`. PyAero copies the selected contour into the managed local library folder and makes it available through the :guilabel:`Local` and :guilabel:`All` filters.
 
-Load via drag and drop
-----------------------
+This is useful when:
 
-Last but not least, one or more airfoil(s) can be loaded via drag and drop. Just drag a couple of files, e.g. from the 
-Explorer (Windows) or Finder (MacOS), to the graphics window. All files will be loaded, but only one file will 
-be displayed. All the other files are shown (and can be activated by double-clicking on the name) in the toolbox area.
+- you frequently reuse a custom airfoil
+- you want a small curated project-specific library
+- you want to keep external downloads separate from the bundled sample collection
 
-.. _figure_drag_and_drop:
-.. figure::  images/Drag_and_drop.gif
-   :align:   center
-   :target:  _images/Drag_and_drop.gif
-   :name: Load_drag_and_drop
+Toolbar Shortcuts
+=================
 
-   Load multiple contours via drag and drop
+The traditional toolbar entries are still available for quick access:
 
+- open a contour file
+- load the configured predefined airfoil
+
+.. figure:: images/toolbar_open.png
+   :align: center
+   :target: _images/toolbar_open.png
+
+   Toolbar button for opening an external contour file.
+
+.. figure:: images/toolbar_open_predefined.png
+   :align: center
+   :target: _images/toolbar_open_predefined.png
+
+   Toolbar button for loading the predefined airfoil.
+
+Drag and Drop
+=============
+
+You can also drag one or more contour files directly into the graphics view. PyAero will register the dropped airfoils in the workspace and activate one of them immediately.
+
+.. figure:: images/Drag_and_drop.gif
+   :align: center
+   :target: _images/Drag_and_drop.gif
+
+   Loading airfoils by drag and drop.
+
+Related Settings
+================
+
+The default airfoil root and the predefined airfoil are configurable. See :ref:`tutorial_settings` for the configuration file locations and shortcut settings.

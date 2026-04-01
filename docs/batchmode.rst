@@ -1,17 +1,77 @@
-.. make a label for this file
 .. _batchmode:
 
-Batch mode (run from command line)
-==================================
+Batch Mode
+==========
 
-In order to be able to automate the mesh generation process, a batch utility is available. This allows to run the mesh generation on a large number of airfoils. A batch control file is used to specify the airfoils to be processed. The batch control file is a text file which contains the following information:
+PyAero can run the same contour-preparation, mesh-generation, and mesh-export pipeline without opening the GUI. This is useful when you need to process several airfoils with one shared setup.
 
- * Airfoils which should be meshed
- * Settings to be used for the mesher
- * Output formats in which the mesh(es) should be written
+Starting Batch Mode
+===================
 
-The command used to launch the batch processing is:
+Run the application from the repository root:
 
-:code:`python src/PyAero.py -no-gui data/Batch/batch_control.json`
+.. code-block:: bash
 
-The batch control file can be located in an arbitrary folder and have any name. It just has to have the same format as the example file of the installation, see :file:`data/Batch/batch_control.json`.
+   python src/PyAero.py -no-gui data/Batch/batch_control.json
+
+The batch control file can live anywhere. The shipped example in :file:`data/Batch/batch_control.json` is the best starting point.
+
+What the Control File Defines
+=============================
+
+The batch configuration contains:
+
+- the source directory for airfoils
+- the list of airfoil filenames to process
+- whether each airfoil should receive a finite-thickness trailing edge
+- the output directory
+- the requested export formats
+- the geometry-preparation settings
+- the mesh-block settings
+
+The GUI and batch mode share the same workflow service underneath, so the settings map closely to what you see in the application.
+
+Export Formats
+==============
+
+The canonical export formats are:
+
+- ``flma``
+- ``su2``
+- ``gmsh``
+- ``vtu``
+
+Batch mode also accepts common aliases such as ``VTK`` for ``VTU`` and ``MSH`` for ``Gmsh``. Output filenames are created from the requested basename plus the appropriate extension.
+
+Example Structure
+=================
+
+The shipped example contains sections like:
+
+- ``Airfoils``
+- ``Output formats``
+- ``Airfoil contour refinement``
+- ``Airfoil trailing edge``
+- ``Airfoil contour mesh``
+- ``Airfoil trailing edge mesh``
+- ``Windtunnel mesh airfoil``
+- ``Windtunnel mesh wake``
+
+Each airfoil in the list is loaded, prepared, meshed, and exported in sequence.
+
+When to Use Batch Mode
+======================
+
+Batch mode is useful when:
+
+- you want consistent settings across many airfoils
+- you are comparing several sections quickly
+- you already know your preferred refinement and mesh parameters
+- you want to export the same mesh set in several formats without manual clicking
+
+Practical Notes
+===============
+
+- Start PyAero from the repository root so resource paths resolve correctly.
+- The batch pipeline assumes the same contour preparation order as the GUI.
+- Export failures are handled per airfoil, so one failing case does not necessarily stop the whole run.

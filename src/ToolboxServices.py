@@ -6,6 +6,7 @@ import Camber
 import ContourAnalysis as ca
 from CSTAirfoil import METHOD_CST_MODIFIED
 import FileOperations
+import Mesh as MeshModel
 import Meshing
 import SplineRefine
 import TrailingEdge
@@ -40,15 +41,27 @@ class MeshExportSettings:
     boundary_definitions: dict[str, str] = field(default_factory=dict)
     formats: list[str] = field(default_factory=list)
 
+    def __post_init__(self):
+        self.boundary_definitions = (
+            MeshModel.BoundaryDefinitions.from_mapping(
+                self.boundary_definitions
+            ).as_dict()
+        )
+
+        normalized_formats = []
+        seen_formats = set()
+        for mesh_format in self.formats:
+            normalized = MeshModel.MeshExportRegistry.normalize_format(
+                mesh_format
+            )
+            if normalized in seen_formats:
+                continue
+            normalized_formats.append(normalized)
+            seen_formats.add(normalized)
+        self.formats = normalized_formats
+
 
 class WorkflowService:
-    mesh_export_extensions = {
-        'flma': '.flma',
-        'su2': '.su2',
-        'gmsh': '.msh',
-        'vtu': '.vtu',
-    }
-
     def __init__(self, mainwindow=None):
         self.mw = mainwindow or get_main_window()
 
@@ -116,7 +129,9 @@ class WorkflowService:
         wind_tunnel.setBoundaryDefinitions(settings.boundary_definitions)
         exported_files = []
         for mesh_format in settings.formats:
-            output_name = filename + self.mesh_export_extensions[mesh_format]
+            output_name = (
+                filename + MeshModel.MeshExportRegistry.extension_for(mesh_format)
+            )
             try:
                 wind_tunnel.export_mesh(mesh_format, name=output_name)
             except (OSError, ValueError) as error:
@@ -157,13 +172,6 @@ class WorkflowService:
 
 
 class ToolboxWorkflowController:
-    mesh_export_extensions = {
-        'flma': '.flma',
-        'su2': '.su2',
-        'gmsh': '.msh',
-        'vtu': '.vtu',
-    }
-
     def __init__(self, toolbox, mainwindow=None):
         self.toolbox = toolbox
         self.mw = mainwindow or get_main_window()

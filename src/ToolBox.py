@@ -1164,7 +1164,7 @@ class Toolbox(QtWidgets.QWidget):
             formats.append('su2')
         if self.check_GMSH.isChecked():
             formats.append('gmsh')
-        if self.check_VTK.isChecked():
+        if self.check_VTU.isChecked():
             formats.append('vtu')
 
         return ToolboxServices.MeshExportSettings(

@@ -1,108 +1,129 @@
-.. make a label for this file
 .. _spline_refine:
 
 Splining and Refining Airfoil Contours
 ======================================
 
-The meshing process in `PyAero <index.html>`_ relies on the point distribution on the airfoil contour. During meshing, there is a mesh constructed around the airfoil, which consists of mesh lines perpendicular 
-to the airfoil contour. The mesh lines are starting at the individual airfoil contour points. So in order to  be able to generate a proper mesh, the contour point distribution has to be adapted first. This is important, 
-because particularly legacy wing sections have quite a coarse resolution (around 60 points). In the figure below, there is an animation of:
+The geometry-preparation stage exists to turn a raw airfoil contour into a contour that is suitable for structured meshing. This is especially important for older airfoil datasets that only contain a modest number of points.
 
-- the original airfoil contour
-- the splined airfoil contour
-- and the mesh lines parting from the splined contour
+In the current interface, this work happens on the :guilabel:`Geometry Prep` page.
 
-.. _figure_splining_animated_new:
-.. figure::  images/splining_animated_new.gif
-   :align:   center
-   :target:  _images/splining_animated_new.gif
-   :name: splining_animated_new
+What the Preparation Step Does
+==============================
 
-   Airfoil contour before and after splining
+Preparing a contour in PyAero combines several tasks:
 
-Two functions improve the contour before meshing. After clicking *Spline and Refine* in the respective toolbox function, the contour will at first be splined and in a second step refined.
+- choose a geometry representation
+- resample the contour to a practical point count
+- refine the leading edge recursively
+- optionally refine the trailing-edge segment distribution
+- derive curvature and camber-related data for later use
 
-.. _figure_toolbox_spline_refine_1:
-.. figure::  images/toolbox_spline_refine_1.png
-   :align:   center
-   :target:  _images/toolbox_spline_refine_1.png
-   :name: toolbox_spline_refine_1
+.. figure:: images/splining_animated_new.gif
+   :align: center
+   :target: _images/splining_animated_new.gif
 
-   Toolbox function for specifying spline and refining parameters
+   Raw contour versus prepared contour.
 
-The splining is done using B-splines via the Scipy function :code:`scipy.interpolate.splprep`. This produces a spline representation through the initial (raw) airfoil contour. The number of points on the spline obviously can be set by `Number of points on spline`. Using an equal arc length the respective number of points is distributed homogeneously along the spline. This is the intended behaviour, as it guarantees constant size mesh cells around the airfoil (since the mesh is based on these points). 
+Geometry Method
+===============
 
-.. _figure_splining_raw:
-.. figure::  images/splining_raw.png
-   :align:   center
-   :target:  _images/splining_raw.png
-   :name: splining_raw
+The current application offers two preparation modes:
 
-   Airfoil RG15: Points are as loaded from original file
+- :guilabel:`CST`
+- :guilabel:`B-spline (legacy)`
 
-.. _figure_splining_60pts:
-.. figure::  images/splining_60pts.png
-   :align:   center
-   :target:  _images/splining_60pts.png
-   :name: splining_60pts
+``CST`` is the modern default and is the best choice when you want a parameterized contour representation and CST coefficient export. ``B-spline`` is still available for compatibility with the legacy workflow.
 
-   Airfoil RG15: Contour after splining with 60 points, no refinements
+Main Controls
+=============
 
-.. _figure_splining_120pts:
-.. figure::  images/splining_120pts.png
-   :align:   center
-   :target:  _images/splining_120pts.png
-   :name: splining_120pts
+The most important controls are:
 
-   Airfoil RG15: Contour after splining with 120 points, no refinements
+- :guilabel:`Geometry method`
+- :guilabel:`Refine tolerance`
+- :guilabel:`Spline points`
 
-Obviously, at the leading and trailing edges some more care is necessary to produce the required mesh resolution. At the leading edge it is required to resolve the big pressure gradients which are produced by the shape of the airfoil nose.
+Advanced controls cover:
 
-A recursive refinement algorithm is used to resolve the contour until a certain criterion is met (see following figure). A B-spline is interpolated throug the given raw contour points. At first, equidistant arc length segments are created on the spline (according to the prescribed number of points). During recursive refinement, the algorithm checks each pair of adjacent line segments if they match the criterion. The criterion is based on the angle included between adjacent segments. If the angle is less than a threshold specified by the user via the `Refinement tolerance` input, the algorithm adds two points. Each point is placed on the interpolated spline, half distance within each of the current segments. Then, new segments are created and angles are checked over and over again, until no pair of segments exists which include angles less than the threshold. This guarantees that the angle between adjacent mesh cells in the boundary layer is as uniform as possible. Thus, pressure gradients around the airfoil are resolved with the same quality.
+- the number of old and new trailing-edge segments
+- the trailing-edge redistribution ratio
+- CST order
 
-.. _figure_refining_1:
-.. figure::  images/refining_1.png
-   :align:   center
-   :target:  _images/refining_1.png
-   :name: refining_1
+.. figure:: images/toolbox_spline_refine_1.png
+   :align: center
+   :target: _images/toolbox_spline_refine_1.png
 
-   Refinement algorithm
+   Geometry preparation controls.
 
-Angles between 170° and 173° already produce very well resolved leading edge contours (see following figures).
+Leading-Edge Refinement
+=======================
 
-.. _figure_splining_60pts_ref170:
-.. figure::  images/splining_60pts_ref170.png
-   :align:   center
-   :target:  _images/splining_60pts_ref170.png
-   :name: splining_60pts_ref170
+Leading-edge refinement is based on the angle between neighboring segments on the prepared contour. If the angle is tighter than the chosen tolerance, PyAero inserts additional points and repeats the check recursively until the local resolution is smooth enough for the structured near-airfoil block.
 
-   Airfoil RG15: Contour after splining with 60 points, LE refinement 170°
+This improves:
 
-.. _figure_splining_60pts_ref170_close:
-.. figure::  images/splining_60pts_ref170_close-up.png
-   :align:   center
-   :target:  _images/splining_60pts_ref170_close-up.png
-   :name: splining_60pts_ref170_close
+- the geometric quality of the nose region
+- the point distribution used by the boundary-layer block
+- the reliability of curvature-based contour inspection
 
-   Airfoil RG15: Close-up, 60 points, LE refinement 170°
+.. figure:: images/refining_1.png
+   :align: center
+   :target: _images/refining_1.png
 
-At the trailing edge again pronounced pressure gradients due to flow separation shall be resolved by a finer mesh.
+   The leading-edge refinement idea.
 
-.. _figure_splining_60pts_ref170_TE3:
-.. figure::  images/splining_60pts_ref170_TE3.png
-   :align:   center
-   :target:  _images/splining_60pts_ref170_TE3.png
-   :name: splining_60ptsplining_60pts_ref170_TE3s_ref170
+Trailing-Edge Segment Refinement
+================================
 
-   Airfoil RG15: Contour after splining with 60 points, LE and TE refinements
+The trailing-edge refinement controls redistribute a selected number of contour segments at the trailing edge. This is useful even before any finite-thickness trailing edge is added, because the downstream block and wake block depend heavily on the trailing-edge point placement.
 
-The trailing edge refinement algorithm is somewhat simpler. The user specifies the number of segments to be refinded at the trailing edge. If the number of `Refine trailinge edge (old segments)` is 3, both, at the upper and lower sides of the contour, the last 3 segments are selected for refinement. The number of segments is then changed to `Refine trailinge edge (new segments)`. If this number is 6 and the chosen compression rate `Refine trailinge edge ratio` is 4, a distribution as depicted in figure :ref:`figure_refining_3` is created.
+.. figure:: images/refining_3.png
+   :align: center
+   :target: _images/refining_3.png
 
-.. _figure_refining_3:
-.. figure::  images/refining_3.png
-   :align:   center
-   :target:  _images/refining_3.png
-   :name: refining_3
+   Trailing-edge segment redistribution.
 
-   Airfoil RG15: Close-up, 60 points, LE refinement 3, 6, 4
+Prepared Outputs
+================
 
+After preparing the contour, PyAero can expose and export more than just the visible spline:
+
+- the prepared contour itself
+- the derived camber line
+- CST coefficients as JSON or CSV when using the CST method
+
+The :guilabel:`Show CST Parameters...` button opens a dedicated dialog for reviewing and exporting the current CST representation.
+
+Examples
+========
+
+The figures below illustrate how the contour changes with different preparation settings.
+
+.. figure:: images/splining_raw.png
+   :align: center
+   :target: _images/splining_raw.png
+
+   Raw contour points as loaded from file.
+
+.. figure:: images/splining_60pts.png
+   :align: center
+   :target: _images/splining_60pts.png
+
+   Prepared contour with a moderate number of spline points.
+
+.. figure:: images/splining_120pts.png
+   :align: center
+   :target: _images/splining_120pts.png
+
+   Prepared contour with a denser point set.
+
+.. figure:: images/splining_60pts_ref170.png
+   :align: center
+   :target: _images/splining_60pts_ref170.png
+
+   Prepared contour with stronger leading-edge refinement.
+
+Next Step
+=========
+
+Once the contour looks right, continue with :ref:`trailing_edge` if you need a finite-thickness trailing edge, or go directly to :ref:`meshing`.

@@ -1,127 +1,168 @@
-.. make a label for this file
 .. _meshing:
 
 Making Meshes
 =============
 
-After :ref:`spline_refine` and optionally making a blunt :ref:`trailing_edge`, the airfoil contour can be meshed which is the primary purpose of `PyAero <index.html>`_. As for splining and refining the meshing options are located in the toolbox area which is the left pane of the user interface (see :ref:`toolbox_functions`).
+After preparing the contour and optionally adding a finite-thickness trailing edge, the :guilabel:`Mesh` page is where PyAero turns the working geometry into a structured wind-tunnel mesh.
 
-The default settings for the mesh generation process should be good enough to generate a mesh that can be used to do CFD RANS simulations.
+Mesh Layout
+===========
 
-The mesh is constructed from four individual blocks, each of which has its own configuration options.
-The mesh blocks are (listed below with the same name as in the GUI):
-  - Airfoil contour mesh (block 1)
-  - Airfoil trailing edge mesh (block 2)
-  - Windtunnel mesh around airfoil (block 3)
-  - Windtunnel mesh in the wake (block 4)
+PyAero builds the final mesh from four logical blocks:
 
-.. _figure_mesh_blocks:
-.. figure::  images/mesh_blocks.png
-   :align:   center
-   :target:  _images/mesh_blocks.png
-   :name: MeshBlocks
+- the near-airfoil block
+- the trailing-edge block
+- the outer tunnel block
+- the wake block
 
-   Mesh blocking structure
+This layout makes it possible to tune the boundary-layer region, the trailing edge, the farfield, and the wake independently.
 
-The main mesh block is the one directly attached to the airfoil contour. It is constructed by grid lines emerging perpendicular from the airfoil, starting at the points from the splined contour (see :ref:`spline_refine`). Another set of lines parallel to the airfoil contour complete the main mesh block. The default settings there implement a streching away from the airfoil, so that the thinnest mesh layer is attached at the airfoil and further mesh layers are gradually thickened outwards.
+.. figure:: images/mesh_blocks.png
+   :align: center
+   :target: _images/mesh_blocks.png
 
-.. _figure_mesh_block_1:
-.. figure::  images/mesh_block1bb.png
-   :align:   center
-   :target:  _images/mesh_block1bb.png
-   :name: MeshBlock1
+   Block structure used by the structured tunnel mesh.
 
-   Mesh around airfoil (block 1)
+Airfoil Block
+=============
 
-The process of constructing the grid lines perpendicular and parallel to the contour guarantees a fully orthogonal mesh in the vicinity of the airfoil which is important for keeping numerical errors as low as possible in the region of interest. The mesh distribution settings for this block are depicted in the following figure (:ref:`mesh_settings_airfoil_contour`).
+The airfoil block is the most important part of the mesh. It starts from the prepared contour and grows outward along local normals.
 
-.. _mesh_settings_airfoil_contour:
-.. figure::  images/mesh_settings_airfoil_contour.png
-   :align:   center
-   :target:  _images/mesh_settings_airfoil_contour.png
-   :name: SettingsAirfoilContour
+Its main controls are:
 
-   Settings for the mesh around the airfoil (block 1)
+- :guilabel:`Points on contour`
+- :guilabel:`Normal divisions`
+- :guilabel:`First layer (m)`
+- :guilabel:`Growth rate`
 
-The value for the number of :code:`Gridpoints along airfoil` contour is grayed out. This value is taken from the number of points on the spline  and is displayed here just for reference(see also :ref:`figure_toolbox_spline_refine_1`). If a different number of grid points along the contour is required the spline has to be updated at first. Next the :code:`Divisions normal to airfoil` allows to vary the number mesh layers normal to the contour within mesh block 1. The setting :code:`1st cell layer thickness` specifies the dimension/length of block 1 normal to the contour in percentage of the airfoil chord. It is limited to 100% chord length, but typical values would be in the range 5% to 20%. The final parameter for block 1 is the :code:`Cell thickness ratio (-)`. It specifies the ratio of the cell thickness of the outermost cell in the block (wrt to airfoil normal direction) over the cell thickness of the layer which is attached to the contour. So if for example the ratio is 3, the outer cell layer of block one is 3 times a thick as the cell layer at the airfoil (see :ref:`figure_mesh_stretching_annotated`).
+The point count is inherited from the prepared contour and shown mainly for reference. If you need a different count along the airfoil, change the preparation step first.
 
-.. _figure_mesh_stretching_annotated:
-.. figure::  images/mesh_stretching_annotated.png
-   :align:   center
-   :target:  _images/mesh_stretching_annotated.png
-   :name: mesh_stretching_annotated
+.. figure:: images/mesh_block1bb.png
+   :align: center
+   :target: _images/mesh_block1bb.png
 
-   Mesh stretching ratio
+   The structured near-airfoil block.
 
-The trailing edge mesh is the region directly behind the airfoil (block 2, see :ref:`figure_mesh_blocks`). This block has its own parameters in order to be able to fine control the grid resolution where upper and lower contour shear layers meet and interact(see :ref:`figure_mesh_block_TE`).
+Trailing-Edge Block
+===================
 
-.. _figure_mesh_TE_annotated:
-.. figure::  images/mesh_TE_annotated.gif
-   :align:   center
-   :target:  _images/mesh_TE_annotated.gif
-   :name: mesh_TE_annotated
+The trailing-edge block resolves the downstream region directly behind the airfoil. It is especially important when a finite-thickness trailing edge is present.
 
-   Mesh at the trailing edge (block 2)
+Its controls are:
 
-.. _mesh_settings_TE:
-.. figure::  images/mesh_settings_TE.png
-   :align:   center
-   :target:  _images/mesh_settings_TE.png
-   :name: SettingsTrailingEdge
+- :guilabel:`TE divisions`
+- :guilabel:`Downstream divisions`
+- :guilabel:`First layer (m)`
+- :guilabel:`Growth rate`
 
-   Settings for the airfoil trailing edge mesh (block 2)
+.. figure:: images/mesh_TE_annotated.gif
+   :align: center
+   :target: _images/mesh_TE_annotated.gif
 
-The parameter :guilabel:`Divisions at trailing edge` controls the number of subdivisions at the trailing edge (see blue circle in :ref:`figure_mesh_TE_annotated`). If the airfoil trailing edge has a finite thickness (blunt trailing edge), these cells resolve the small vertical part of the trailing edge. :guilabel:`Divisions downstream trailing edge` is the number of subdivisions in the direction of the airfoil wake inside block 2.  The :guilabel:`Length behind trailing edge (%)` is the length of block 2 in the same direction measured as fraction of the unit chord. The :guilabel:`Cell thickness ratio (-)` has the same effect on the grid line distribution as already depicted for the mesh around the airfoil (block 1).
+   The trailing-edge block and its local resolution.
 
-In case of a sharp trailing edge, above parameters are not used. The cells of the airfoil upper and lower grid lines meet at the trailing edge and continue as one gridline downstream.
+Tunnel Block
+============
 
-.. _figure_mesh_TE_sharp:
-.. figure::  images/mesh_TE_sharp.gif
-   :align:   center
-   :target:  _images/mesh_TE_sharp.gif
-   :name: mesh_TE_sharp
+The tunnel block wraps the airfoil block and extends the mesh to the farfield boundary. It controls the tunnel height and the vertical distribution in the outer domain.
 
-   Example mesh for a sharp trailing edge
+Main controls:
 
-The next set of parameters specifies the grid distribution within block 3. The parameters are handled in the same way as for block 1 and block 2. The distribution biasing is just and intermediate helper function and should be kept with its default value (see note below) for symmetric or slightly cambered airfoils. For airfoils with pronounced camber setting biasing to :guilabel:`lower` improves the mesh quality.
+- :guilabel:`Tunnel height (c)`
+- :guilabel:`Height divisions`
+- :guilabel:`Thickness ratio`
+- :guilabel:`Bias`
 
-.. important::
-   The meshing algorithm in block 3 is not finished, rather it is a tweaked version of a transfinite interpolation. This will be updated with elliptic grid generation or similar.
+For strongly cambered airfoils, adjusting the bias can improve the outer block quality.
 
-.. _mesh_settings_WT_airfoil:
-.. figure::  images/mesh_settings_WT_airfoil.png
-   :align:   center
-   :target:  _images/mesh_settings_WT_airfoil.png
-   :name: SettingsWtAirfoil
+Wake Block
+==========
 
-   Settings for the windtunnel around the airfoil (block 3)
+The wake block extends the tunnel downstream. It controls how far the domain continues beyond the trailing edge and how the downstream spacing evolves.
 
-The final mesh block (see block 4 in :ref:`figure_mesh_blocks`) is the remainder of the windtunnel downstream. It copies the mesh distribution of blocks 1,2 and 3 onits upstream side. Again the settings left over here should be self explanatory, except :guilabel:`Equalize vertical wake line at (%)`. At the outlet of the windtunnel downstrream all cells have equal width in the vertical direction. The setting just mentioned allows to specify at which percentage of the block 4 in downstream direction the cells will be of homogeneous size in the vertical direction (see :ref:`figure_mesh_WT_wake_annotated`). The dashed vertical line indicates the location from where the vertical grid line distribution is homogeneous.
+Main controls:
 
-.. _mesh_settings_WT_wake:
-.. figure::  images/mesh_settings_WT_wake.png
-   :align:   center
-   :target:  _images/mesh_settings_WT_wake.png
-   :name: SettingsWtWake
+- :guilabel:`Wake length (c)`
+- :guilabel:`Wake divisions`
+- :guilabel:`Thickness ratio`
+- :guilabel:`Wake equalize (%)`
 
-   Settings for the windtunnel in the wake (block 4)
+.. figure:: images/mesh_WT_wake_annotated.gif
+   :align: center
+   :target: _images/mesh_WT_wake_annotated.gif
 
-.. _figure_mesh_WT_wake_annotated:
-.. figure::  images/mesh_WT_wake_annotated.gif
-   :align:   center
-   :target:  _images/mesh_WT_wake_annotated.gif
-   :name: mesh_WT_wake_annotated
+   Wake equalization in the downstream block.
 
-   Mesh block 4 - equalizing trailing edge grid line distribution
+Smoothing
+=========
 
-The following figure shows the final mesh of an example airfoil (**hn1033a**).
+The current interface exposes three smoothing modes:
 
-.. _figure_complete_mesh:
-.. figure::  images/complete_mesh.gif
-   :align:   center
-   :target:  _images/complete_mesh.gif
-   :name: complete_mesh
+- :guilabel:`Simple`
+- :guilabel:`Elliptic`
+- :guilabel:`Angle based`
 
-   Final mesh around airfoil **hn1033a**
+The elliptic mode exposes the richest control set. In addition to iterations and tolerance, it includes advanced controls for:
 
+- outer-boundary sliding
+- elliptic relaxation
+- protected guide relaxation
+- protected guide layer count
+- protected guide decay
+- guide-profile smoothing
 
+These controls are meant to preserve the interface between the near-airfoil region and the outer tunnel block while improving the quality of the outer mesh.
+
+Mesh Export
+===========
+
+Once the mesh is generated, the export section lets you:
+
+- define boundary names
+- choose one or more output formats
+- write the mesh files with one basename
+
+Supported export formats are:
+
+- ``FLMA``
+- ``SU2``
+- ``Gmsh`` ``.msh``
+- ``VTU``
+
+Boundary names are validated before export so blank or duplicate labels are rejected.
+
+Generated files use a shared basename and the correct extension is appended automatically for each selected format.
+
+Examples
+========
+
+.. figure:: images/mesh_RAE2822_MAC.png
+   :align: center
+   :target: _images/mesh_RAE2822_MAC.png
+
+   Example final mesh around RAE2822.
+
+.. figure:: images/LE_mesh_RAE2822_MAC.png
+   :align: center
+   :target: _images/LE_mesh_RAE2822_MAC.png
+
+   Leading-edge close-up.
+
+.. figure:: images/TE_mesh_sharp_MAC.png
+   :align: center
+   :target: _images/TE_mesh_sharp_MAC.png
+
+   Sharp trailing-edge variant.
+
+.. figure:: images/complete_mesh.gif
+   :align: center
+   :target: _images/complete_mesh.gif
+
+   Example full mesh creation result.
+
+Practical Advice
+================
+
+- If the mesh looks wrong near the airfoil, revisit the contour preparation step first.
+- If the trailing-edge region is too coarse, increase the trailing-edge divisions and downstream divisions.
+- If the outer tunnel looks strained, try the elliptic smoother with conservative relaxation before making large geometry changes.

@@ -6,6 +6,7 @@ import re
 
 from CSTAirfoil import cst_parameters_from_spline_data
 import FileDialog
+import Mesh as MeshModel
 from Utils import get_main_window
 
 
@@ -16,12 +17,6 @@ CONTOUR_FILTER = 'Airfoil contour files (*.dat *.txt)'
 CAMBER_FILTER = 'Camber files (*.dat *.txt)'
 CST_FILTER = 'JSON files (*.json);;CSV files (*.csv)'
 SUPPORTED_AIRFOIL_EXTENSIONS = ('.dat', '.txt')
-MESH_EXPORT_EXTENSIONS = {
-    'flma': '.flma',
-    'su2': '.su2',
-    'gmsh': '.msh',
-    'vtu': '.vtu',
-}
 
 
 def _selected_extension(selected_filter, fallback):
@@ -111,9 +106,8 @@ def choose_mesh_export_basename(airfoil, formats, title='Export Mesh Files',
     basename = basename or 'mesh'
 
     extensions = [
-        MESH_EXPORT_EXTENSIONS[mesh_format]
+        MeshModel.MeshExportRegistry.extension_for(mesh_format)
         for mesh_format in formats
-        if mesh_format in MESH_EXPORT_EXTENSIONS
     ]
     filter_extensions = ' '.join(f'*{extension}' for extension in extensions)
     dialog_filter = (

@@ -1,143 +1,146 @@
-.. make a label for this file
 .. _user_interface:
 
 User Interface
 ==============
 
-`PyAero <index.html>`_ comes with a graphical user interface (GUI) written in `Qt for Python <https://www.qt.io/qt-for-python>`_ aka Pyside6.
+PyAero uses a workflow-oriented desktop interface built with `Qt for Python <https://www.qt.io/qt-for-python>`_. The current layout is designed to keep the main meshing path visible at all times while still exposing the analysis and helper tools around it.
 
 Overview
------------
+========
 
-The layout of the user interface can be seen in the figure below.
-Different functional areas are bordered with blue lines. These areas are:
+The window is organized into two main areas:
 
-  - Menubar
-  - Toolbar
-  - Toolbox
-  - Graphics view
-  - Viewing options
-  - Message window
+- a workflow sidebar on the left
+- a workspace on the right
 
-Loading and saving geometry and meshes is done via the menus and the toolbar.
-Most operations during geometry preparation and meshing are done inside the toolbox.
+The workflow sidebar contains the active airfoil summary, the page navigation, and the currently selected tool page. The workspace contains the geometry view, the contour analysis tab, the message panel, and the viewer controls.
 
-.. _figure_main_screen:
-.. figure::  images/main_screen_new1.png
-   :align:   center
-   :target:  _images/main_screen_new1.png
-   :name: main_screen_new
+.. figure:: images/main_screen_new1.png
+   :align: center
+   :target: _images/main_screen_new1.png
 
-   Graphical user interface of PyAero
+   PyAero main window with the current workflow shell.
 
-Menus
------
+Workflow Pages
+==============
 
-Menus in `PyAero <index.html>`_ try to behave much the same as in typical desktop software. For standard menus as :guilabel:`File` or :guilabel:`Print` the documentation will be kept short.
-See figure above for the location of the menubar in the GUI and the figure below for an overview of the menu structure.
+The left-hand workflow sidebar is split into dedicated pages:
 
-The menus in the menubar and the tools in the toolbar (see Toolbar) are populated dynamically. Their layout is read from the JSON files :file:`resources/Menus/menu_layout.json` and :file:`resources/Menus/toolbar_layout.json`. Actions, callbacks, icons and built-in keyboard shortcuts are defined centrally in :file:`src/ActionRegistry.py`.
+- :guilabel:`Airfoil Library`
+- :guilabel:`Geometry Prep`
+- :guilabel:`Mesh`
+- :guilabel:`CFD Inputs`
+- :guilabel:`Aerodynamics`
+- :guilabel:`Contour Analysis`
 
-With this structure in place, menus and toolbar items can be extended without duplicating shortcut or handler definitions. Adding a new command usually means defining a new action in the registry and placing its action id in the menu or toolbar layout.
+The active airfoil summary at the top of the sidebar shows:
 
-.. _figure_menu_structure:
-.. figure::  images/menu_structure_NEW.png
-   :align:   center
+- the loaded airfoil name
+- where it came from
+- whether prepared geometry is available
+- whether a mesh has already been generated
+
+Menus and Toolbar
+=================
+
+Menus and toolbar buttons are registry-driven. Actions, tooltips, shortcuts, and icons are defined centrally, while the menu and toolbar layouts are assembled from bundled configuration data.
+
+This keeps the interface consistent:
+
+- menus and toolbar buttons trigger the same action definitions
+- the shortcut editor works against the same registry
+- adding a new action does not require duplicating logic in several places
+
+.. figure:: images/menu_structure_NEW.png
+   :align: center
    :width: 80%
-   :target:  _images/menu_structure_NEW.png
-   :name: menu_structure
+   :target: _images/menu_structure_NEW.png
 
-   PyAero menu structure
+   Menu structure overview.
 
-.. include:: ui_menu_file.inc
-.. include:: ui_menu_view.inc
-.. include:: ui_menu_tools.inc
-.. include:: ui_menu_help.inc
-
-Toolbar
--------
-
-The toolbar in `PyAero <index.html>`_ allows fast access to actions which are otherwise triggered by menus. Each toolbar button launches a specific shared action. The toolbar layout can be customized by editing :file:`resources/Menus/toolbar_layout.json`.
-
-.. figure::  images/toolbar_animated_NEW.gif
-   :align:   center
+.. figure:: images/toolbar_animated_NEW.gif
+   :align: center
    :scale: 70%
-   :target:  _images/toolbar_animated_NEW.gif
-   :name: toolbar_animated
+   :target: _images/toolbar_animated_NEW.gif
 
-   Overview on toolbar options
+   Toolbar overview.
 
-Toolbox Functions
------------------
+Tool Pages
+==========
 
-The toolbox functions are arranged at the left border of the GUI. A *toolbox* is a GUI element that displays a column of tabs one above the other, with the current item displayed below the current tab. The toolbox is the main working area when generating meshes with `PyAero <index.html>`_. The complete functionality like splining, refining, contour analysis and meshing are operated there. See the animation below to get an overview on the options available in the toolbox.
+Most day-to-day work happens inside the workflow pages rather than through modal dialogs. In practice this means:
 
-.. _toolbox_functions:
-.. figure::  images/toolbox_animated_NEW.gif
-   :align:   center
+- airfoil selection happens in the library page
+- contour preparation happens in the geometry page
+- mesh creation and export happen in the mesh page
+- CFD helper calculations happen in dedicated side pages
+
+.. figure:: images/toolbox_animated_NEW.gif
+   :align: center
    :scale: 60%
-   :target:  _images/toolbox_animated_NEW.gif
-   :name: toolbox_animated
+   :target: _images/toolbox_animated_NEW.gif
 
-   Overview on toolbox options
+   Overview of the page-based workflow controls.
 
-Tabbed Views
-------------
+Workspace Tabs
+==============
 
-The graphics view in `PyAero <index.html>`_ and a set of other views (see figure below) are arranged via a tab bar. E.g., the views can be switched between the graphics view and the contour analysis view. The latter contains graphs for curvature analysis.
+The right-hand workspace contains:
 
-.. figure::  images/tabbed_views_animated.gif
-   :align:   center
-   :target:  _images/tabbed_views_animated.gif
-   :name: tabbed_views_animated
+- the main graphics viewer
+- the contour analysis view
 
-   Overview on tabbed views
+The graphics viewer is the main place for loading, inspecting, and reviewing the contour and generated mesh. The contour analysis tab shows the derived plots for gradient, curvature, and radius.
 
-.. note::
-   The look and feel of the tabs might change over time.
+.. figure:: images/tabbed_views_animated.gif
+   :align: center
+   :target: _images/tabbed_views_animated.gif
 
-Zooming, Panning
-----------------
+   Switching between the graphics and analysis views.
 
-When an airfoil is loaded it is displayed with a size that fits into the graphics view (leaving a small margin left and right). The contour can then be panned and zoomed in the following way:
+Navigation
+==========
 
 Panning
-^^^^^^^
+-------
 
-In order to pan (drag) the contour or any other item press and hold :kbd:`CTRL` (:kbd:`CMD` on MacOS) and then press and hold the left mouse button and move the mouse in order to drag the contour.
+Press and hold :kbd:`CTRL` on Windows or Linux, or :kbd:`CMD` on macOS, then drag with the left mouse button to pan the scene.
 
-.. figure::  images/drag_view.gif
-   :align:   center
-   :target:  _images/drag_view.gif
-   :name: drag_view
+.. figure:: images/drag_view.gif
+   :align: center
+   :target: _images/drag_view.gif
 
-   Drag the items in the view by pressing :kbd:`CTRL` and moving the mouse (left button pressed)
+   Panning the scene.
 
 Zooming
-^^^^^^^
+-------
 
-Zooming is activated by pressing and holding the left mouse button. While dragging the mouse, a rubberband rectangle is drawn. This rectangle indicates the area which will be zoomed when releasing the left mouse button. In order to avoid accidential zooming too deep, a minimum size rectangle has to show up. A valid zoom rectangle is indicated by changing its background to a transparent blueish color. The minimum allowed size can be configured in :file:`config/config.ini` via the :code:`RUBBERBAND_MIN` entry in the :code:`[Graphics]` section. In order to zoom in deeper, the rubberband rectangle can be subsequently used.
+You can zoom in three ways:
 
-Zoom limits (:code:`MIN_ZOOM`, :code:`MAX_ZOOM`) are set in :file:`config/config.ini` in the :code:`[Graphics]` section.
+- draw a rubber-band rectangle with the left mouse button
+- use the mouse wheel
+- use the keyboard shortcuts for zooming
 
-.. figure::  images/zoom_view.gif
-   :align:   center
-   :target:  _images/zoom_view.gif
-   :name: zoom_view
+.. figure:: images/zoom_view.gif
+   :align: center
+   :target: _images/zoom_view.gif
 
-   Zoom the items in the view. Select a rectangle using the left mouse button.
+   Rubber-band zoom in the graphics view.
 
-Another natural possibility to zoom the view, is to use the scroll wheel. Thereby the geometry is zoomed with respect to the current mouse position. 
+Keyboard Shortcuts
+==================
 
-Zooming can further be done using the :kbd:`Page-Up` and :kbd:`Page-Up` down keys.
+Keyboard shortcuts are managed centrally. Built-in defaults live in :file:`resources/Shortcuts/shortcuts.json`, and user overrides are stored in :file:`config/shortcuts_user.json`.
 
-A reset to the initial (home) position can either be achieved by pressing the :kbd:`HOME` key or by right clicking in the graphics view and selecting :guilabel:`Fit airfoil in view` from the pulldown menu.
+The shortcut editor is available from the help menu and by default opens with:
 
-Keyboard shortcuts
-------------------
+- :kbd:`Ctrl+K` on Windows and Linux
+- :kbd:`Cmd+K` on macOS when mapped through Qt's platform conventions
 
-To speed up some operations, a set of keyboard shortcuts is defined centrally in :file:`src/ActionRegistry.py`. Built-in defaults are shipped in :file:`resources/Shortcuts/shortcuts.json`, menus show the currently assigned shortcuts next to the corresponding actions, and the keyboard shortcut editor reads and writes the same registry-backed data. By default, :kbd:`CTRL+k` on Windows and Linux and :kbd:`CMD+k` on MacOS open the keyboard shortcut editor. User-specific shortcut overrides can be stored in :file:`config/shortcuts_user.json`.
+The editor allows you to:
 
-.. note::
-   Keyboard shortcuts are rendered by Qt using platform conventions.
-   Depending on the operating system, modifiers and letters can therefore appear with slightly different capitalization or symbols.
+- inspect the current shortcut map
+- compare built-in and overridden bindings
+- save one platform-specific override per action
+
+The actual text rendered by Qt may vary slightly across operating systems.

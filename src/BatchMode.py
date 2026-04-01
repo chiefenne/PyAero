@@ -159,15 +159,7 @@ class Batch:
             logger.info(message)
 
             export_settings = ToolboxServices.MeshExportSettings(
-                formats=[
-                    {
-                        'FLMA': 'flma',
-                        'SU2': 'su2',
-                        'GMSH': 'gmsh',
-                        'VTK': 'vtu',
-                    }[output_format.upper()]
-                    for output_format in output_formats
-                ],
+                formats=output_formats,
             )
             exported_files = self.workflow.export_mesh(
                 wind_tunnel,

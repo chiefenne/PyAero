@@ -1,46 +1,67 @@
-.. make a label for this file
 .. _trailing_edge:
 
 Trailing Edge
 =============
 
-.. note::
-   If a sharp trailing edge is needed, this step can to be skipped.
+Adding a finite-thickness trailing edge is optional. If you want a sharp trailing edge, skip this step and continue directly to :ref:`meshing`.
 
-As outlined in the section before, the meshing process relies on the point distribution on the airfoil contour. Real airfoils, i.e. airfoils which are built as a hardware, have a trailing edge (TE) with a definite thickness, a `blunt trailing edge`. This is due to manufacturing and/or structural reasons. To be able to model this, `PyAero <index.html>`_ has a dedicated function. The following figure shows an animation of a sharp trailing edge and a blunt trailing edge.
+Why Add a Finite-Thickness Trailing Edge?
+=========================================
 
-.. _figure_TE1_animated:
-.. figure::  images/TE1_animated.gif
-   :align:   center
-   :target:  _images/TE1_animated.gif
-   :name: TE1_animated
+Many real airfoils are manufactured with a non-zero trailing-edge thickness. In other cases, a blunt trailing edge is introduced intentionally because it produces a mesh that is easier to control and inspect around the downstream shear-layer region.
 
-   Sharp and `blunt` trailing edges
+PyAero can add this finite-thickness trailing edge directly to the prepared contour.
 
-The blunt trailing edge needs to be added to the original contour in a controlled manner. The parameters shown in the following figure can be used to control this process.
+.. figure:: images/TE1_animated.gif
+   :align: center
+   :target: _images/TE1_animated.gif
 
-.. _figure_toolbox_spline_refine_2:
-.. figure::  images/toolbox_spline_refine_2.png
-   :align:   center
-   :target:  _images/toolbox_spline_refine_2.png
-   :name: toolbox_spline_refine_2
+   Comparison of a sharp and a finite-thickness trailing edge.
 
-   Toolbox function for specifying the blunt TE blending parameters
+Controls
+========
 
-The trailing edge thickness itself can be specified relative to the unit chord. The thickenning is done perpendicular to the camber line at the trailing edge. In order to prevent aerodynamic artefacts due to the blunt TE, a smooth controlled blend from the blunt TE vertices into the original (raw) contour needs to be done.
+The trailing-edge page in :guilabel:`Geometry Prep` provides:
 
-This is achieved by allowing to blend along a certain user specified length into the original contour. Furthermore, the degree of the blending curve can be specified. The blending length describes the fraction (in %) of the chord in which the blending is done. The polynomial exponent can be used to describe the blending curve degree. The blending can be controlled individually for the upper and lower sides of the contour. This is specifically useful for strongly camber airfoils.
+- :guilabel:`TE thickness (% chord)`
+- :guilabel:`Upper blend (% chord)`
+- :guilabel:`Lower blend (% chord)`
+- :guilabel:`Upper blend exponent`
+- :guilabel:`Lower blend exponent`
 
-To better understand the TE blending options the following figure depicts a visually exaggerated TE blending (by clicking several times on the *Add Trailing Edge* button). The upper side of the aifoil is blended over 50% of the chord with a linear blend, whereas the lower side is blended over 20% of the chord with a polynom of degree three.
+.. figure:: images/toolbox_spline_refine_2.png
+   :align: center
+   :target: _images/toolbox_spline_refine_2.png
 
-.. _figure_TE_blending_options:
-.. figure::  images/TE_blending_options.png
-   :align:   center
-   :target:  _images/TE_blending_options.png
-   :name: TE_blending_options
+   Trailing-edge controls in the workflow page.
 
-   Exaggerated TE blending: 50% linear (upper), 30% 3rd order polynom (lower)
+How the Blend Works
+===================
 
-Playing with the settings and finding the best setup for blending is always best viewed by clicking two or three times on the *Add Trailing Edge* button. A reset to the original curve can be achieved by simply clicking on the *Spline and Refine* button in the menu above (see :ref:`figure_toolbox_spline_refine_1`).
+The finite-thickness trailing edge is blended back into the prepared contour over user-defined distances on the upper and lower surfaces. The blend exponent controls how aggressively the contour transitions back to the original shape.
 
-When a satisfying result is achieved for the contour in terms of splining, refining and trailing edge, the meshing process can be started.
+This allows:
+
+- symmetric blends for symmetric sections
+- asymmetric blends for strongly cambered airfoils
+- short, local transitions or long, gentle reshaping
+
+.. figure:: images/TE_blending_options.png
+   :align: center
+   :target: _images/TE_blending_options.png
+
+   Exaggerated blending example showing different upper and lower settings.
+
+Working Tips
+============
+
+- Start with a small trailing-edge thickness.
+- Keep the blend lengths moderate unless you intentionally want a very long transition.
+- If the result feels overworked, rerun :guilabel:`Prepare and Refine` to rebuild the prepared contour and start the trailing-edge step again.
+
+Mesh Implications
+=================
+
+A finite-thickness trailing edge activates the dedicated trailing-edge block in a more visible way. The number of vertical subdivisions at the trailing edge and the downstream block spacing now matter for resolving that small opening cleanly.
+
+For this reason, it usually makes sense to review the trailing-edge block settings in :ref:`meshing` after changing the trailing-edge geometry.

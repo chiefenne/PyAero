@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from abc import ABC, abstractmethod
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -380,13 +380,27 @@ class BoundaryDefinitions:
         defaults = cls()
         if not mapping:
             return defaults
-        return cls(
-            airfoil=mapping.get('airfoil', defaults.airfoil),
-            inlet=mapping.get('inlet', defaults.inlet),
-            outlet=mapping.get('outlet', defaults.outlet),
-            top=mapping.get('top', defaults.top),
-            bottom=mapping.get('bottom', defaults.bottom),
+
+        def _coerce_value(key: str, default: str) -> str:
+            if key not in mapping or mapping.get(key) is None:
+                return default
+
+            value = str(mapping[key]).strip()
+            if not value:
+                raise ValueError(
+                    f'Boundary name for "{key}" cannot be empty.'
+                )
+            return value
+
+        definitions = cls(
+            airfoil=_coerce_value('airfoil', defaults.airfoil),
+            inlet=_coerce_value('inlet', defaults.inlet),
+            outlet=_coerce_value('outlet', defaults.outlet),
+            top=_coerce_value('top', defaults.top),
+            bottom=_coerce_value('bottom', defaults.bottom),
         )
+        definitions.validate()
+        return definitions
 
     def as_dict(self) -> dict[str, str]:
         return {
@@ -399,6 +413,18 @@ class BoundaryDefinitions:
 
     def items(self):
         return self.as_dict().items()
+
+    def validate(self):
+        labels = list(self.as_dict().values())
+        duplicates = sorted(
+            label for label, count in Counter(labels).items() if count > 1
+        )
+        if duplicates:
+            labels_text = ', '.join(duplicates)
+            raise ValueError(
+                f'Boundary names must be unique. Duplicate names: {labels_text}'
+            )
+        return self
 
 
 class BoundaryClassifier:
@@ -809,7 +835,7 @@ class VtuExporter(MeshExporter):
             handle.write('  </UnstructuredGrid>\n')
             handle.write('</VTKFile>\n')
 
-        logger.info('VTK type mesh saved as %s', os.path.basename(name))
+        logger.info('VTU type mesh saved as %s', os.path.basename(name))
 
 
 class GmshExporter(MeshExporter):
@@ -966,6 +992,22 @@ class MeshImportRegistry:
 
 
 class MeshExportRegistry:
+    _extensions = {
+        'flma': '.flma',
+        'su2': '.su2',
+        'gmsh': '.msh',
+        'vtu': '.vtu',
+    }
+    _format_aliases = {
+        'flma': 'flma',
+        'fire': 'flma',
+        'avl fire': 'flma',
+        'su2': 'su2',
+        'gmsh': 'gmsh',
+        'msh': 'gmsh',
+        'vtk': 'vtu',
+        'vtu': 'vtu',
+    }
     _registry = {
         'flma': FlmaExporter(),
         'su2': Su2Exporter(),
@@ -976,10 +1018,31 @@ class MeshExportRegistry:
     }
 
     @classmethod
+    def normalize_format(cls, mesh_format: str) -> str:
+        if mesh_format is None:
+            raise ValueError('Mesh export format is required.')
+
+        key = mesh_format.strip().lower().lstrip('.')
+        key = key.replace('_', ' ').replace('-', ' ')
+        key = ' '.join(key.split())
+        normalized = cls._format_aliases.get(key, key)
+        if normalized not in cls._extensions:
+            raise ValueError(f'Unknown mesh export format: {mesh_format}')
+        return normalized
+
+    @classmethod
+    def extension_for(cls, mesh_format: str) -> str:
+        return cls._extensions[cls.normalize_format(mesh_format)]
+
+    @classmethod
+    def supported_formats(cls) -> tuple[str, ...]:
+        return tuple(cls._extensions)
+
+    @classmethod
     def export(cls, mesh_or_data, mesh_format: str, name: str,
                boundary_definitions: BoundaryDefinitions | Mapping[str, str] | None = None,
                **kwargs):
-        key = mesh_format.strip().lower()
+        key = cls.normalize_format(mesh_format)
         try:
             exporter = cls._registry[key]
         except KeyError as error:
