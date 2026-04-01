@@ -80,17 +80,12 @@ class MainWindow(QtWidgets.QMainWindow):
         Logger.log(self)
 
     def init_GUI(self):
-
         # window size, position and title
         self.showMaximized()
         title = __appname__ + ' - Airfoil Contour Analysis and CFD Meshing'
         self.setWindowTitle(title)
 
-        # decimal separator used in spin boxes, etc.
-        if self.DECIMAL_SEPARATOR == '.':
-            QtCore.QLocale.setDefault(QtCore.QLocale.c())
-        elif self.DECIMAL_SEPARATOR == ',':
-            QtCore.QLocale.setDefault(QtCore.QLocale.German, QtCore.QLocale.Germany)
+        self.applyRuntimeSettings()
 
         # create menus and tools of main window
         menusTools = MenusTools.MenusTools(self)
@@ -113,6 +108,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # show the GUI
         self.show()
+
+    def applyRuntimeSettings(self):
+        # decimal separator used in spin boxes, etc.
+        if self.DECIMAL_SEPARATOR == '.':
+            QtCore.QLocale.setDefault(QtCore.QLocale.c())
+        elif self.DECIMAL_SEPARATOR == ',':
+            QtCore.QLocale.setDefault(
+                QtCore.QLocale.German,
+                QtCore.QLocale.Germany,
+            )
+
+        if hasattr(self, 'view'):
+            self.view.applyViewSettings()
+
+        if hasattr(self, 'action_registry'):
+            self.action_registry.apply_shortcuts()
 
     def checkEnvironment(self):
         """Check if the environment is set up correctly"""

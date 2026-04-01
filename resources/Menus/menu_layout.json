@@ -7,6 +7,8 @@
         "file.save",
         "file.save_as",
         "separator",
+        "tools.settings",
+        "separator",
         "file.print",
         "file.print_preview",
         "separator",
@@ -27,8 +29,6 @@
       "name": "Tools",
       "items": [
         "tools.calculator",
-        "separator",
-        "tools.settings",
         "tools.icon_preview"
       ]
     },

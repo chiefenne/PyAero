@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "all": {
+    "file.open": [
+      {
+        "standard_key": "Open"
+      }
+    ],
+    "file.save": [
+      {
+        "standard_key": "Save"
+      }
+    ],
+    "file.save_as": [
+      {
+        "standard_key": "SaveAs"
+      }
+    ],
+    "file.print": [
+      {
+        "standard_key": "Print"
+      }
+    ],
+    "file.print_preview": [
+      "Ctrl+Shift+P"
+    ],
+    "file.open_predefined": [],
+    "app.exit": [
+      {
+        "standard_key": "Quit"
+      }
+    ],
+    "view.fit_airfoil": [
+      "F"
+    ],
+    "view.fit_all": [
+      "Home",
+      "Shift+F"
+    ],
+    "view.toggle_background": [
+      "B"
+    ],
+    "view.toggle_messages": [
+      "Ctrl+Shift+M"
+    ],
+    "view.zoom_in": [
+      {
+        "standard_key": "ZoomIn"
+      },
+      "PageDown"
+    ],
+    "view.zoom_out": [
+      {
+        "standard_key": "ZoomOut"
+      },
+      "PageUp"
+    ],
+    "airfoil.delete_active": [
+      {
+        "standard_key": "Delete"
+      }
+    ],
+    "tools.calculator": [],
+    "tools.settings": [
+      {
+        "standard_key": "Preferences"
+      }
+    ],
+    "tools.icon_preview": [],
+    "help.manual_online": [
+      {
+        "standard_key": "HelpContents"
+      }
+    ],
+    "help.manual_pdf": [],
+    "help.shortcuts": [
+      "Ctrl+K"
+    ],
+    "help.about_qt": [],
+    "help.about_pyaero": [],
+    "debug.autorun": []
+  },
+  "windows": {},
+  "macos": {},
+  "linux": {}
+}

@@ -1,6 +1,10 @@
-
 import os
 import configparser
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent.parent
+CONFIG_FILE = ROOT / 'config' / 'config.ini'
 
 
 class Config:
@@ -10,21 +14,29 @@ class Config:
         self.set_attributes()
 
     def get(self, section, key):
-        return self.config.get(section, key)
+        return self.config_parser.get(section, key)
 
     def getint(self, section, key):
-        return self.config.getint(section, key)
+        return self.config_parser.getint(section, key)
 
     def getfloat(self, section, key):
-        return self.config.getfloat(section, key)
+        return self.config_parser.getfloat(section, key)
 
     def getboolean(self, section, key):
-        return self.config.getboolean(section, key)
+        return self.config_parser.getboolean(section, key)
 
     def load_config(self):
         # Read the configuration file
-        self.config_parser = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-        self.config_parser.read(os.path.join(os.getcwd(), 'config/config.ini'))
+        self.config_parser = configparser.ConfigParser(
+            interpolation=configparser.ExtendedInterpolation()
+        )
+        self.config_parser.optionxform = str
+        self.config_parser.read(CONFIG_FILE, encoding='utf-8')
+        self.config = self.config_parser
+
+    def reload(self):
+        self.load_config()
+        self.set_attributes()
 
     def set_attributes(self):
         # Automatically derive attributes from the config file

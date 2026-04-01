@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 import json
-from collections.abc import Sequence
+import platform
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -17,12 +19,22 @@ logger = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parent.parent
 MENU_LAYOUT_FILE = ROOT / 'resources' / 'Menus' / 'menu_layout.json'
 TOOLBAR_LAYOUT_FILE = ROOT / 'resources' / 'Menus' / 'toolbar_layout.json'
-SHORTCUT_OVERRIDE_FILE = ROOT / 'config' / 'shortcuts.json'
+DEFAULT_SHORTCUT_FILE = ROOT / 'resources' / 'Shortcuts' / 'shortcuts.json'
+USER_SHORTCUT_FILE = ROOT / 'config' / 'shortcuts_user.json'
+LEGACY_SHORTCUT_FILE = ROOT / 'config' / 'shortcuts.json'
 SEPARATOR_TOKEN = 'separator'
+SHORTCUT_CONFIG_VERSION = 1
+PLATFORM_KEYS = ('all', 'windows', 'macos', 'linux')
+PLATFORM_LABELS = {
+    'all': 'All platforms',
+    'windows': 'Windows',
+    'macos': 'macOS',
+    'linux': 'Linux',
+}
 
 
 ActionHandlerFactory = Callable[[object], Callable[[], None]]
-ShortcutProvider = Callable[[object], Sequence[str]]
+ShortcutProvider = Callable[[object], Sequence[object]]
 
 
 @dataclass(frozen=True)
@@ -32,10 +44,10 @@ class ActionDefinition:
     tooltip: str
     handler_factory: ActionHandlerFactory
     icon_name: str = ''
-    default_shortcuts: tuple[str, ...] = ()
     shortcut_context: QtCore.Qt.ShortcutContext = QtCore.Qt.WindowShortcut
     shortcut_targets: tuple[str, ...] = ('mainwindow',)
     help_category: str = 'General'
+    user_editable: bool = True
     shortcut_provider: ShortcutProvider | None = None
 
 
@@ -45,6 +57,19 @@ class ShortcutHelpEntry:
     text: str
     description: str
     shortcuts: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ShortcutEditorEntry:
+    action_id: str
+    category: str
+    text: str
+    description: str
+    current_shortcuts: tuple[str, ...]
+    default_shortcuts: tuple[str, ...]
+    scope: str
+    source: str
+    editable: bool
 
 
 def _slot(slot_name):
@@ -71,7 +96,6 @@ ACTION_DEFINITIONS = (
         text='Open',
         tooltip='Open airfoil contour file',
         icon_name='open',
-        default_shortcuts=('Ctrl+O',),
         help_category='File',
         handler_factory=_slot('onOpen'),
     ),
@@ -80,7 +104,6 @@ ACTION_DEFINITIONS = (
         text='Save',
         tooltip='Save airfoil contour file',
         icon_name='save',
-        default_shortcuts=('Ctrl+S',),
         help_category='File',
         handler_factory=_slot('onSave'),
     ),
@@ -89,7 +112,6 @@ ACTION_DEFINITIONS = (
         text='Save as',
         tooltip='Save airfoil contour file with different name',
         icon_name='save-as',
-        default_shortcuts=('Ctrl+Shift+S',),
         help_category='File',
         handler_factory=_slot('onSaveAs'),
     ),
@@ -98,7 +120,6 @@ ACTION_DEFINITIONS = (
         text='Print',
         tooltip='Print current view',
         icon_name='print',
-        default_shortcuts=('Ctrl+P',),
         help_category='File',
         handler_factory=_slot('onPrint'),
     ),
@@ -107,7 +128,6 @@ ACTION_DEFINITIONS = (
         text='Print preview',
         tooltip='Print preview',
         icon_name='print-preview',
-        default_shortcuts=('Ctrl+Shift+P',),
         help_category='File',
         handler_factory=_slot('onPreview'),
     ),
@@ -124,17 +144,17 @@ ACTION_DEFINITIONS = (
         text='Exit',
         tooltip='Shut down PyAero',
         icon_name='exit',
-        default_shortcuts=('Ctrl+X',),
         help_category='Application',
         handler_factory=_slot('onExit'),
     ),
     ActionDefinition(
         action_id='app.exit_on_escape',
-        text='Exit',
-        tooltip='Close PyAero',
+        text='Exit on Escape',
+        tooltip='Close PyAero when Exit on Escape is enabled',
         shortcut_context=QtCore.Qt.ApplicationShortcut,
         shortcut_targets=('mainwindow',),
         help_category='Application',
+        user_editable=False,
         shortcut_provider=_escape_shortcuts,
         handler_factory=_quit_application,
     ),
@@ -143,7 +163,8 @@ ACTION_DEFINITIONS = (
         text='Fit airfoil in view',
         tooltip='Set view to selected airfoil',
         icon_name='fit-airfoil',
-        default_shortcuts=('Ctrl+F',),
+        shortcut_context=QtCore.Qt.WidgetWithChildrenShortcut,
+        shortcut_targets=('view',),
         help_category='View',
         handler_factory=_slot('fitAirfoilInView'),
     ),
@@ -152,7 +173,8 @@ ACTION_DEFINITIONS = (
         text='Fit all in view',
         tooltip='Set view to all items visible',
         icon_name='fit-all',
-        default_shortcuts=('Ctrl+Shift+F', 'Home'),
+        shortcut_context=QtCore.Qt.WidgetWithChildrenShortcut,
+        shortcut_targets=('view',),
         help_category='View',
         handler_factory=_slot('onViewAll'),
     ),
@@ -160,7 +182,8 @@ ACTION_DEFINITIONS = (
         action_id='view.toggle_background',
         text='Toggle background',
         tooltip='Toggle background color',
-        default_shortcuts=('Ctrl+B',),
+        shortcut_context=QtCore.Qt.WidgetWithChildrenShortcut,
+        shortcut_targets=('view',),
         help_category='View',
         handler_factory=_slot('onBackground'),
     ),
@@ -168,7 +191,6 @@ ACTION_DEFINITIONS = (
         action_id='view.toggle_messages',
         text='Toggle message window',
         tooltip='Toggle the message window to have more space for the viewer',
-        default_shortcuts=('Ctrl+M',),
         help_category='View',
         handler_factory=_slot('toggleLogDock'),
     ),
@@ -176,7 +198,6 @@ ACTION_DEFINITIONS = (
         action_id='view.zoom_in',
         text='Zoom in',
         tooltip='Zoom in the current graphics view',
-        default_shortcuts=('+', 'PageDown'),
         shortcut_context=QtCore.Qt.WidgetWithChildrenShortcut,
         shortcut_targets=('view',),
         help_category='Viewer',
@@ -186,7 +207,6 @@ ACTION_DEFINITIONS = (
         action_id='view.zoom_out',
         text='Zoom out',
         tooltip='Zoom out the current graphics view',
-        default_shortcuts=('-', 'PageUp'),
         shortcut_context=QtCore.Qt.WidgetWithChildrenShortcut,
         shortcut_targets=('view',),
         help_category='Viewer',
@@ -197,7 +217,6 @@ ACTION_DEFINITIONS = (
         text='Delete airfoil',
         tooltip='Delete the active airfoil',
         icon_name='delete',
-        default_shortcuts=('Del',),
         shortcut_context=QtCore.Qt.WidgetWithChildrenShortcut,
         shortcut_targets=('view',),
         help_category='Viewer',
@@ -208,18 +227,16 @@ ACTION_DEFINITIONS = (
         text='Calculator',
         tooltip='Start the internal calculator',
         icon_name='calculator',
-        default_shortcuts=('Ctrl+Shift+L',),
         help_category='Tools',
         handler_factory=_slot('onCalculator'),
     ),
     ActionDefinition(
         action_id='tools.settings',
         text='Settings',
-        tooltip='Customize PyAero',
+        tooltip='Edit PyAero application settings',
         icon_name='settings',
-        default_shortcuts=('Ctrl+E',),
         help_category='Tools',
-        handler_factory=_slot('onCalculator'),
+        handler_factory=_slot('onSettings'),
     ),
     ActionDefinition(
         action_id='tools.icon_preview',
@@ -233,7 +250,6 @@ ACTION_DEFINITIONS = (
         text='Manual (online)',
         tooltip='Open PyAero online documentation',
         icon_name='manual',
-        default_shortcuts=('Ctrl+Shift+H',),
         help_category='Help',
         handler_factory=_slot('onHelpOnline'),
     ),
@@ -242,23 +258,21 @@ ACTION_DEFINITIONS = (
         text='Manual (PDF)',
         tooltip='Open PyAero manual',
         icon_name='manual',
-        default_shortcuts=('Ctrl+H',),
         help_category='Help',
         handler_factory=_slot('onHelpPDF'),
     ),
     ActionDefinition(
         action_id='help.shortcuts',
         text='Keyboard shortcuts',
-        tooltip='Show available keyboard shortcuts',
+        tooltip='Edit keyboard shortcuts',
         icon_name='keyboard-shortcuts',
-        default_shortcuts=('Ctrl+K',),
         help_category='Help',
         handler_factory=_slot('onKeyBd'),
     ),
     ActionDefinition(
         action_id='help.about_qt',
         text='About Qt',
-        tooltip='Show the Qt librarys about box',
+        tooltip='Show the Qt libraries about box',
         help_category='Help',
         handler_factory=_slot('onAboutQt'),
     ),
@@ -293,7 +307,11 @@ class ActionRegistry:
         )
         self._menu_layout = None
         self._toolbar_layout = None
-        self._shortcut_overrides = self._load_shortcut_overrides()
+        self._default_shortcut_config = self._load_shortcut_config(
+            DEFAULT_SHORTCUT_FILE,
+            require_platform_sections=True,
+        )
+        self._user_shortcut_config = self._load_user_shortcut_config()
 
     def install(self):
         for action_id in self._definition_order:
@@ -303,6 +321,9 @@ class ActionRegistry:
 
     def action(self, action_id):
         return self._actions.get(action_id)
+
+    def action_ids(self):
+        return self._definition_order
 
     def definition(self, action_id):
         return self._definitions.get(action_id)
@@ -320,17 +341,26 @@ class ActionRegistry:
             )
         return self._toolbar_layout
 
+    def platform_key(self):
+        platform_name = getattr(self.mw, 'platform', '') or platform.system()
+        platform_name = str(platform_name).lower()
+        if platform_name.startswith('win'):
+            return 'windows'
+        if platform_name.startswith('darwin') or platform_name.startswith('mac'):
+            return 'macos'
+        return 'linux'
+
+    def platform_label(self):
+        return PLATFORM_LABELS.get(self.platform_key(), self.platform_key())
+
     def shortcut_help(self):
         entries = []
         for action_id in self._definition_order:
-            action = self.action(action_id)
-            if action is None:
-                continue
-            shortcut_text = tuple(self._format_shortcut_text(action.shortcuts()))
+            definition = self.definition(action_id)
+            shortcut_text = self.active_shortcut_text(action_id)
             if not shortcut_text:
                 continue
 
-            definition = self.definition(action_id)
             entries.append(
                 ShortcutHelpEntry(
                     category=definition.help_category,
@@ -341,28 +371,228 @@ class ActionRegistry:
             )
         return tuple(entries)
 
-    def _load_shortcut_overrides(self):
-        if not SHORTCUT_OVERRIDE_FILE.exists():
+    def shortcut_editor_entries(self, platform_overrides=None):
+        entries = []
+        user_config = self._user_config_with_platform_overrides(platform_overrides)
+        for action_id in self._definition_order:
+            definition = self.definition(action_id)
+            entries.append(
+                ShortcutEditorEntry(
+                    action_id=action_id,
+                    category=definition.help_category,
+                    text=definition.text,
+                    description=definition.tooltip or definition.text,
+                    current_shortcuts=self.active_shortcut_text(
+                        action_id,
+                        user_config=user_config,
+                    ),
+                    default_shortcuts=self.default_shortcut_text(action_id),
+                    scope=self._scope_label(definition),
+                    source=self._shortcut_source_label(
+                        action_id,
+                        user_config=user_config,
+                    ),
+                    editable=definition.user_editable,
+                )
+            )
+        return tuple(entries)
+
+    def platform_override_specs(self):
+        section = self._section_mapping(
+            self._user_shortcut_config,
+            self.platform_key(),
+        )
+        overrides = {}
+        for action_id, value in section.items():
+            overrides[action_id] = tuple(self._normalize_shortcut_specs(value))
+        return overrides
+
+    def active_shortcut_text(self, action_id, user_config=None):
+        return tuple(
+            self._format_shortcut_text(
+                self.active_shortcuts(action_id, user_config=user_config)
+            )
+        )
+
+    def default_shortcut_text(self, action_id):
+        return tuple(
+            self._format_shortcut_text(self.default_shortcuts(action_id))
+        )
+
+    def active_shortcuts(self, action_id, user_config=None):
+        return tuple(
+            self._resolve_shortcuts(action_id, user_config=user_config)
+        )
+
+    def default_shortcuts(self, action_id):
+        return tuple(
+            self._specs_to_sequences(
+                self._default_shortcut_specs(action_id),
+            )
+        )
+
+    def active_portable_shortcuts(self, action_id, user_config=None):
+        return tuple(
+            self._portable_texts(
+                self.active_shortcuts(action_id, user_config=user_config)
+            )
+        )
+
+    def active_portable_shortcuts_for_overrides(self, action_id, platform_overrides=None):
+        user_config = self._user_config_with_platform_overrides(platform_overrides)
+        return self.active_portable_shortcuts(action_id, user_config=user_config)
+
+    def detect_shortcut_conflicts(self, platform_overrides=None):
+        user_config = self._user_config_with_platform_overrides(platform_overrides)
+        usage = {}
+        for action_id in self._definition_order:
+            seen = set()
+            for portable_text in self.active_portable_shortcuts(
+                action_id,
+                user_config=user_config,
+            ):
+                if not portable_text or portable_text in seen:
+                    continue
+                usage.setdefault(portable_text, []).append(action_id)
+                seen.add(portable_text)
+
+        return {
+            shortcut: tuple(action_ids)
+            for shortcut, action_ids in usage.items()
+            if len(action_ids) > 1
+        }
+
+    def save_platform_overrides(self, platform_overrides):
+        config = copy.deepcopy(self._user_shortcut_config)
+        platform_key = self.platform_key()
+        normalized_platform_section = {}
+
+        inherited_user_config = copy.deepcopy(config)
+        inherited_user_config[platform_key] = {}
+
+        for action_id, value in platform_overrides.items():
+            definition = self.definition(action_id)
+            if definition is None or not definition.user_editable:
+                continue
+
+            specs = tuple(self._normalize_shortcut_specs(value))
+            sequences = self._specs_to_sequences(specs)
+            inherited_sequences = self._resolve_shortcuts(
+                action_id,
+                user_config=inherited_user_config,
+            )
+
+            if self._portable_texts(sequences) == self._portable_texts(inherited_sequences):
+                continue
+
+            normalized_platform_section[action_id] = list(specs)
+
+        config[platform_key] = normalized_platform_section
+        self._write_shortcut_config(USER_SHORTCUT_FILE, config)
+        self._user_shortcut_config = config
+        self.apply_shortcuts()
+
+    def apply_shortcuts(self):
+        for action_id, action in self._actions.items():
+            if action is None:
+                continue
+            action.setShortcuts(self.active_shortcuts(action_id))
+
+    def _load_user_shortcut_config(self):
+        user_config = self._load_shortcut_config(
+            USER_SHORTCUT_FILE,
+            require_platform_sections=False,
+        )
+        legacy_section = self._load_legacy_shortcut_section()
+        if not legacy_section:
+            return user_config
+
+        platform_key = self.platform_key()
+        platform_section = self._section_mapping(user_config, platform_key)
+        if platform_section:
+            return user_config
+
+        user_config[platform_key] = legacy_section
+        self._write_shortcut_config(USER_SHORTCUT_FILE, user_config)
+        logger.info(
+            'Migrated legacy shortcuts from %s to %s',
+            LEGACY_SHORTCUT_FILE,
+            USER_SHORTCUT_FILE,
+        )
+        return user_config
+
+    def _load_legacy_shortcut_section(self):
+        if not LEGACY_SHORTCUT_FILE.exists():
             return {}
 
         try:
-            with SHORTCUT_OVERRIDE_FILE.open('r', encoding='utf-8') as handle:
+            with LEGACY_SHORTCUT_FILE.open('r', encoding='utf-8') as handle:
                 data = json.load(handle)
         except (OSError, ValueError) as error:
             logger.warning(
-                'Failed to read shortcut overrides from %s: %s',
-                SHORTCUT_OVERRIDE_FILE,
+                'Failed to read legacy shortcuts from %s: %s',
+                LEGACY_SHORTCUT_FILE,
                 error,
             )
             return {}
 
-        if not isinstance(data, dict):
-            logger.warning(
-                'Ignoring shortcut overrides from %s because the content is not a mapping.',
-                SHORTCUT_OVERRIDE_FILE,
-            )
+        if not isinstance(data, Mapping):
             return {}
-        return data
+
+        if any(key in PLATFORM_KEYS for key in data.keys()):
+            return {}
+
+        section = {}
+        for action_id, value in data.items():
+            section[action_id] = list(self._normalize_shortcut_specs(value))
+        return section
+
+    def _load_shortcut_config(self, filename, require_platform_sections):
+        base = self._empty_shortcut_config()
+        if not filename.exists():
+            return base
+
+        try:
+            with filename.open('r', encoding='utf-8') as handle:
+                data = json.load(handle)
+        except (OSError, ValueError) as error:
+            logger.warning(
+                'Failed to read shortcuts from %s: %s',
+                filename,
+                error,
+            )
+            return base
+
+        if not isinstance(data, Mapping):
+            logger.warning(
+                'Ignoring shortcuts in %s because the content is not a mapping.',
+                filename,
+            )
+            return base
+
+        config = self._empty_shortcut_config()
+        if isinstance(data.get('version'), int):
+            config['version'] = data['version']
+
+        for key in PLATFORM_KEYS:
+            section = data.get(key, {})
+            if not isinstance(section, Mapping):
+                if require_platform_sections and key in data:
+                    logger.warning(
+                        'Ignoring invalid shortcut section %s in %s',
+                        key,
+                        filename,
+                    )
+                continue
+
+            normalized_section = {}
+            for action_id, value in section.items():
+                normalized_section[action_id] = list(
+                    self._normalize_shortcut_specs(value)
+                )
+            config[key] = normalized_section
+
+        return config
 
     def _load_layout(self, filename, top_level_key):
         with filename.open('r', encoding='utf-8') as handle:
@@ -381,10 +611,7 @@ class ActionRegistry:
         action.setStatusTip(definition.tooltip or definition.text)
         action.setToolTip(definition.tooltip or definition.text)
         action.setShortcutContext(definition.shortcut_context)
-
-        shortcuts = self._action_shortcuts(definition)
-        if shortcuts:
-            action.setShortcuts(shortcuts)
+        action.setShortcuts(self.active_shortcuts(definition.action_id))
 
         handler = definition.handler_factory(self.mw)
         action.triggered.connect(
@@ -404,30 +631,177 @@ class ActionRegistry:
 
         return action
 
-    def _action_shortcuts(self, definition):
-        override = self._shortcut_overrides.get(definition.action_id)
-        if override is not None:
-            return self._normalize_shortcuts(override)
+    def _resolve_shortcuts(self, action_id, user_config=None):
+        definition = self.definition(action_id)
+        if definition is None:
+            return []
 
         if definition.shortcut_provider is not None:
-            return self._normalize_shortcuts(definition.shortcut_provider(self.mw))
+            return self._specs_to_sequences(definition.shortcut_provider(self.mw))
 
-        return self._normalize_shortcuts(definition.default_shortcuts)
+        specs = self._effective_shortcut_specs(
+            action_id,
+            user_config=user_config,
+        )
+        return self._specs_to_sequences(specs)
 
-    def _normalize_shortcuts(self, shortcut_value):
+    def _effective_shortcut_specs(self, action_id, user_config=None):
+        config = user_config or self._user_shortcut_config
+        platform_key = self.platform_key()
+        platform_user = self._section_mapping(config, platform_key)
+        all_user = self._section_mapping(config, 'all')
+        platform_default = self._section_mapping(
+            self._default_shortcut_config,
+            platform_key,
+        )
+        all_default = self._section_mapping(self._default_shortcut_config, 'all')
+
+        if action_id in platform_user:
+            return platform_user[action_id]
+        if action_id in all_user:
+            return all_user[action_id]
+        if action_id in platform_default:
+            return platform_default[action_id]
+        if action_id in all_default:
+            return all_default[action_id]
+        return ()
+
+    def _default_shortcut_specs(self, action_id):
+        platform_key = self.platform_key()
+        platform_default = self._section_mapping(
+            self._default_shortcut_config,
+            platform_key,
+        )
+        all_default = self._section_mapping(self._default_shortcut_config, 'all')
+        if action_id in platform_default:
+            return platform_default[action_id]
+        if action_id in all_default:
+            return all_default[action_id]
+        return ()
+
+    def _shortcut_source_label(self, action_id, user_config=None):
+        definition = self.definition(action_id)
+        if definition.shortcut_provider is not None:
+            active = self.active_shortcut_text(action_id, user_config=user_config)
+            if active:
+                return 'Managed by application setting'
+            return 'Disabled by application setting'
+
+        config = user_config or self._user_shortcut_config
+        platform_key = self.platform_key()
+        platform_user = self._section_mapping(config, platform_key)
+        all_user = self._section_mapping(config, 'all')
+        platform_default = self._section_mapping(
+            self._default_shortcut_config,
+            platform_key,
+        )
+        all_default = self._section_mapping(self._default_shortcut_config, 'all')
+
+        if action_id in platform_user:
+            return f'User override ({self.platform_label()})'
+        if action_id in all_user:
+            return 'User override (all platforms)'
+        if action_id in platform_default:
+            return f'Built-in default ({self.platform_label()})'
+        if action_id in all_default:
+            return 'Built-in default'
+        return 'No shortcut'
+
+    def _user_config_with_platform_overrides(self, platform_overrides):
+        if platform_overrides is None:
+            return self._user_shortcut_config
+
+        config = copy.deepcopy(self._user_shortcut_config)
+        platform_key = self.platform_key()
+        config[platform_key] = {}
+        for action_id, value in platform_overrides.items():
+            config[platform_key][action_id] = list(
+                self._normalize_shortcut_specs(value)
+            )
+        return config
+
+    def _normalize_shortcut_specs(self, shortcut_value):
+        if shortcut_value is None:
+            return ()
+
         if isinstance(shortcut_value, str):
             values = [shortcut_value]
+        elif isinstance(shortcut_value, Mapping):
+            values = [shortcut_value]
         elif isinstance(shortcut_value, Sequence):
-            values = [value for value in shortcut_value if value]
+            values = list(shortcut_value)
         else:
             values = []
 
         normalized = []
         for value in values:
-            sequence = QtGui.QKeySequence(str(value))
-            if sequence.toString():
-                normalized.append(sequence)
-        return normalized
+            if isinstance(value, str):
+                text = value.strip()
+                if text:
+                    normalized.append(text)
+                continue
+
+            if not isinstance(value, Mapping):
+                continue
+
+            standard_key = value.get('standard_key')
+            if isinstance(standard_key, str) and standard_key.strip():
+                normalized.append({'standard_key': standard_key.strip()})
+                continue
+
+            sequence_text = value.get('sequence')
+            if isinstance(sequence_text, str) and sequence_text.strip():
+                normalized.append(sequence_text.strip())
+
+        return tuple(normalized)
+
+    def _specs_to_sequences(self, specs):
+        sequences = []
+        seen = set()
+        for spec in self._normalize_shortcut_specs(specs):
+            if isinstance(spec, Mapping):
+                standard_key = self._resolve_standard_key(spec.get('standard_key'))
+                if standard_key is None:
+                    continue
+                candidates = QtGui.QKeySequence.keyBindings(standard_key)
+            else:
+                sequence = QtGui.QKeySequence.fromString(
+                    str(spec),
+                    QtGui.QKeySequence.PortableText,
+                )
+                candidates = [sequence] if not sequence.isEmpty() else []
+
+            for candidate in candidates:
+                portable = candidate.toString(QtGui.QKeySequence.PortableText)
+                if not portable or portable in seen:
+                    continue
+                sequences.append(candidate)
+                seen.add(portable)
+        return sequences
+
+    def _resolve_standard_key(self, name):
+        if not isinstance(name, str) or not name:
+            return None
+
+        enum_type = getattr(QtGui.QKeySequence, 'StandardKey', None)
+        if enum_type is not None and hasattr(enum_type, name):
+            return getattr(enum_type, name)
+
+        if hasattr(QtGui.QKeySequence, name):
+            return getattr(QtGui.QKeySequence, name)
+
+        logger.warning('Unknown standard shortcut key %s', name)
+        return None
+
+    def _portable_texts(self, shortcuts):
+        texts = []
+        for shortcut in shortcuts:
+            text = shortcut.toString(QtGui.QKeySequence.PortableText)
+            if not text:
+                text = shortcut.toString()
+            if text and text not in texts:
+                texts.append(text)
+        return tuple(texts)
 
     def _resolve_target(self, target_name):
         if target_name == 'mainwindow':
@@ -438,6 +812,35 @@ class ActionRegistry:
             return getattr(getattr(self.mw, 'mainArea', None), 'toolbox', None)
         return None
 
+    def _scope_label(self, definition):
+        if definition.shortcut_context == QtCore.Qt.ApplicationShortcut:
+            return 'Application'
+        if definition.shortcut_targets == ('view',):
+            return 'Viewer'
+        if definition.shortcut_targets == ('toolbox',):
+            return 'Toolbox'
+        return 'Window'
+
+    def _section_mapping(self, config, key):
+        section = config.get(key, {})
+        if isinstance(section, Mapping):
+            return section
+        return {}
+
+    def _empty_shortcut_config(self):
+        return {
+            'version': SHORTCUT_CONFIG_VERSION,
+            'all': {},
+            'windows': {},
+            'macos': {},
+            'linux': {},
+        }
+
+    def _write_shortcut_config(self, filename, config):
+        with filename.open('w', encoding='utf-8') as handle:
+            json.dump(config, handle, indent=2)
+            handle.write('\n')
+
     @staticmethod
     def _format_shortcut_text(shortcuts):
         texts = []
@@ -445,6 +848,6 @@ class ActionRegistry:
             text = shortcut.toString(QtGui.QKeySequence.NativeText)
             if not text:
                 text = shortcut.toString()
-            if text:
+            if text and text not in texts:
                 texts.append(text)
         return texts

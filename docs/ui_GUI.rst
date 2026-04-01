@@ -136,7 +136,7 @@ A reset to the initial (home) position can either be achieved by pressing the :k
 Keyboard shortcuts
 ------------------
 
-To speed up some operations, a set of keyboard shortcuts is defined centrally in :file:`src/ActionRegistry.py`. Menus show the currently assigned shortcuts next to the corresponding actions, and the shortcut overview dialog is generated from the same registry. By default, :kbd:`CTRL+k` on Windows and Linux and :kbd:`CMD+k` on MacOS open the overview of available keyboard shortcuts. User-specific shortcut overrides can be stored in :file:`config/shortcuts.json`.
+To speed up some operations, a set of keyboard shortcuts is defined centrally in :file:`src/ActionRegistry.py`. Built-in defaults are shipped in :file:`resources/Shortcuts/shortcuts.json`, menus show the currently assigned shortcuts next to the corresponding actions, and the keyboard shortcut editor reads and writes the same registry-backed data. By default, :kbd:`CTRL+k` on Windows and Linux and :kbd:`CMD+k` on MacOS open the keyboard shortcut editor. User-specific shortcut overrides can be stored in :file:`config/shortcuts_user.json`.
 
 .. note::
    Keyboard shortcuts are rendered by Qt using platform conventions.

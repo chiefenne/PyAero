@@ -45,15 +45,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.setLineWidth(0)
 
-        # view behaviour when zooming
-        if self.mw.ZOOM_ANCHOR == 'mouse':
-            # point under mouse pointer stays fixed during zoom
-            self.setTransformationAnchor(
-                QtWidgets.QGraphicsView.AnchorUnderMouse)
-        else:
-            # view center stays fixed during zoom
-            self.setTransformationAnchor(
-                QtWidgets.QGraphicsView.AnchorViewCenter)
+        self.applyViewSettings()
 
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -66,10 +58,22 @@ class GraphicsView(QtWidgets.QGraphicsView):
         # cache view to be able to keep it during resize
         self.getSceneFromView()
 
+    def applyViewSettings(self):
+        # view behaviour when zooming
+        if self.mw.ZOOM_ANCHOR == 'mouse':
+            # point under mouse pointer stays fixed during zoom
+            self.setTransformationAnchor(
+                QtWidgets.QGraphicsView.AnchorUnderMouse)
+        else:
+            # view center stays fixed during zoom
+            self.setTransformationAnchor(
+                QtWidgets.QGraphicsView.AnchorViewCenter)
+
         # set background style and color for view
+        self.viewstyle = self.mw.VIEW_STYLE
         self.setBackground(self.mw.VIEW_STYLE)
 
-        # put constraints on rubberband zoom (relative rectangle wdith)
+        # put constraints on rubberband zoom (relative rectangle width)
         self.mw.RUBBERBAND_MIN = min(self.mw.RUBBERBAND_MIN, 1.0)
         self.mw.RUBBERBAND_MIN = max(self.mw.RUBBERBAND_MIN, 0.05)
 

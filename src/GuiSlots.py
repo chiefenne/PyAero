@@ -327,6 +327,13 @@ class Slots:
         pass
 
     @QtCore.Slot()
+    def onSettings(self):
+        import SettingsEditor
+
+        dialog = SettingsEditor.SettingsEditorDialog(self.mw)
+        dialog.exec()
+
+    @QtCore.Slot()
     def onBackground(self):
         if self.mw.view.viewstyle == 'gradient':
             self.mw.view.viewstyle = 'solid'
@@ -370,51 +377,10 @@ class Slots:
 
     @QtCore.Slot()
     def onKeyBd(self):
-        entries = self.mw.action_registry.shortcut_help()
-        grouped_entries = {}
-        for entry in entries:
-            grouped_entries.setdefault(entry.category, []).append(entry)
+        import ShortcutEditor
 
-        sections = ['<html><body>']
-        for category, category_entries in grouped_entries.items():
-            sections.append(f'<h3>{html.escape(category)}</h3>')
-            sections.append(
-                '<table cellspacing="0" cellpadding="4" '
-                'style="border-collapse: collapse; width: 100%;">'
-            )
-            for entry in category_entries:
-                shortcut_text = ' / '.join(html.escape(text) for text in entry.shortcuts)
-                description = html.escape(entry.description)
-                sections.append(
-                    '<tr>'
-                    f'<td style="white-space: nowrap; font-weight: 600;">{shortcut_text}</td>'
-                    '<td style="width: 16px;"></td>'
-                    f'<td>{description}</td>'
-                    '</tr>'
-                )
-            sections.append('</table>')
-        sections.append('</body></html>')
-        text = ''.join(sections)
-
-        textedit = QtWidgets.QTextEdit()
-        textedit.setReadOnly(True)
-        # textedit.setStyleSheet('font-family: Courier; font-size: 14px; ')
-        textedit.setHtml(text)
-
-        # buttons = QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
-        buttons = QtWidgets.QDialogButtonBox.Ok
-        buttonBox = QtWidgets.QDialogButtonBox(buttons)
-
-        # make a dialog to carry the textedit and button widget
-        dlg = QtWidgets.QDialog(self.mw)
-        dlg.setWindowTitle('Keyboard shortcuts')
-        dlg.setFixedSize(800, 900)
-        buttonBox.accepted.connect(dlg.accept)
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(textedit)
-        layout.addWidget(buttonBox)
-        dlg.setLayout(layout)
-        dlg.exec_()
+        dialog = ShortcutEditor.ShortcutEditorDialog(self.mw)
+        dialog.exec()
 
     @QtCore.Slot()
     def runCommands(self):

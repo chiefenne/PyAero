@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "all": {},
+  "windows": {},
+  "macos": {
+    "file.open": [
+      "Ctrl+D"
+    ]
+  },
+  "linux": {}
+}
