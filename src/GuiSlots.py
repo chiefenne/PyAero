@@ -14,6 +14,7 @@ import FileDialog
 import FileOperations
 import Icons
 import Mesh as MeshModel
+import PrintLayout
 import UiExport
 from Utils import get_main_window
 import logging
@@ -35,6 +36,8 @@ class Slots:
 
         # MainWindow instance
         self.mw = mainwindow or get_main_window()
+        self._current_print_layout_options = None
+        self._current_print_airfoil = None
 
     @QtCore.Slot()
     def onOpen(self):
@@ -231,51 +234,90 @@ class Slots:
 
     @QtCore.Slot()
     def onPrint(self):
-        dialog = QtWidgets.QPrintDialog()
-        if dialog.exec_() == QtGui.QDialog.Accepted:
-            self.mw.editor.document().print_(dialog.printer())
+        airfoil = self._activeAirfoilForPrint()
+        if airfoil is None:
+            return
+
+        options = self._promptPrintLayout(airfoil)
+        if options is None:
+            return
+
+        printer = QtPrintSupport.QPrinter(QtPrintSupport.QPrinter.HighResolution)
+        PrintLayout.configure_printer_for_layout(printer, options)
+
+        dialog = QtPrintSupport.QPrintDialog(printer, self.mw)
+        dialog.setWindowTitle('Print Airfoil Drawing')
+        if dialog.exec() != QtWidgets.QDialog.Accepted:
+            return
+
+        self._current_print_airfoil = airfoil
+        self._current_print_layout_options = options
+        self.handlePaintRequest(printer)
 
     @QtCore.Slot()
     def onPreview(self):
-        printer = QtPrintSupport.QPrinter(QtPrintSupport.QPrinter.HighResolution)
-        printer.setPageSize(QtGui.QPageSize(QtGui.QPageSize.A4))
-        printer.setPageOrientation(QtGui.QPageLayout.Landscape)
-        layout = QtGui.QPageLayout()
-        layout.setOrientation(QtGui.QPageLayout.Landscape)
-        layout.setPageSize(QtGui.QPageSize(QtGui.QPageSize.A4))
-        printer.setPageLayout(layout)
+        airfoil = self._activeAirfoilForPrint()
+        if airfoil is None:
+            return
 
+        options = self._promptPrintLayout(airfoil)
+        if options is None:
+            return
+
+        printer = QtPrintSupport.QPrinter(QtPrintSupport.QPrinter.HighResolution)
+        PrintLayout.configure_printer_for_layout(printer, options)
+
+        self._current_print_airfoil = airfoil
+        self._current_print_layout_options = options
         preview = QtPrintSupport.QPrintPreviewDialog(printer, self.mw)
         preview.paintRequested.connect(self.handlePaintRequest)
         preview.exec()
 
     @QtCore.Slot()
     def handlePaintRequest(self, printer):
-        page_rect = QtCore.QRectF(
-            printer.pageLayout().paintRectPixels(printer.resolution())
-        )
-        source_rect = self.mw.view.viewport().rect()
-        target_size = QtCore.QSizeF(source_rect.size())
-        target_size.scale(page_rect.size(), QtCore.Qt.KeepAspectRatio)
+        airfoil = self._current_print_airfoil or getattr(self.mw, 'airfoil', None)
+        if airfoil is None:
+            return
 
-        target_rect = QtCore.QRectF(
-            0.0,
-            0.0,
-            target_size.width(),
-            target_size.height(),
+        options = PrintLayout.default_print_layout_options(
+            airfoil,
+            previous=self._current_print_layout_options,
         )
-        target_rect.moveCenter(page_rect.center())
+        renderer = PrintLayout.AirfoilPrintRenderer()
 
         painter = QtGui.QPainter(printer)
         try:
-            self.mw.view.render(
-                painter,
-                target=target_rect,
-                source=source_rect,
-                aspectRatioMode=QtCore.Qt.KeepAspectRatio,
+            renderer.render(painter, printer, airfoil, self.mw.view, options)
+        except ValueError as error:
+            logger.error(
+                'Failed to render print layout for %s: %s',
+                getattr(airfoil, 'name', 'airfoil'),
+                error,
+                exc_info=True,
             )
+            self.messageBox(str(error))
         finally:
             painter.end()
+
+    def _activeAirfoilForPrint(self):
+        airfoil = getattr(self.mw, 'airfoil', None)
+        if airfoil is None:
+            self.messageBox('No airfoil loaded.')
+        return airfoil
+
+    def _promptPrintLayout(self, airfoil):
+        options = self._current_print_layout_options
+        if options is not None:
+            options = PrintLayout.clone_print_layout_options(options)
+
+        dialog = PrintLayout.PrintLayoutDialog(
+            airfoil,
+            options=options,
+            parent=self.mw,
+        )
+        if dialog.exec() != QtWidgets.QDialog.Accepted:
+            return None
+        return dialog.selected_options()
 
     def toggleLogDock(self, _sender=None):
         """Switch message log window on/off"""
