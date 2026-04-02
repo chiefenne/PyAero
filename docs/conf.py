@@ -6,22 +6,22 @@
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/master/config
 
-# this allows to use the readthedocs theme also locally
-import sphinx_rtd_theme
-
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
 import datetime
+from pathlib import Path
+import re
+import sys
 
 year = str(datetime.date.today().strftime("%Y"))
 
-sys.path.insert(0, os.path.abspath('.'))
+DOCS_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = DOCS_DIR.parent
+sys.path.insert(0, str(PROJECT_ROOT / 'src'))
 
 
 # -- Project information -----------------------------------------------------
@@ -30,13 +30,16 @@ project = 'PyAero'
 copyright = year + ', Andreas Ennemoser'
 author = 'Andreas Ennemoser'
 
-# automated detection of version number
-with open('../src/PyAero.py') as f:
-    pyaero = f.readlines()
-    for line in pyaero:
-        if line.startswith('__version__'):
-            version = line.split('=')[1].strip()
-            break
+VERSION_FILE = PROJECT_ROOT / 'src' / 'PyAero.py'
+VERSION_PATTERN = re.compile(
+    r"^__version__\s*=\s*['\"]([^'\"]+)['\"]",
+    re.MULTILINE,
+)
+version_match = VERSION_PATTERN.search(VERSION_FILE.read_text(encoding='utf-8'))
+if version_match is None:
+    raise RuntimeError(f'Unable to determine version from {VERSION_FILE}')
+
+version = version_match.group(1)
 
 # The short X.Y version
 # version = '2.1.5'
