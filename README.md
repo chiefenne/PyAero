@@ -33,7 +33,7 @@ The current application is built with Python and PySide6 and ships with a redesi
 
 ## Current Interface
 
-![PyAero interface overview](docs/images/main_screen_new1.png)
+[![PyAero interface overview](docs/images/ui_overview_main.png)](docs/images/ui_overview_main.png)
 
 The application now centers around a workflow sidebar on the left and a workspace on the right. Geometry preparation, mesh generation, export, contour analysis, and CFD helper tools are grouped into dedicated pages so the main path from raw airfoil to exported mesh is easier to follow.
 
