@@ -5,6 +5,13 @@ CFD Inputs and Boundary Conditions
 
 The :guilabel:`CFD Inputs` page is a practical helper for preparing solver-side freestream and near-wall inputs. It does not write solver configuration files directly, but it calculates the values you typically need when setting up a case.
 
+.. figure:: images/cfd_inputs_panel.png
+   :align: center
+   :width: 75%
+   :target: _images/cfd_inputs_panel.png
+
+   CFD Inputs page with freestream, turbulence, and wall-distance helpers.
+
 Inputs
 ======
 

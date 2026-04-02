@@ -5,6 +5,13 @@ Making Meshes
 
 After preparing the contour and optionally adding a finite-thickness trailing edge, the :guilabel:`Mesh` page is where PyAero turns the working geometry into a structured wind-tunnel mesh.
 
+.. figure:: images/mesh_panel.png
+   :align: center
+   :width: 75%
+   :target: _images/mesh_panel.png
+
+   Mesh page with block settings, smoothing controls, and export options.
+
 Mesh Layout
 ===========
 

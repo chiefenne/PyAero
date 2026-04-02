@@ -9,6 +9,13 @@ PyAero includes an :guilabel:`Aerodynamics` page in the workflow sidebar with in
 
 The page is intended as a home for a quick panel-method style estimate workflow.
 
+.. figure:: images/aerodynamics_panel.png
+   :align: center
+   :width: 70%
+   :target: _images/aerodynamics_panel.png
+
+   Aerodynamics page in the workflow sidebar.
+
 Current Status
 ==============
 

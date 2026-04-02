@@ -12,11 +12,12 @@ The application is written in Python, uses `Qt for Python <https://www.qt.io/qt-
 
    Example PyAero-generated mesh used in a downstream SU2 and ParaView workflow.
 
-.. figure:: images/main_screen_new1.png
+.. figure:: images/ui_overview_main.png
    :align: center
-   :target: _images/main_screen_new1.png
+   :width: 85%
+   :target: _images/ui_overview_main.png
 
-   The current workflow-oriented PyAero interface.
+   The current workflow-oriented PyAero interface with sidebar, viewer, and utility panels.
 
 What PyAero Covers
 ==================

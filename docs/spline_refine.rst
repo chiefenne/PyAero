@@ -49,11 +49,12 @@ Advanced controls cover:
 - the trailing-edge redistribution ratio
 - CST order
 
-.. figure:: images/toolbox_spline_refine_1.png
+.. figure:: images/geometry_prep_panel.png
    :align: center
-   :target: _images/toolbox_spline_refine_1.png
+   :width: 75%
+   :target: _images/geometry_prep_panel.png
 
-   Geometry preparation controls.
+   Geometry Prep page with CST, legacy spline, and preparation controls.
 
 Leading-Edge Refinement
 =======================
@@ -93,6 +94,13 @@ After preparing the contour, PyAero can expose and export more than just the vis
 - CST coefficients as JSON or CSV when using the CST method
 
 The :guilabel:`Show CST Parameters...` button opens a dedicated dialog for reviewing and exporting the current CST representation.
+
+.. figure:: images/cst_parameters_dialog.png
+   :align: center
+   :width: 80%
+   :target: _images/cst_parameters_dialog.png
+
+   CST parameter dialog for inspecting and exporting the fitted coefficients.
 
 Examples
 ========

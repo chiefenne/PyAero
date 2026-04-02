@@ -22,6 +22,13 @@ Plot quantity:
 - :guilabel:`Curvature`
 - :guilabel:`Radius`
 
+.. figure:: images/contour_analysis_panel.png
+   :align: center
+   :width: 70%
+   :target: _images/contour_analysis_panel.png
+
+   Contour Analysis page with source and plot-selection controls.
+
 Typical Use
 ===========
 
@@ -51,8 +58,9 @@ Workspace Integration
 
 The contour analysis view lives in the same workspace as the graphics viewer, so switching between geometry inspection and mesh inspection stays fast.
 
-.. figure:: images/tabbed_views_animated.gif
+.. figure:: images/contour_analysis_canvas.png
    :align: center
-   :target: _images/tabbed_views_animated.gif
+   :width: 85%
+   :target: _images/contour_analysis_canvas.png
 
-   Switching between the graphics view and the contour analysis view.
+   Contour analysis canvas inside the shared workspace.

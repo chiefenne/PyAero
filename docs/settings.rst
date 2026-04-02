@@ -37,6 +37,15 @@ Important sections include:
 ``[Logging]``
    Controls message coloring and related behavior.
 
+The settings editor in the GUI exposes these same groups in an editable dialog, which is useful when you want to inspect or adjust advanced values without opening the INI file directly.
+
+.. figure:: images/settings_dialog.png
+   :align: center
+   :width: 80%
+   :target: _images/settings_dialog.png
+
+   Settings dialog for editing the runtime configuration.
+
 Airfoil Paths
 =============
 
@@ -57,6 +66,13 @@ PyAero's shortcut system is registry-driven.
 
 The shortcut editor in the GUI reads and writes these same definitions, so manual edits and GUI edits stay aligned.
 
+.. figure:: images/keyboard_shortcuts_dialog.png
+   :align: center
+   :width: 80%
+   :target: _images/keyboard_shortcuts_dialog.png
+
+   Keyboard shortcut editor with default and overridden bindings.
+
 Menus and Toolbar
 =================
 
@@ -67,6 +83,28 @@ This split keeps three things clean:
 - the UI layout
 - the action definitions
 - the shortcut bindings
+
+Maintenance Dialogs
+===================
+
+Two additional dialogs help with UI maintenance and general reference work:
+
+- :guilabel:`Icon Preview` shows the semantic icons and bundled app artwork used across the interface
+- :guilabel:`About PyAero` summarizes the application, licensing, and environment details
+
+.. figure:: images/icon_preview_dialog.png
+   :align: center
+   :width: 80%
+   :target: _images/icon_preview_dialog.png
+
+   Icon preview dialog for checking semantic icons and bundled assets.
+
+.. figure:: images/about_dialog.png
+   :align: center
+   :width: 80%
+   :target: _images/about_dialog.png
+
+   About dialog with project, license, and environment information.
 
 Launch Location
 ===============

@@ -15,9 +15,10 @@ The window is organized into two main areas:
 
 The workflow sidebar contains the active airfoil summary, the page navigation, and the currently selected tool page. The workspace contains the geometry view, the contour analysis tab, the message panel, and the viewer controls.
 
-.. figure:: images/main_screen_new1.png
+.. figure:: images/ui_overview_main.png
    :align: center
-   :target: _images/main_screen_new1.png
+   :width: 85%
+   :target: _images/ui_overview_main.png
 
    PyAero main window with the current workflow shell.
 
@@ -39,6 +40,20 @@ The active airfoil summary at the top of the sidebar shows:
 - where it came from
 - whether prepared geometry is available
 - whether a mesh has already been generated
+
+.. figure:: images/active_airfoil_card.png
+   :align: center
+   :width: 45%
+   :target: _images/active_airfoil_card.png
+
+   Active airfoil summary card at the top of the workflow sidebar.
+
+.. figure:: images/workflow_navigation.png
+   :align: center
+   :width: 45%
+   :target: _images/workflow_navigation.png
+
+   Workflow navigation card for switching between the main tool pages.
 
 Menus and Toolbar
 =================
@@ -100,6 +115,37 @@ The graphics viewer is the main place for loading, inspecting, and reviewing the
 
    Switching between the graphics and analysis views.
 
+.. figure:: images/viewer_canvas.png
+   :align: center
+   :width: 85%
+   :target: _images/viewer_canvas.png
+
+   Main graphics viewer canvas used for contour and mesh inspection.
+
+Workspace Panels
+================
+
+Two utility panels sit close to the main canvas so the workflow stays visible while you work:
+
+- the viewer controls panel
+- the message panel
+
+The viewer controls panel groups fit actions, background switching, message visibility, and quick access to magnifier-related tools. The message panel shows load status, export summaries, warnings, and other workflow feedback without forcing a modal dialog.
+
+.. figure:: images/viewer_controls_panel.png
+   :align: center
+   :width: 75%
+   :target: _images/viewer_controls_panel.png
+
+   Viewer controls for fit commands, background toggle, message visibility, and magnifier access.
+
+.. figure:: images/message_panel.png
+   :align: center
+   :width: 85%
+   :target: _images/message_panel.png
+
+   Integrated message panel for status, warnings, and export feedback.
+
 Navigation
 ==========
 
@@ -129,6 +175,21 @@ You can zoom in three ways:
 
    Rubber-band zoom in the graphics view.
 
+Magnifier
+---------
+
+The graphics viewer also includes a hover magnifier for close inspection without changing the main zoom level. You can enable it from :menuselection:`View --> Toggle magnifier`, from the graphics-view context menu, or with the default shortcut ``Ctrl+Alt+M``.
+
+While the magnifier is active:
+
+- moving the pointer repositions the lens
+- the mouse wheel changes the lens magnification
+- ``+`` and ``-`` adjust magnifier zoom from the keyboard
+- ``Ctrl++`` and ``Ctrl+-`` increase or decrease the lens size
+- the regular fit, zoom, background, and delete actions are temporarily disabled so the lens interaction stays focused
+
+The default lens size and magnification are configurable through :ref:`tutorial_settings`.
+
 Keyboard Shortcuts
 ==================
 
@@ -146,3 +207,26 @@ The editor allows you to:
 - save one platform-specific override per action
 
 The actual text rendered by Qt may vary slightly across operating systems.
+
+Support Dialogs
+===============
+
+Several utility dialogs support the main workflow and the surrounding UI maintenance tasks:
+
+- :guilabel:`Settings` opens the editable runtime configuration
+- :guilabel:`Icon Preview` shows semantic icons and bundled app assets
+- :guilabel:`About PyAero` summarizes version, license, and environment details
+
+.. figure:: images/icon_preview_dialog.png
+   :align: center
+   :width: 80%
+   :target: _images/icon_preview_dialog.png
+
+   Icon preview dialog for checking semantic icons and bundled assets.
+
+.. figure:: images/about_dialog.png
+   :align: center
+   :width: 80%
+   :target: _images/about_dialog.png
+
+   About dialog with project, license, and environment information.

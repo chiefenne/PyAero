@@ -17,12 +17,12 @@ The library page is the main entry point for airfoil files. It provides:
 
 Bundled entries come from the repository's configured airfoil root. Local entries live under the automatically managed local library folder inside that root.
 
-.. figure:: images/toolbox_area_1_NEW.png
+.. figure:: images/airfoil_library_panel.png
    :align: center
-   :width: 60%
-   :target: _images/toolbox_area_1_NEW.png
+   :width: 70%
+   :target: _images/airfoil_library_panel.png
 
-   The library page in the workflow sidebar.
+   The Airfoil Library page with search, source filters, and load/import actions.
 
 Supported File Types
 ====================
