@@ -46,6 +46,12 @@
     "view.toggle_messages": [
       "Ctrl+Shift+M"
     ],
+    "view.window_size_cycle": [
+      "Ctrl+Alt+W"
+    ],
+    "view.window_size_preset_1": [],
+    "view.window_size_preset_2": [],
+    "view.window_size_preset_3": [],
     "view.zoom_in": [
       "PageDown"
     ],
@@ -76,6 +82,15 @@
       }
     ],
     "tools.icon_preview": [],
+    "tools.export_ui_capture_set": [],
+    "tools.export_ui_current_workflow_panel": [],
+    "tools.export_ui_active_airfoil_card": [],
+    "tools.export_ui_workflow_navigation": [],
+    "tools.export_ui_message_panel": [],
+    "tools.export_ui_viewer_controls_panel": [],
+    "tools.export_ui_canvas_screenshot": [
+      "Ctrl+Alt+S"
+    ],
     "help.manual_online": [
       {
         "standard_key": "HelpContents"

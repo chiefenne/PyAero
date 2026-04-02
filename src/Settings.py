@@ -5,6 +5,41 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_FILE = ROOT / 'config' / 'config.ini'
+WINDOW_STARTUP_MODES = ('maximized', 'preset_1', 'preset_2', 'preset_3')
+
+
+def normalize_window_startup_mode(value):
+    mode = str(value or '').strip().lower()
+    if mode in WINDOW_STARTUP_MODES:
+        return mode
+    raise ValueError(
+        'Window startup mode must be one of: '
+        + ', '.join(WINDOW_STARTUP_MODES)
+    )
+
+
+def parse_window_geometry(value):
+    parts = [part.strip() for part in str(value or '').split(',')]
+    if len(parts) != 4:
+        raise ValueError(
+            'Window geometry must contain exactly four integers: '
+            'x, y, width, height.'
+        )
+
+    try:
+        x, y, width, height = (int(part) for part in parts)
+    except ValueError as error:
+        raise ValueError(
+            'Window geometry must contain only integers: '
+            'x, y, width, height.'
+        ) from error
+
+    if width <= 0 or height <= 0:
+        raise ValueError(
+            'Window geometry width and height must be positive integers.'
+        )
+
+    return x, y, width, height
 
 
 class Config:

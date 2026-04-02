@@ -20,6 +20,15 @@
       "items": [
         "view.fit_airfoil",
         "view.fit_all",
+        {
+          "name": "Window Size",
+          "items": [
+            "view.window_size_cycle",
+            "view.window_size_preset_1",
+            "view.window_size_preset_2",
+            "view.window_size_preset_3"
+          ]
+        },
         "separator",
         "view.toggle_background",
         "view.toggle_magnifier",
@@ -30,7 +39,20 @@
       "name": "Tools",
       "items": [
         "tools.calculator",
-        "tools.icon_preview"
+        "tools.icon_preview",
+        {
+          "name": "Export UI",
+          "items": [
+            "tools.export_ui_capture_set",
+            "separator",
+            "tools.export_ui_current_workflow_panel",
+            "tools.export_ui_active_airfoil_card",
+            "tools.export_ui_workflow_navigation",
+            "tools.export_ui_message_panel",
+            "tools.export_ui_viewer_controls_panel",
+            "tools.export_ui_canvas_screenshot"
+          ]
+        }
       ]
     },
     {

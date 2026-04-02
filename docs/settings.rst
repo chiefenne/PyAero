@@ -22,6 +22,9 @@ Important sections include:
 ``[Application]``
    Controls the predefined airfoil, decimal separator, and exit behavior.
 
+``[Window]``
+   Controls the startup window mode and the three configurable window-size presets.
+
 ``[Graphics]``
    Controls marker size, zoom anchoring, zoom limits, rubber-band threshold, and view style.
 
@@ -69,3 +72,15 @@ Launch Location
 ===============
 
 PyAero should be started from the repository root. The application expects bundled resources such as menus, icons, and airfoil data to resolve relative to that location.
+
+Window Presets
+==============
+
+The :guilabel:`View` menu now contains a :guilabel:`Window Size` submenu with:
+
+- a cycle action
+- preset 1
+- preset 2
+- preset 3
+
+The presets are configured in :file:`config/config.ini` as ``x, y, width, height`` tuples. The startup mode can either be ``maximized`` or one of the preset entries.

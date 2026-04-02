@@ -21,6 +21,7 @@ import MeshBuilders
 import ToolboxBoundaryConditions
 import ToolboxPages
 import ToolboxServices
+import UiExport
 from ToolboxWidgets import PAGE_BODY_WIDTH, WorkflowStepButton
 from Utils import get_main_window
 
@@ -553,6 +554,19 @@ class Toolbox(QtWidgets.QWidget):
 
     def currentIndex(self):
         return self._current_index
+
+    def currentPageTitle(self):
+        if self._current_index < 0 or self._current_index >= len(self._page_titles):
+            return ''
+        return self._page_titles[self._current_index]
+
+    def pageCount(self):
+        return self.page_stack.count()
+
+    def pageTitle(self, index):
+        if index < 0 or index >= len(self._page_titles):
+            return ''
+        return self._page_titles[index]
 
     def lastWorkflowIndex(self):
         return self._last_workflow_index
@@ -1239,18 +1253,27 @@ class Toolbox(QtWidgets.QWidget):
         self.applySplineFillPreference()
 
     def showCstParameters(self, _checked=None):
+        dialog, error_message = self.createCstParametersDialog()
+        if dialog is None:
+            self.mw.slots.messageBox(error_message)
+            return
+        dialog.exec()
+
+    def createCstParametersDialog(self):
         airfoil = self._active_airfoil()
         if airfoil is None:
-            self.mw.slots.messageBox('No airfoil loaded.')
-            return
+            return None, 'No airfoil loaded.'
 
         parameter_data = self._activeCstParameterData(airfoil)
         if parameter_data is None:
-            self.mw.slots.messageBox(
-                'The current prepared contour does not have CST parameters.'
+            return (
+                None,
+                'The current prepared contour does not have CST parameters.',
             )
-            return
 
+        return self.buildCstParametersDialog(airfoil, parameter_data), None
+
+    def buildCstParametersDialog(self, airfoil, parameter_data):
         dialog = QtWidgets.QDialog(self.mw)
         dialog.setWindowTitle('CST Parameters')
         dialog.resize(760, 560)
@@ -1273,6 +1296,7 @@ class Toolbox(QtWidgets.QWidget):
 
         button_row = QtWidgets.QHBoxLayout()
         copy_button = QtWidgets.QPushButton('Copy')
+        export_png_button = QtWidgets.QPushButton('Export PNG...')
         export_json_button = QtWidgets.QPushButton('Export JSON...')
         export_csv_button = QtWidgets.QPushButton('Export CSV...')
         close_button = QtWidgets.QPushButton('Close')
@@ -1280,6 +1304,16 @@ class Toolbox(QtWidgets.QWidget):
         copy_button.clicked.connect(
             lambda *_: QtGui.QGuiApplication.clipboard().setText(
                 textedit.toPlainText()
+            )
+        )
+        export_png_button.clicked.connect(
+            lambda *_: UiExport.export_widget_as_png(
+                mainwindow=self.mw,
+                widget=dialog,
+                default_name='cst_parameters_dialog.png',
+                dialog_title='Export CST Parameters Dialog As',
+                success_label='CST parameters dialog',
+                rounded_radius=18.0,
             )
         )
         export_json_button.clicked.connect(
@@ -1292,13 +1326,14 @@ class Toolbox(QtWidgets.QWidget):
 
         button_row.addWidget(copy_button)
         button_row.addStretch(1)
+        button_row.addWidget(export_png_button)
         button_row.addWidget(export_json_button)
         button_row.addWidget(export_csv_button)
         button_row.addWidget(close_button)
         layout.addLayout(button_row)
 
         dialog.setLayout(layout)
-        dialog.exec()
+        return dialog
 
     def spline_and_refine(self):
         self.workflow.spline_and_refine(self.spline_refine_settings())

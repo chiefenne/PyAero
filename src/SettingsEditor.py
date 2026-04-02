@@ -6,12 +6,14 @@ from collections import OrderedDict
 from PySide6 import QtCore, QtWidgets
 
 import Settings
+import UiExport
 
 
 CHOICE_FIELDS = {
     ('Application', 'DECIMAL_SEPARATOR'): ('.', ','),
     ('Graphics', 'ZOOM_ANCHOR'): ('mouse', 'center'),
     ('Graphics', 'VIEW_STYLE'): ('solid', 'gradient'),
+    ('Window', 'WINDOW_STARTUP_MODE'): Settings.WINDOW_STARTUP_MODES,
 }
 
 BOOLEAN_STRINGS = {'true', 'false', 'yes', 'no', 'on', 'off', '1', '0'}
@@ -57,6 +59,14 @@ class SettingsEditorDialog(QtWidgets.QDialog):
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
+        )
+        UiExport.install_dialog_export_button(
+            self.button_box,
+            mainwindow=self.mw,
+            widget=self,
+            default_name='settings_dialog.png',
+            dialog_title='Export Settings Dialog As',
+            success_label='Settings dialog',
         )
         self.button_box.accepted.connect(self._save_and_accept)
         self.button_box.rejected.connect(self.reject)
@@ -138,7 +148,7 @@ class SettingsEditorDialog(QtWidgets.QDialog):
             return
 
         self.mw.config.reload()
-        self.mw.applyRuntimeSettings()
+        self.mw.applyRuntimeSettings(apply_window_mode=True)
         self.accept()
 
     def _read_widget_value(self, section, key, widget):
@@ -157,6 +167,13 @@ class SettingsEditorDialog(QtWidgets.QDialog):
         value = widget.text().strip()
         if not value:
             raise ValueError(f'{section}.{key} cannot be empty.')
+
+        if section == 'Window' and key.startswith('WINDOW_PRESET_'):
+            try:
+                Settings.parse_window_geometry(value)
+            except ValueError as error:
+                raise ValueError(f'{section}.{key} {error}') from error
+            return ', '.join(part.strip() for part in value.split(','))
 
         if original_kind == 'int':
             try:

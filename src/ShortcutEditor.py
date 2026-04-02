@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+import UiExport
+
 
 class ShortcutEditorDialog(QtWidgets.QDialog):
     def __init__(self, mainwindow):
@@ -128,6 +130,14 @@ class ShortcutEditorDialog(QtWidgets.QDialog):
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
+        )
+        UiExport.install_dialog_export_button(
+            self.button_box,
+            mainwindow=self.mw,
+            widget=self,
+            default_name='keyboard_shortcuts_dialog.png',
+            dialog_title='Export Keyboard Shortcuts Dialog As',
+            success_label='Keyboard shortcuts dialog',
         )
         self.button_box.accepted.connect(self._save_and_accept)
         self.button_box.rejected.connect(self.reject)

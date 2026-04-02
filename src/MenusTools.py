@@ -39,6 +39,14 @@ class MenusTools:
                 container.addSeparator()
                 continue
 
+            if isinstance(item, dict):
+                submenu_name = item.get('name', '').strip()
+                submenu_items = item.get('items', [])
+                if submenu_name and isinstance(submenu_items, list):
+                    submenu = container.addMenu(submenu_name)
+                    self._populate_action_container(submenu, submenu_items)
+                continue
+
             action = self.mw.action_registry.action(item)
             if action is not None:
                 container.addAction(action)

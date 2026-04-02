@@ -58,6 +58,8 @@ This keeps the interface consistent:
 
    Menu structure overview.
 
+The :guilabel:`View` menu also contains a :guilabel:`Window Size` submenu for cycling or applying three configured screenshot-friendly window presets. For docs work, :guilabel:`Tools > Export UI` now groups direct PNG exports for the rounded sidebar cards, the utility panels, and the current canvas, and it also offers a one-shot complete export into a folder. Major dialogs also expose their own :guilabel:`Export PNG...` button so they can be captured cleanly without manual cropping. The canvas screenshot action ships with the default shortcut ``Ctrl+Alt+S``.
+
 .. figure:: images/toolbar_animated_NEW.gif
    :align: center
    :scale: 70%

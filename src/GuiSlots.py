@@ -14,6 +14,7 @@ import FileDialog
 import FileOperations
 import Icons
 import Mesh as MeshModel
+import UiExport
 from Utils import get_main_window
 import logging
 logger = logging.getLogger(__name__)
@@ -353,9 +354,7 @@ class Slots:
 
     @QtCore.Slot()
     def onSettings(self):
-        import SettingsEditor
-
-        dialog = SettingsEditor.SettingsEditorDialog(self.mw)
+        dialog = self._buildSettingsDialog()
         dialog.exec()
 
     @QtCore.Slot()
@@ -366,6 +365,362 @@ class Slots:
             self.mw.view.viewstyle = 'gradient'
 
         self.mw.view.setBackground(self.mw.view.viewstyle)
+
+    @QtCore.Slot()
+    def onCycleWindowSize(self):
+        self.mw.cycleWindowSizePreset()
+
+    @QtCore.Slot()
+    def onWindowPreset1(self):
+        self.mw.applyWindowSizePreset(1)
+
+    @QtCore.Slot()
+    def onWindowPreset2(self):
+        self.mw.applyWindowSizePreset(2)
+
+    @QtCore.Slot()
+    def onWindowPreset3(self):
+        self.mw.applyWindowSizePreset(3)
+
+    @QtCore.Slot()
+    def onExportUiCaptureSet(self):
+        dialog = FileDialog.Dialog(self.mw)
+        directory = dialog.choose_directory(
+            title='Select Folder For Complete UI Export'
+        )
+        if not directory:
+            logger.info('No folder selected. Complete UI export canceled.')
+            return
+
+        output_dir = Path(directory)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        exported = []
+        skipped = []
+        self._exportUiCaptureSet(output_dir, exported, skipped)
+
+        summary = f'Exported {len(exported)} UI capture(s) to:\n{output_dir}'
+        if skipped:
+            summary += '\n\nSkipped:\n' + '\n'.join(skipped)
+        self.messageBox(summary)
+
+    @QtCore.Slot()
+    def onExportCurrentWorkflowPanel(self):
+        toolbox = getattr(self.mw.mainArea, 'toolbox', None)
+        if toolbox is None or toolbox.currentIndex() < 0:
+            self.messageBox('No workflow panel is available yet.')
+            return
+
+        UiExport.export_widget_as_png(
+            mainwindow=self.mw,
+            widget=toolbox.page_card,
+            default_name=self._workflowPanelExportFilename(toolbox),
+            dialog_title='Export Workflow Panel As',
+            rounded_radius=12.0,
+            success_label='Workflow panel',
+        )
+
+    @QtCore.Slot()
+    def onExportActiveAirfoilCard(self):
+        toolbox = getattr(self.mw.mainArea, 'toolbox', None)
+        if toolbox is None:
+            self.messageBox('No active airfoil card is available yet.')
+            return
+
+        UiExport.export_widget_as_png(
+            mainwindow=self.mw,
+            widget=toolbox.summary_card,
+            default_name='active_airfoil_card.png',
+            dialog_title='Export Active Airfoil Card As',
+            rounded_radius=12.0,
+            success_label='Active airfoil card',
+        )
+
+    @QtCore.Slot()
+    def onExportWorkflowNavigation(self):
+        toolbox = getattr(self.mw.mainArea, 'toolbox', None)
+        if toolbox is None:
+            self.messageBox('No workflow navigation card is available yet.')
+            return
+
+        UiExport.export_widget_as_png(
+            mainwindow=self.mw,
+            widget=toolbox.workflow_card,
+            default_name='workflow_navigation.png',
+            dialog_title='Export Workflow Navigation As',
+            rounded_radius=12.0,
+            success_label='Workflow navigation',
+        )
+
+    @QtCore.Slot()
+    def onExportMessagePanel(self):
+        panel = getattr(self.mw.mainArea, 'message_panel', None)
+        if panel is None:
+            self.messageBox('No message panel is available yet.')
+            return
+
+        UiExport.export_widget_as_png(
+            mainwindow=self.mw,
+            widget=panel,
+            default_name='message_panel.png',
+            dialog_title='Export Message Panel As',
+            rounded_radius=8.0,
+            success_label='Message panel',
+        )
+
+    @QtCore.Slot()
+    def onExportViewerControlsPanel(self):
+        panel = getattr(self.mw.mainArea, 'viewer_controls_panel', None)
+        if panel is None:
+            self.messageBox('No viewer controls panel is available yet.')
+            return
+
+        UiExport.export_widget_as_png(
+            mainwindow=self.mw,
+            widget=panel,
+            default_name='viewer_controls_panel.png',
+            dialog_title='Export Viewer Controls Panel As',
+            rounded_radius=8.0,
+            success_label='Viewer controls panel',
+        )
+
+    @QtCore.Slot()
+    def onExportCanvasScreenshot(self):
+        widget, default_name, label = self._currentCanvasExportTarget()
+        if widget is None:
+            self.messageBox('No canvas is available yet.')
+            return
+
+        UiExport.export_widget_as_png(
+            mainwindow=self.mw,
+            widget=widget,
+            default_name=default_name,
+            dialog_title='Export Canvas Screenshot As',
+            success_label=label,
+        )
+
+    def _workflowPanelExportFilename(self, toolbox):
+        title = toolbox.currentPageTitle() or 'workflow-panel'
+        slug = UiExport.slugify_text(title, fallback='workflow_panel')
+        return f'{slug}_panel.png'
+
+    def _currentCanvasExportTarget(self):
+        workspace_index = self.mw.mainArea.tabs.currentIndex()
+        if workspace_index == self.mw.mainArea.WORKSPACE_ANALYSIS_INDEX:
+            return (
+                self.mw.contourview.chart_view,
+                'contour_analysis_canvas.png',
+                'Contour analysis canvas',
+            )
+        return (
+            self.mw.view,
+            'viewer_canvas.png',
+            'Viewer canvas',
+        )
+
+    def _exportUiCaptureSet(self, output_dir, exported, skipped):
+        toolbox = getattr(self.mw.mainArea, 'toolbox', None)
+        if toolbox is None:
+            skipped.append('Toolbox panels (toolbox unavailable)')
+            return
+
+        original_page_index = toolbox.currentIndex()
+        original_workspace_index = self.mw.mainArea.tabs.currentIndex()
+
+        try:
+            self._saveCapture(
+                self.mw,
+                output_dir / 'ui_overview_main.png',
+                'Main window overview',
+                exported,
+                skipped,
+            )
+            self._saveCapture(
+                toolbox.summary_card,
+                output_dir / 'active_airfoil_card.png',
+                'Active airfoil card',
+                exported,
+                skipped,
+                rounded_radius=12.0,
+            )
+            self._saveCapture(
+                toolbox.workflow_card,
+                output_dir / 'workflow_navigation.png',
+                'Workflow navigation',
+                exported,
+                skipped,
+                rounded_radius=12.0,
+            )
+            self._saveCapture(
+                self.mw.mainArea.message_panel,
+                output_dir / 'message_panel.png',
+                'Message panel',
+                exported,
+                skipped,
+                rounded_radius=8.0,
+            )
+            self._saveCapture(
+                self.mw.mainArea.viewer_controls_panel,
+                output_dir / 'viewer_controls_panel.png',
+                'Viewer controls panel',
+                exported,
+                skipped,
+                rounded_radius=8.0,
+            )
+
+            for index in range(toolbox.pageCount()):
+                toolbox.setCurrentIndex(index)
+                QtWidgets.QApplication.processEvents()
+                title = toolbox.pageTitle(index)
+                filename = (
+                    f'{UiExport.slugify_text(title, fallback="workflow")}_panel.png'
+                )
+                self._saveCapture(
+                    toolbox.page_card,
+                    output_dir / filename,
+                    f'{title} panel',
+                    exported,
+                    skipped,
+                    rounded_radius=12.0,
+                )
+
+            self.mw.mainArea.tabs.setCurrentIndex(
+                self.mw.mainArea.WORKSPACE_VIEWER_INDEX
+            )
+            QtWidgets.QApplication.processEvents()
+            self._saveCapture(
+                self.mw.view,
+                output_dir / 'viewer_canvas.png',
+                'Viewer canvas',
+                exported,
+                skipped,
+            )
+
+            self.mw.mainArea.tabs.setCurrentIndex(
+                self.mw.mainArea.WORKSPACE_ANALYSIS_INDEX
+            )
+            QtWidgets.QApplication.processEvents()
+            self._saveCapture(
+                self.mw.contourview.chart_view,
+                output_dir / 'contour_analysis_canvas.png',
+                'Contour analysis canvas',
+                exported,
+                skipped,
+            )
+
+            self._exportDialogCapture(
+                output_dir / 'settings_dialog.png',
+                'Settings dialog',
+                exported,
+                skipped,
+                self._buildSettingsDialog,
+            )
+            self._exportDialogCapture(
+                output_dir / 'keyboard_shortcuts_dialog.png',
+                'Keyboard shortcuts dialog',
+                exported,
+                skipped,
+                self._buildShortcutDialog,
+            )
+            self._exportDialogCapture(
+                output_dir / 'icon_preview_dialog.png',
+                'Icon preview dialog',
+                exported,
+                skipped,
+                self._buildIconPreviewDialog,
+            )
+            self._exportDialogCapture(
+                output_dir / 'about_dialog.png',
+                'About dialog',
+                exported,
+                skipped,
+                self._buildAboutDialog,
+            )
+
+            cst_dialog, cst_error = toolbox.createCstParametersDialog()
+            if cst_dialog is None:
+                skipped.append(f'CST parameters dialog ({cst_error})')
+            else:
+                self._exportDialogCapture(
+                    output_dir / 'cst_parameters_dialog.png',
+                    'CST parameters dialog',
+                    exported,
+                    skipped,
+                    lambda dialog=cst_dialog: dialog,
+                )
+        finally:
+            if original_page_index >= 0:
+                toolbox.setCurrentIndex(original_page_index)
+            self.mw.mainArea.tabs.setCurrentIndex(original_workspace_index)
+            QtWidgets.QApplication.processEvents()
+
+    def _exportDialogCapture(
+        self,
+        output_path,
+        label,
+        exported,
+        skipped,
+        factory,
+        rounded_radius=18.0,
+    ):
+        dialog = None
+        try:
+            dialog = factory()
+            self._saveCapture(
+                dialog,
+                output_path,
+                label,
+                exported,
+                skipped,
+                rounded_radius=rounded_radius,
+            )
+        finally:
+            if dialog is not None:
+                dialog.close()
+                dialog.deleteLater()
+
+    def _saveCapture(
+        self,
+        widget,
+        output_path,
+        label,
+        exported,
+        skipped,
+        rounded_radius=None,
+    ):
+        try:
+            UiExport.save_widget_png(
+                widget=widget,
+                filename=str(output_path),
+                rounded_radius=rounded_radius,
+                fallback_widget=self.mw,
+            )
+        except OSError as error:
+            logger.warning(
+                'Skipping %s during UI export: %s',
+                label,
+                error,
+            )
+            skipped.append(f'{label} ({error})')
+            return False
+
+        exported.append(str(output_path))
+        return True
+
+    def _buildSettingsDialog(self):
+        import SettingsEditor
+
+        return SettingsEditor.SettingsEditorDialog(self.mw)
+
+    def _buildShortcutDialog(self):
+        import ShortcutEditor
+
+        return ShortcutEditor.ShortcutEditorDialog(self.mw)
+
+    def _buildIconPreviewDialog(self):
+        import IconPreview
+
+        return IconPreview.IconPreviewDialog(self.mw)
 
     @QtCore.Slot()
     def onLevelChanged(self):
@@ -402,9 +757,7 @@ class Slots:
 
     @QtCore.Slot()
     def onKeyBd(self):
-        import ShortcutEditor
-
-        dialog = ShortcutEditor.ShortcutEditorDialog(self.mw)
+        dialog = self._buildShortcutDialog()
         dialog.exec()
 
     @QtCore.Slot()
@@ -444,9 +797,7 @@ class Slots:
 
     @QtCore.Slot()
     def onIconPreview(self):
-        import IconPreview
-
-        dialog = IconPreview.IconPreviewDialog(self.mw)
+        dialog = self._buildIconPreviewDialog()
         dialog.exec()
 
     def _readBundledText(self, relative_path, fallback=''):
@@ -558,6 +909,10 @@ class Slots:
 
     @QtCore.Slot()
     def onAbout(self):
+        dialog = self._buildAboutDialog()
+        dialog.exec()
+
+    def _buildAboutDialog(self):
         dialog = QtWidgets.QDialog(self.mw)
         dialog.setWindowTitle('About ' + PyAero.__appname__)
         dialog.setWindowIcon(self.mw.windowIcon())
@@ -740,8 +1095,15 @@ class Slots:
         layout.addWidget(details, 1)
 
         buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
+        UiExport.install_dialog_export_button(
+            buttons,
+            mainwindow=self.mw,
+            widget=dialog,
+            default_name='about_dialog.png',
+            dialog_title='Export About Dialog As',
+            success_label='About dialog',
+        )
         buttons.rejected.connect(dialog.reject)
         buttons.accepted.connect(dialog.accept)
         layout.addWidget(buttons)
-
-        dialog.exec()
+        return dialog

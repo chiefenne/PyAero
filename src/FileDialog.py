@@ -6,10 +6,11 @@ from Utils import get_main_window
 
 class Dialog:
 
-    def __init__(self, mainwindow=None):
+    def __init__(self, mainwindow=None, parent_widget=None):
 
         # get MainWindow instance (overcomes handling parents)
         self.mw = mainwindow or get_main_window()
+        self.parent_widget = parent_widget or self.mw
 
         self.names = []
 
@@ -69,7 +70,7 @@ class Dialog:
         if filename:
             path = os.path.join(base_directory, filename)
         filename, selected_filter = QtWidgets.QFileDialog.getSaveFileName(
-            self.mw,
+            self.parent_widget,
             title,
             path,
             dialog_filter,
@@ -94,7 +95,7 @@ class Dialog:
             self.mw.AIRFOILS,
         )
         filename, selected_filter = QtWidgets.QFileDialog.getOpenFileName(
-            self.mw,
+            self.parent_widget,
             title,
             base_directory,
             dialog_filter,
@@ -103,6 +104,21 @@ class Dialog:
         self._update_last_directory('open', filename)
 
         return filename, selected_filter
+
+    def choose_directory(self, directory=None, title='Select Folder'):
+        base_directory = self._directory_for(
+            'save',
+            directory,
+            self.mw.OUTPUT,
+        )
+        folder = QtWidgets.QFileDialog.getExistingDirectory(
+            self.parent_widget,
+            title,
+            base_directory,
+            options=self._dialog_options(),
+        )
+        self._update_last_directory('save', folder)
+        return folder
 
     def setFilter(self, filter):
         self.filter = filter

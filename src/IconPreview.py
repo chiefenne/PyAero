@@ -3,6 +3,8 @@ from pathlib import Path
 from PySide6 import QtCore, QtGui, QtWidgets
 
 import Icons
+import UiExport
+from Utils import get_main_window
 
 
 APP_ICON_ASSETS = (
@@ -13,6 +15,7 @@ APP_ICON_ASSETS = (
 class IconPreviewDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.mw = parent or get_main_window()
 
         self.setWindowTitle('Icon Preview')
         if parent is not None:
@@ -157,6 +160,14 @@ class IconPreviewDialog(QtWidgets.QDialog):
         layout.addWidget(scroll, 1)
 
         buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
+        UiExport.install_dialog_export_button(
+            buttons,
+            mainwindow=self.mw,
+            widget=self,
+            default_name='icon_preview_dialog.png',
+            dialog_title='Export Icon Preview Dialog As',
+            success_label='Icon preview dialog',
+        )
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)

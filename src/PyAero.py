@@ -16,6 +16,7 @@ import os
 import sys
 import platform
 import datetime
+import logging
 
 # Add the directory containing the script to the sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -35,6 +36,9 @@ import Logger
 import Icons
 
 
+logger = logging.getLogger(__name__)
+
+
 __appname__ = 'PyAero'
 __author__ = 'Andreas Ennemoser'
 year = str(datetime.date.today().strftime("%Y"))
@@ -42,6 +46,12 @@ __copyright__ = '2014-' + year + ' ' + __author__
 __license__ = 'MIT'
 __version__ = '3.0.0'
 __email__ = 'andreas.ennemoser@aon.at'
+
+WINDOW_PRESET_ACTION_IDS = (
+    ('view.window_size_preset_1', 1),
+    ('view.window_size_preset_2', 2),
+    ('view.window_size_preset_3', 3),
+)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -58,6 +68,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.airfoil = None
         self.airfoils = []
+        self._active_window_preset = None
 
         self.scene = GraphicsScene.GraphicsScene(self)
         self.view = GraphicsView.GraphicsView(self.scene)
@@ -81,11 +92,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def init_GUI(self):
         # window size, position and title
-        self.showMaximized()
-        title = __appname__ + ' - Airfoil Contour Analysis and CFD Meshing'
+        title = __appname__ + ' - Airfoil CFD Meshing and Contour Analysis'
         self.setWindowTitle(title)
 
-        self.applyRuntimeSettings()
+        self.applyRuntimeSettings(apply_window_mode=True)
 
         # create menus and tools of main window
         menusTools = MenusTools.MenusTools(self)
@@ -109,7 +119,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # show the GUI
         self.show()
 
-    def applyRuntimeSettings(self):
+    def applyRuntimeSettings(self, apply_window_mode=False):
         # decimal separator used in spin boxes, etc.
         if self.DECIMAL_SEPARATOR == '.':
             QtCore.QLocale.setDefault(QtCore.QLocale.c())
@@ -124,6 +134,95 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if hasattr(self, 'action_registry'):
             self.action_registry.apply_shortcuts()
+            self.refreshWindowSizeActionLabels()
+
+        if apply_window_mode:
+            self.applyConfiguredWindowStartupMode()
+
+    def configuredWindowPreset(self, preset_index):
+        preset_text = getattr(self, f'WINDOW_PRESET_{int(preset_index)}', '')
+        return Settings.parse_window_geometry(preset_text)
+
+    def windowPresetActionLabel(self, preset_index):
+        try:
+            _x, _y, width, height = self.configuredWindowPreset(preset_index)
+        except ValueError:
+            return f'Preset {preset_index}'
+        return f'Preset {preset_index} ({width} x {height})'
+
+    def refreshWindowSizeActionLabels(self):
+        if not hasattr(self, 'action_registry'):
+            return
+
+        for action_id, preset_index in WINDOW_PRESET_ACTION_IDS:
+            action = self.action_registry.action(action_id)
+            if action is None:
+                continue
+
+            action.setText(self.windowPresetActionLabel(preset_index))
+            try:
+                x_pos, y_pos, width, height = self.configuredWindowPreset(
+                    preset_index
+                )
+                action.setToolTip(
+                    'Resize the main window to '
+                    f'x={x_pos}, y={y_pos}, width={width}, height={height}'
+                )
+                action.setStatusTip(action.toolTip())
+            except ValueError as error:
+                action.setToolTip(
+                    f'Preset {preset_index} is invalid in config/config.ini: {error}'
+                )
+                action.setStatusTip(action.toolTip())
+
+    def applyConfiguredWindowStartupMode(self):
+        try:
+            mode = Settings.normalize_window_startup_mode(
+                getattr(self, 'WINDOW_STARTUP_MODE', 'maximized')
+            )
+        except ValueError as error:
+            logger.warning('Invalid window startup mode: %s', error)
+            self._active_window_preset = None
+            self.showMaximized()
+            return False
+
+        if mode == 'maximized':
+            self._active_window_preset = None
+            self.showMaximized()
+            return True
+
+        preset_index = int(mode.rsplit('_', 1)[-1])
+        return self.applyWindowSizePreset(preset_index)
+
+    def applyWindowSizePreset(self, preset_index):
+        try:
+            x_pos, y_pos, width, height = self.configuredWindowPreset(
+                preset_index
+            )
+        except ValueError as error:
+            message = (
+                f'Window preset {preset_index} is invalid:\n\n{error}'
+            )
+            logger.warning(message)
+            if hasattr(self, 'slots'):
+                self.slots.messageBox(message)
+            return False
+
+        self.showNormal()
+        self.setGeometry(x_pos, y_pos, width, height)
+        self.raise_()
+        self.activateWindow()
+        self._active_window_preset = int(preset_index)
+        return True
+
+    def cycleWindowSizePreset(self):
+        presets = [preset_index for _action_id, preset_index in WINDOW_PRESET_ACTION_IDS]
+        if self._active_window_preset not in presets:
+            next_preset = presets[0]
+        else:
+            current_index = presets.index(self._active_window_preset)
+            next_preset = presets[(current_index + 1) % len(presets)]
+        return self.applyWindowSizePreset(next_preset)
 
     def checkEnvironment(self):
         """Check if the environment is set up correctly"""
