@@ -20,7 +20,7 @@ The workflow sidebar contains the active airfoil summary, the page navigation, a
    :width: 85%
    :target: _images/ui_overview_main.png
 
-   PyAero main window with the current workflow shell.
+   PyAero main window with the workflow shell.
 
 Workflow Pages
 ==============

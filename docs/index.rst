@@ -17,7 +17,7 @@ The application is written in Python, uses `Qt for Python <https://www.qt.io/qt-
    :width: 85%
    :target: _images/ui_overview_main.png
 
-   The current workflow-oriented PyAero interface with sidebar, viewer, and utility panels.
+   The workflow-oriented PyAero interface with sidebar, viewer, and utility panels.
 
 What PyAero Covers
 ==================
