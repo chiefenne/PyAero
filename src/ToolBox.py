@@ -1045,6 +1045,53 @@ class Toolbox(QtWidgets.QWidget):
             for control in elliptic_controls:
                 control.setEnabled(False)
 
+    def mesh_engine_changed(self, _index=None):
+        selector = getattr(self, 'meshEngineSelector', None)
+        if selector is None:
+            self.mesh_engine = 'standard'
+            return
+
+        engine = selector.currentData()
+        self.mesh_engine = engine or 'standard'
+        if self.mesh_engine == 'experimental':
+            self.mesh_engine = 'experimental_c'
+        is_experimental = self.mesh_engine.startswith('experimental_')
+
+        for group in getattr(self, 'mesh_standard_only_groups', []):
+            group.setVisible(not is_experimental)
+            group.setEnabled(not is_experimental)
+
+        for group in getattr(self, 'mesh_shared_groups', []):
+            group.setVisible(True)
+            group.setEnabled(True)
+
+        for engine_name, experimental_group in getattr(
+                self,
+                'mesh_experimental_groups',
+                {},
+        ).items():
+            is_active = is_experimental and engine_name == self.mesh_engine
+            experimental_group.setVisible(is_active)
+            experimental_group.setEnabled(is_active)
+
+        wake_group = getattr(self, 'mesh_wake_group', None)
+        if wake_group is not None:
+            farfield_selector = getattr(
+                self,
+                'experimental_o_farfield_shape',
+                None,
+            )
+            farfield_shape = (
+                farfield_selector.currentData()
+                if farfield_selector is not None else 'wind_tunnel'
+            )
+            wake_group.setEnabled(
+                not (
+                    self.mesh_engine == 'experimental_o' and
+                    farfield_shape == 'circle'
+                )
+            )
+
     def _active_airfoil(self):
         return getattr(self.mw, 'airfoil', None)
 
@@ -1061,6 +1108,18 @@ class Toolbox(QtWidgets.QWidget):
 
     def _smootherToleranceValue(self):
         text = self.smoother_tolerance.text().strip()
+        if not text:
+            return 1.0e-5
+        return float(text)
+
+    def _experimentalToleranceValue(self):
+        text = self.experimental_smoothing_tolerance.text().strip()
+        if not text:
+            return 1.0e-5
+        return float(text)
+
+    def _experimentalOToleranceValue(self):
+        text = self.experimental_o_smoothing_tolerance.text().strip()
         if not text:
             return 1.0e-5
         return float(text)
@@ -1167,6 +1226,44 @@ class Toolbox(QtWidgets.QWidget):
                 divisions=self.divisions_wake.value(),
                 growth=self.ratio_wake.value(),
                 spread=self.spread.value() / 100.0,
+            ),
+            engine=getattr(self, 'mesh_engine', 'standard'),
+            experimental=Meshing.ExperimentalCGridSettings(
+                name='block_experimental_c_grid',
+                surface_points=self.experimental_surface_points.value(),
+                normal_divisions=self.experimental_normal_divisions.value(),
+                first_layer_thickness=self.experimental_first_layer.value(),
+                wake_points=self.experimental_wake_points.value(),
+                farfield_wake_length_ratio=(
+                    self.experimental_farfield_wake_length_ratio.value()
+                ),
+                farfield_wake_start_ratio=(
+                    self.experimental_farfield_wake_start_ratio.value()
+                ),
+                initial_smoothing_iterations=(
+                    self.experimental_initial_smoothing.value()
+                ),
+                final_smoothing_iterations=self.experimental_final_smoothing.value(),
+                local_te_smoothing_iterations=(
+                    self.experimental_local_te_smoothing.value()
+                ),
+                smoothing_tolerance=self._experimentalToleranceValue(),
+                relaxation=self.experimental_relaxation.value(),
+            ),
+            experimental_o=Meshing.ExperimentalOGridSettings(
+                name='block_experimental_o_grid',
+                surface_points=self.experimental_o_surface_points.value(),
+                normal_divisions=self.experimental_o_normal_divisions.value(),
+                first_layer_thickness=self.experimental_o_first_layer.value(),
+                farfield_shape=self.experimental_o_farfield_shape.currentData(),
+                initial_smoothing_iterations=(
+                    self.experimental_o_initial_smoothing.value()
+                ),
+                final_smoothing_iterations=(
+                    self.experimental_o_final_smoothing.value()
+                ),
+                smoothing_tolerance=self._experimentalOToleranceValue(),
+                relaxation=self.experimental_o_relaxation.value(),
             ),
         )
 

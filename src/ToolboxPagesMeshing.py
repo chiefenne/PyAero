@@ -9,10 +9,13 @@ from ToolboxWidgets import (
 
 
 def build_meshing_panel(toolbox):
+    engine_group = _build_engine_group(toolbox)
     _build_airfoil_mesh_form(toolbox)
     _build_trailing_edge_mesh_form(toolbox)
     _build_tunnel_mesh_form(toolbox)
     _build_wake_mesh_form(toolbox)
+    experimental_c_group = _build_experimental_c_group(toolbox)
+    experimental_o_group = _build_experimental_o_group(toolbox)
     smoothing_group = _build_smoothing_group(toolbox)
     export_group = _build_export_group(toolbox)
 
@@ -36,16 +39,27 @@ def build_meshing_panel(toolbox):
     wake_layout.addLayout(toolbox.form_mesh_wake)
     box_wake.setLayout(wake_layout)
 
+    toolbox.mesh_standard_only_groups = [box_airfoil, box_te, smoothing_group]
+    toolbox.mesh_shared_groups = [box_tunnel, box_wake]
+    toolbox.mesh_wake_group = box_wake
+    toolbox.mesh_experimental_groups = {
+        'experimental_c': experimental_c_group,
+        'experimental_o': experimental_o_group,
+    }
+
     toolbox.createMeshButton = QtWidgets.QPushButton('Create Mesh')
     toolbox.createMeshButton.setObjectName('pagePrimaryActionButton')
     create_mesh_layout = right_aligned_row(toolbox.createMeshButton)
 
     layout = QtWidgets.QVBoxLayout()
     layout.addStretch(1)
+    layout.addWidget(engine_group)
     layout.addWidget(box_airfoil)
     layout.addWidget(box_te)
     layout.addWidget(box_tunnel)
     layout.addWidget(box_wake)
+    layout.addWidget(experimental_c_group)
+    layout.addWidget(experimental_o_group)
     layout.addWidget(smoothing_group)
     layout.addLayout(create_mesh_layout)
     layout.addStretch(1)
@@ -55,8 +69,41 @@ def build_meshing_panel(toolbox):
     toolbox.item_msh = QtWidgets.QWidget()
     toolbox.item_msh.setLayout(layout)
 
+    toolbox.meshEngineSelector.currentIndexChanged.connect(
+        toolbox.mesh_engine_changed
+    )
+    toolbox.experimental_o_farfield_shape.currentIndexChanged.connect(
+        toolbox.mesh_engine_changed
+    )
     toolbox.createMeshButton.clicked.connect(toolbox.generateMesh)
     toolbox.exportMeshButton.clicked.connect(toolbox.exportMesh)
+    toolbox.mesh_engine_changed()
+
+
+def _build_engine_group(toolbox):
+    toolbox.mesh_engine = 'standard'
+    toolbox.meshEngineSelector = QtWidgets.QComboBox()
+    toolbox.meshEngineSelector.addItem('Standard', userData='standard')
+    toolbox.meshEngineSelector.addItem(
+        'Experimental C-grid',
+        userData='experimental_c',
+    )
+    toolbox.meshEngineSelector.addItem(
+        'Experimental O-grid',
+        userData='experimental_o',
+    )
+
+    form = QtWidgets.QFormLayout()
+    configure_form_layout(form)
+    label = make_page_label('Mesh engine')
+    label.setToolTip(
+        'Choose between the established multi-block tunnel mesher and the experimental C-grid or O-grid paths'
+    )
+    form.addRow(label, toolbox.meshEngineSelector)
+
+    group = QtWidgets.QGroupBox('Engine')
+    group.setLayout(form)
+    return group
 
 
 def _build_airfoil_mesh_form(toolbox):
@@ -215,6 +262,197 @@ def _build_wake_mesh_form(toolbox):
     toolbox.spread.setValue(30.0)
     toolbox.spread.setDecimals(1)
     toolbox.form_mesh_wake.addRow(label, toolbox.spread)
+
+
+def _build_experimental_c_group(toolbox):
+    form = QtWidgets.QFormLayout()
+    configure_form_layout(form)
+
+    label = make_page_label('Surface points')
+    label.setToolTip(
+        'Use the prepared contour point count when set to 0, or resample the contour for the experimental C-grid'
+    )
+    toolbox.experimental_surface_points = QtWidgets.QSpinBox()
+    toolbox.experimental_surface_points.setRange(0, 5000)
+    toolbox.experimental_surface_points.setValue(0)
+    toolbox.experimental_surface_points.setSpecialValueText('Prepared contour')
+    form.addRow(label, toolbox.experimental_surface_points)
+
+    label = make_page_label('Normal divisions')
+    label.setToolTip('Number of cells between the airfoil and farfield')
+    toolbox.experimental_normal_divisions = QtWidgets.QSpinBox()
+    toolbox.experimental_normal_divisions.setRange(4, 2000)
+    toolbox.experimental_normal_divisions.setValue(100)
+    form.addRow(label, toolbox.experimental_normal_divisions)
+
+    label = make_page_label('First layer (m)')
+    label.setToolTip('Target first-layer wall spacing for the experimental grid')
+    toolbox.experimental_first_layer = QtWidgets.QDoubleSpinBox()
+    toolbox.experimental_first_layer.setSingleStep(0.001)
+    toolbox.experimental_first_layer.setRange(1.0e-10, 1.0e10)
+    toolbox.experimental_first_layer.setDecimals(8)
+    toolbox.experimental_first_layer.setValue(0.00400)
+    form.addRow(label, toolbox.experimental_first_layer)
+
+    label = make_page_label('Wake points')
+    label.setToolTip(
+        'Number of points along each wake branch, including the trailing edge and wake cut point'
+    )
+    toolbox.experimental_wake_points = QtWidgets.QSpinBox()
+    toolbox.experimental_wake_points.setRange(4, 2000)
+    toolbox.experimental_wake_points.setValue(75)
+    form.addRow(label, toolbox.experimental_wake_points)
+
+    label = make_page_label('Farfield wake len')
+    label.setToolTip(
+        'Outer-boundary wake length ratio relative to the inner wake length'
+    )
+    toolbox.experimental_farfield_wake_length_ratio = QtWidgets.QDoubleSpinBox()
+    toolbox.experimental_farfield_wake_length_ratio.setSingleStep(0.05)
+    toolbox.experimental_farfield_wake_length_ratio.setRange(0.05, 1.00)
+    toolbox.experimental_farfield_wake_length_ratio.setDecimals(2)
+    toolbox.experimental_farfield_wake_length_ratio.setValue(1.00)
+    form.addRow(label, toolbox.experimental_farfield_wake_length_ratio)
+
+    label = make_page_label('Farfield wake start')
+    label.setToolTip(
+        'Initial farfield wake spacing as a multiple of the inner wake spacing near the trailing edge'
+    )
+    toolbox.experimental_farfield_wake_start_ratio = QtWidgets.QDoubleSpinBox()
+    toolbox.experimental_farfield_wake_start_ratio.setSingleStep(0.5)
+    toolbox.experimental_farfield_wake_start_ratio.setRange(1.0, 100.0)
+    toolbox.experimental_farfield_wake_start_ratio.setDecimals(1)
+    toolbox.experimental_farfield_wake_start_ratio.setValue(10.0)
+    form.addRow(label, toolbox.experimental_farfield_wake_start_ratio)
+
+    label = make_page_label('Initial smooth')
+    label.setToolTip('Initial elliptic smoothing passes before wall-normal respacing')
+    toolbox.experimental_initial_smoothing = QtWidgets.QSpinBox()
+    toolbox.experimental_initial_smoothing.setRange(0, 5000)
+    toolbox.experimental_initial_smoothing.setValue(100)
+    form.addRow(label, toolbox.experimental_initial_smoothing)
+
+    label = make_page_label('Final smooth')
+    label.setToolTip('Final elliptic smoothing passes after wall-normal respacing')
+    toolbox.experimental_final_smoothing = QtWidgets.QSpinBox()
+    toolbox.experimental_final_smoothing.setRange(0, 5000)
+    toolbox.experimental_final_smoothing.setValue(20)
+    form.addRow(label, toolbox.experimental_final_smoothing)
+
+    label = make_page_label('Local TE smooth')
+    label.setToolTip(
+        'Elliptic smoothing passes for the local finite trailing-edge bridge block'
+    )
+    toolbox.experimental_local_te_smoothing = QtWidgets.QSpinBox()
+    toolbox.experimental_local_te_smoothing.setRange(0, 5000)
+    toolbox.experimental_local_te_smoothing.setValue(10)
+    form.addRow(label, toolbox.experimental_local_te_smoothing)
+
+    label = make_page_label('Tolerance')
+    toolbox.experimental_smoothing_tolerance = QtWidgets.QLineEdit()
+    experimental_validator = QtGui.QDoubleValidator()
+    experimental_validator.setRange(1.0e-10, 1.0)
+    experimental_validator.setDecimals(10)
+    toolbox.experimental_smoothing_tolerance.setValidator(experimental_validator)
+    toolbox.experimental_smoothing_tolerance.setText('1.e-5')
+    form.addRow(label, toolbox.experimental_smoothing_tolerance)
+
+    label = make_page_label('Relaxation')
+    label.setToolTip('Under-relaxation for the experimental elliptic update')
+    toolbox.experimental_relaxation = QtWidgets.QDoubleSpinBox()
+    toolbox.experimental_relaxation.setSingleStep(0.05)
+    toolbox.experimental_relaxation.setRange(0.01, 1.0)
+    toolbox.experimental_relaxation.setDecimals(2)
+    toolbox.experimental_relaxation.setValue(0.60)
+    form.addRow(label, toolbox.experimental_relaxation)
+
+    group = QtWidgets.QGroupBox('Experimental C-grid')
+    group.setLayout(form)
+    group.setVisible(False)
+    return group
+
+
+def _build_experimental_o_group(toolbox):
+    form = QtWidgets.QFormLayout()
+    configure_form_layout(form)
+
+    label = make_page_label('Surface points')
+    label.setToolTip(
+        'Use the prepared contour point count when set to 0, or resample the contour for the experimental O-grid'
+    )
+    toolbox.experimental_o_surface_points = QtWidgets.QSpinBox()
+    toolbox.experimental_o_surface_points.setRange(0, 5000)
+    toolbox.experimental_o_surface_points.setValue(0)
+    toolbox.experimental_o_surface_points.setSpecialValueText('Prepared contour')
+    form.addRow(label, toolbox.experimental_o_surface_points)
+
+    label = make_page_label('Normal divisions')
+    label.setToolTip('Number of cells between the airfoil and farfield')
+    toolbox.experimental_o_normal_divisions = QtWidgets.QSpinBox()
+    toolbox.experimental_o_normal_divisions.setRange(4, 2000)
+    toolbox.experimental_o_normal_divisions.setValue(100)
+    form.addRow(label, toolbox.experimental_o_normal_divisions)
+
+    label = make_page_label('First layer (m)')
+    label.setToolTip('Target first-layer wall spacing for the experimental O-grid')
+    toolbox.experimental_o_first_layer = QtWidgets.QDoubleSpinBox()
+    toolbox.experimental_o_first_layer.setSingleStep(0.001)
+    toolbox.experimental_o_first_layer.setRange(1.0e-10, 1.0e10)
+    toolbox.experimental_o_first_layer.setDecimals(8)
+    toolbox.experimental_o_first_layer.setValue(0.00400)
+    form.addRow(label, toolbox.experimental_o_first_layer)
+
+    label = make_page_label('Farfield')
+    label.setToolTip(
+        'Choose a wind-tunnel outer boundary or a circular farfield. The circular option uses tunnel height and ignores wake length.'
+    )
+    toolbox.experimental_o_farfield_shape = QtWidgets.QComboBox()
+    toolbox.experimental_o_farfield_shape.addItem(
+        'Wind tunnel',
+        userData='wind_tunnel',
+    )
+    toolbox.experimental_o_farfield_shape.addItem(
+        'Circle',
+        userData='circle',
+    )
+    form.addRow(label, toolbox.experimental_o_farfield_shape)
+
+    label = make_page_label('Initial smooth')
+    label.setToolTip('Initial elliptic smoothing passes before wall-normal respacing')
+    toolbox.experimental_o_initial_smoothing = QtWidgets.QSpinBox()
+    toolbox.experimental_o_initial_smoothing.setRange(0, 5000)
+    toolbox.experimental_o_initial_smoothing.setValue(100)
+    form.addRow(label, toolbox.experimental_o_initial_smoothing)
+
+    label = make_page_label('Final smooth')
+    label.setToolTip('Final elliptic smoothing passes after wall-normal respacing')
+    toolbox.experimental_o_final_smoothing = QtWidgets.QSpinBox()
+    toolbox.experimental_o_final_smoothing.setRange(0, 5000)
+    toolbox.experimental_o_final_smoothing.setValue(20)
+    form.addRow(label, toolbox.experimental_o_final_smoothing)
+
+    label = make_page_label('Tolerance')
+    toolbox.experimental_o_smoothing_tolerance = QtWidgets.QLineEdit()
+    experimental_validator = QtGui.QDoubleValidator()
+    experimental_validator.setRange(1.0e-10, 1.0)
+    experimental_validator.setDecimals(10)
+    toolbox.experimental_o_smoothing_tolerance.setValidator(experimental_validator)
+    toolbox.experimental_o_smoothing_tolerance.setText('1.e-5')
+    form.addRow(label, toolbox.experimental_o_smoothing_tolerance)
+
+    label = make_page_label('Relaxation')
+    label.setToolTip('Under-relaxation for the experimental elliptic update')
+    toolbox.experimental_o_relaxation = QtWidgets.QDoubleSpinBox()
+    toolbox.experimental_o_relaxation.setSingleStep(0.05)
+    toolbox.experimental_o_relaxation.setRange(0.01, 1.0)
+    toolbox.experimental_o_relaxation.setDecimals(2)
+    toolbox.experimental_o_relaxation.setValue(0.60)
+    form.addRow(label, toolbox.experimental_o_relaxation)
+
+    group = QtWidgets.QGroupBox('Experimental O-grid')
+    group.setLayout(form)
+    group.setVisible(False)
+    return group
 
 
 def _build_smoothing_group(toolbox):

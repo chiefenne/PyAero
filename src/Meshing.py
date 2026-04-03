@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -13,6 +13,14 @@ import MeshGraphics
 import MeshBuilders
 import Connect
 from Elliptic import BoundaryGuide, SlidingBoundary, EllipticSolver
+from ExperimentalCGrid import (
+    ExperimentalCGridGenerator,
+    ExperimentalCGridSettings,
+)
+from ExperimentalOGrid import (
+    ExperimentalOGridGenerator,
+    ExperimentalOGridSettings,
+)
 from Smoother import SmootherFactory
 from Utils import get_main_window
 from MathUtils import VectorUtils
@@ -28,6 +36,13 @@ class WindtunnelMeshSettings:
     trailing_edge: MeshBuilders.TrailingEdgeBlockSettings
     tunnel: MeshBuilders.TunnelBlockSettings
     wake: MeshBuilders.WakeBlockSettings
+    engine: str = 'standard'
+    experimental: ExperimentalCGridSettings = field(
+        default_factory=ExperimentalCGridSettings
+    )
+    experimental_o: ExperimentalOGridSettings = field(
+        default_factory=ExperimentalOGridSettings
+    )
 
 
 class NullProgressDialog:
@@ -75,12 +90,15 @@ class Windtunnel:
         self.block_tunnel_wake = None
         self.tunnel_height = None
         self._block_builder = None
+        self._experimental_c_grid_generator = None
+        self._experimental_o_grid_generator = None
         self._scene_renderer = None
         self.topology = None
         self.mesh_model = None
         self.domain_model = None
         self.quality = None
         self.boundary_definitions = MeshModel.BoundaryDefinitions()
+        self.mesh_engine = 'standard'
 
         # MainWindow instance
         self.mw = get_main_window()
@@ -92,6 +110,16 @@ class Windtunnel:
                 create_smoother=SmootherFactory.create_smoother,
             )
         return self._block_builder
+
+    def getExperimentalCGridGenerator(self):
+        if self._experimental_c_grid_generator is None:
+            self._experimental_c_grid_generator = ExperimentalCGridGenerator()
+        return self._experimental_c_grid_generator
+
+    def getExperimentalOGridGenerator(self):
+        if self._experimental_o_grid_generator is None:
+            self._experimental_o_grid_generator = ExperimentalOGridGenerator()
+        return self._experimental_o_grid_generator
 
     def registerBlock(self, attribute_name, block):
         setattr(self, attribute_name, block)
@@ -465,6 +493,79 @@ class Windtunnel:
         )
         return self.registerBlock('block_tunnel_wake', block)
 
+    def _finalizeMeshGeneration(self, airfoil, progdialog):
+        connect = Connect.Connect(progdialog)
+        vertices, connectivity = connect.connectAllBlocks(self.blocks)
+
+        self.setMesh(vertices, connectivity)
+        self.publishMeshArtifacts(airfoil=airfoil)
+
+        logger.info('Mesh around {} created'.format(airfoil.name))
+        logger.info('Mesh has {} vertices and {} elements'.format(
+            len(vertices),
+            len(connectivity),
+        ))
+
+        self.drawMesh(airfoil)
+        self.drawBlockOutline(airfoil)
+
+        progdialog.setValue(100)
+        return True
+
+    def _makeExperimentalMesh(self, settings: WindtunnelMeshSettings,
+                              airfoil, progdialog):
+        if self.mesh_engine == 'experimental_o':
+            generator = self.getExperimentalOGridGenerator()
+            blocks = generator.build_blocks(
+                contour=airfoil.spline_data.coordinates,
+                radius=settings.tunnel.tunnel_height,
+                wake_length=settings.wake.tunnel_wake,
+                settings=settings.experimental_o,
+                trailing_edge_settings=settings.trailing_edge,
+            )
+            for attribute_name, block in zip(
+                    (
+                        'block_experimental_o_grid_top',
+                        'block_experimental_o_grid_left',
+                        'block_experimental_o_grid_bottom',
+                        'block_experimental_o_grid_right',
+                    ),
+                    blocks):
+                self.registerBlock(attribute_name, block)
+        else:
+            generator = self.getExperimentalCGridGenerator()
+            if getattr(airfoil, 'has_TE', False):
+                blocks = generator.build_blunt_blocks(
+                    contour=airfoil.spline_data.coordinates,
+                    radius=settings.tunnel.tunnel_height,
+                    wake_length=settings.wake.tunnel_wake,
+                    settings=settings.experimental,
+                    trailing_edge_settings=settings.trailing_edge,
+                )
+                for attribute_name, block in zip(
+                        (
+                            'block_experimental_te_patch',
+                            'block_experimental_wake_bridge',
+                            'block_experimental_c_grid',
+                        ),
+                        blocks):
+                    self.registerBlock(attribute_name, block)
+            else:
+                block = generator.build_block(
+                    contour=airfoil.spline_data.coordinates,
+                    radius=settings.tunnel.tunnel_height,
+                    wake_length=settings.wake.tunnel_wake,
+                    settings=settings.experimental,
+                )
+                self.registerBlock('block_experimental_c_grid', block)
+        self.tunnel_height = settings.tunnel.tunnel_height
+
+        progdialog.setValue(70)
+        if progdialog.wasCanceled():
+            return False
+
+        return self._finalizeMeshGeneration(airfoil, progdialog)
+
     def makeMesh(self, settings: WindtunnelMeshSettings, airfoil=None):
 
         airfoil = airfoil or getattr(self.mw, 'airfoil', None)
@@ -479,6 +580,9 @@ class Windtunnel:
         self.block_tunnel = None
         self.block_tunnel_wake = None
         self.tunnel_height = None
+        self.mesh_engine = str(settings.engine).strip().lower() or 'standard'
+        if self.mesh_engine == 'experimental':
+            self.mesh_engine = 'experimental_c'
 
         contour = airfoil.spline_data.coordinates
 
@@ -509,6 +613,9 @@ class Windtunnel:
 
         progdialog.setValue(10)
         # progdialog.setLabelText('making blocks')
+
+        if self.mesh_engine in ('experimental_c', 'experimental_o'):
+            return self._makeExperimentalMesh(settings, airfoil, progdialog)
 
         self.AirfoilMesh(
             name=settings.airfoil.name,
@@ -567,27 +674,11 @@ class Windtunnel:
         if progdialog.wasCanceled():
             return False
 
-        # connect mesh blocks
-        connect = Connect.Connect(progdialog)
-        vertices, connectivity = connect.connectAllBlocks(self.blocks)
-
-        self.setMesh(vertices, connectivity)
-        self.publishMeshArtifacts(airfoil=airfoil)
-
-        logger.info('Mesh around {} created'.
-                    format(airfoil.name))
-        logger.info('Mesh has {} vertices and {} elements'.
-                    format(len(vertices), len(connectivity)))
-
-        self.drawMesh(airfoil)
-        self.drawBlockOutline(airfoil)
-
         # mesh quality
         # quality = self.MeshQuality(crit='k2inf')
         # self.drawMeshQuality(quality)
 
-        progdialog.setValue(100)
-        return True
+        return self._finalizeMeshGeneration(airfoil, progdialog)
     
     def makeLCV(self):
         """Make cell to vertex connectivity for the mesh
