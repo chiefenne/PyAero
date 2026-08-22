@@ -1,0 +1,49 @@
+import os
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = PROJECT_ROOT / 'src'
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from PySide6 import QtWidgets
+
+import ToolboxPagesMeshing
+
+
+def _toolbox_with_group():
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    assert app is not None
+    toolbox = SimpleNamespace()
+    toolbox.structured_group = \
+        ToolboxPagesMeshing._build_structured_group(toolbox)
+    return toolbox
+
+
+def test_structured_group_defaults_map_to_settings():
+    toolbox = _toolbox_with_group()
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.topology == 'c'
+    assert settings.tunnel_shape == 'legacy'
+    assert settings.tunnel_height == 3.5
+    assert settings.tfi_variant == 'standard'
+    assert settings.ortho_layers == 0
+    assert settings.boundary_control.distribution == 'uniform'
+    assert settings.boundary_control.angle_mode == 'free'
+
+
+def test_structured_group_selection_roundtrip():
+    toolbox = _toolbox_with_group()
+    toolbox.structured_topology.setCurrentIndex(1)      # O-grid
+    toolbox.structured_tunnel_shape.setCurrentIndex(1)  # circular
+    toolbox.structured_algorithm.setCurrentIndex(1)     # hermite
+    toolbox.structured_ortho_layers.setValue(8)
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.topology == 'o'
+    assert settings.tunnel_shape == 'circular'
+    assert settings.tfi_variant == 'hermite'
+    assert settings.ortho_layers == 8
