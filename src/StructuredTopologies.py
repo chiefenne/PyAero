@@ -77,6 +77,52 @@ def side_segment(p_wall: np.ndarray, p_outer: np.ndarray,
     return p_wall[None, :] + distances[:, None] * direction[None, :]
 
 
+def _polygon_centroid(loop: np.ndarray) -> np.ndarray:
+    """Area centroid of a closed polygon (first point == last point)."""
+    x, y = loop[:-1, 0], loop[:-1, 1]
+    x_next, y_next = loop[1:, 0], loop[1:, 1]
+    cross = x * y_next - x_next * y
+    area = 0.5 * np.sum(cross)
+    if abs(area) < 1.0e-12:
+        return loop[:-1].mean(axis=0)
+    cx = np.sum((x + x_next) * cross) / (6.0 * area)
+    cy = np.sum((y + y_next) * cross) / (6.0 * area)
+    return np.array([cx, cy])
+
+
+def _te_bisector(contour: np.ndarray) -> np.ndarray:
+    """Downstream direction bisecting the TE wedge exterior (horizontal
+    for symmetric airfoils, tilted by camber/reflex)."""
+    upper = contour[0] - contour[1]
+    lower = contour[-1] - contour[-2]
+    upper = upper / (np.linalg.norm(upper) or 1.0)
+    lower = lower / (np.linalg.norm(lower) or 1.0)
+    bisector = upper + lower
+    norm = np.linalg.norm(bisector)
+    if norm <= 1.0e-12 or bisector[0] <= 0.0:
+        return np.array([1.0, 0.0])
+    return bisector / norm
+
+
+def _curved_seam(te_point: np.ndarray, bisector: np.ndarray,
+                 seam_target: np.ndarray, first_spacing: float,
+                 count: int, control_fraction: float = 0.15) -> np.ndarray:
+    """O-grid seam line: quadratic Bezier leaving the TE along the wedge
+    bisector and bending onto the outer seam point. The bisector start
+    gives the near-wall cells on both sides of the seam equal room (a
+    straight seam folds cells at reflexed/cambered trailing edges)."""
+    seam_length = float(np.linalg.norm(seam_target - te_point))
+    control = te_point + bisector * control_fraction * seam_length
+    parameters = np.linspace(0.0, 1.0, 600)[:, None]
+    bezier = ((1.0 - parameters) ** 2 * te_point[None, :] +
+              2.0 * (1.0 - parameters) * parameters * control[None, :] +
+              parameters ** 2 * seam_target[None, :])
+    from StructuredCore import polyline_cumulative, sample_polyline_at
+    distances = geometric_distances(
+        polyline_cumulative(bezier)[-1], first_spacing, count)
+    return sample_polyline_at(bezier, distances)
+
+
 def _te_spacing(contour: np.ndarray) -> float:
     first = np.linalg.norm(contour[1] - contour[0])
     last = np.linalg.norm(contour[-1] - contour[-2])
@@ -119,8 +165,14 @@ def _arc(center, radius, theta_from, theta_to) -> np.ndarray:
 
 
 def tunnel_outline(settings: StructuredMeshSettings, te_point: np.ndarray,
-                   te_type: str) -> np.ndarray:
-    """Dense outer-curve polyline: open for C, closed (CCW) for O."""
+                   te_type: str,
+                   seam_direction: np.ndarray | None = None) -> np.ndarray:
+    """Dense outer-curve polyline: open for C, closed (CCW) for O.
+
+    For O topology the loop starts/ends at the seam point where the ray
+    from the TE along ``seam_direction`` (default +x) meets the outer
+    shape.
+    """
     height = settings.tunnel_height
     x_te = float(te_point[0])
     x_outlet = x_te + settings.wake_length
@@ -149,25 +201,45 @@ def tunnel_outline(settings: StructuredMeshSettings, te_point: np.ndarray,
                 f'Unknown tunnel shape: {settings.tunnel_shape!r}.')
         return _dedupe(np.vstack(pieces))
 
-    # O topology: closed loop starting/ending at the seam point on the
-    # horizontal ray from the TE, sampled counterclockwise.
-    y_te = float(te_point[1])
+    # O topology: closed loop starting/ending at the seam point where the
+    # TE ray meets the outer shape, sampled counterclockwise.
+    direction = np.array([1.0, 0.0]) if seam_direction is None \
+        else np.asarray(seam_direction, dtype=float)
+    norm = np.linalg.norm(direction)
+    if norm <= 0.0 or direction[0] <= 0.0:
+        direction = np.array([1.0, 0.0])
+    else:
+        direction = direction / norm
+
     if settings.tunnel_shape == 'legacy':
-        if abs(y_te) >= height:
-            raise ValueError('Tunnel height must exceed the TE offset.')
+        # intersect the ray with the outlet plane x = x_outlet
+        travel = (x_outlet - x_te) / direction[0]
+        y_seam = float(te_point[1]) + travel * direction[1]
+        if abs(y_seam) >= height:
+            raise ValueError('Tunnel height must exceed the TE ray offset '
+                             'at the outlet.')
         pieces = (
-            _straight((x_outlet, y_te), (x_outlet, height)),
+            _straight((x_outlet, y_seam), (x_outlet, height)),
             _straight((x_outlet, height), (x_te, height)),
             _arc((x_te, 0.0), height, 0.5 * np.pi, 1.5 * np.pi),
             _straight((x_te, -height), (x_outlet, -height)),
-            _straight((x_outlet, -height), (x_outlet, y_te)),
+            _straight((x_outlet, -height), (x_outlet, y_seam)),
         )
     elif settings.tunnel_shape == 'circular':
-        if abs(y_te) >= height:
-            raise ValueError('Farfield radius must exceed the TE offset.')
-        theta_seam = np.arcsin(y_te / height)
+        # intersect the ray with the circle around mid-chord
+        center = np.array([0.5, 0.0])
+        offset = np.asarray(te_point, dtype=float) - center
+        b = float(np.dot(offset, direction))
+        c = float(np.dot(offset, offset)) - height ** 2
+        discriminant = b * b - c
+        if discriminant <= 0.0 or c >= 0.0:
+            raise ValueError('Farfield radius must enclose the airfoil.')
+        travel = -b + np.sqrt(discriminant)
+        seam_point = np.asarray(te_point, dtype=float) + travel * direction
+        theta_seam = float(np.arctan2(seam_point[1] - center[1],
+                                      seam_point[0] - center[0]))
         pieces = (
-            _arc((0.5, 0.0), height, theta_seam, theta_seam + 2.0 * np.pi),
+            _arc(center, height, theta_seam, theta_seam + 2.0 * np.pi),
         )
     else:
         raise ValueError(
@@ -275,9 +347,12 @@ def _build_o_frame(contour: np.ndarray, settings: StructuredMeshSettings,
         contour_slice = (0, len(contour))
 
     te_point = wall[0]
-    outline = tunnel_outline(settings, te_point, te_type)
+    center = _polygon_centroid(wall)
+    seam_direction = te_point - center
+    outline = tunnel_outline(settings, te_point, te_type,
+                             seam_direction=seam_direction)
     outer = _distribute_outer(outline, len(wall), settings, closed=True)
-    seam = side_segment(te_point, outer[0],
+    seam = _curved_seam(te_point, _te_bisector(contour), outer[0],
                         settings.first_layer_thickness,
                         settings.normal_divisions + 1)
     frame = GridFrame(
