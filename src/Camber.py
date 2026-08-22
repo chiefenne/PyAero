@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy import optimize
 
 import CamberMedialAxis
-from CSTAirfoil import METHOD_CST_MODIFIED
 from ContourData import CamberData
 from MathUtils import VectorUtils
 
@@ -13,34 +11,25 @@ logger = logging.getLogger(__name__)
 
 
 CAMBER_METHOD_INSCRIBED_CIRCLES = 'inscribed_circles'
-CAMBER_METHOD_CST = 'cst_camber_thickness'
-CAMBER_METHOD_LEGACY = 'legacy_midpoint'
 
 
 class CamberBuilder:
-    DEFAULT_METHOD = None
     DEFAULT_CALCULATION_POINTS = 240
     DEFAULT_DISPLAY_CIRCLES = 17
-    CLEARANCE_MAX_ITERATIONS = 48
-    CLEARANCE_PARAMETER_TOLERANCE = 1.0e-7
-    CLEARANCE_SAMPLE_COUNT = 320
 
     def build(
         self,
         spline_data,
-        le_id,
         rc,
         xc,
         yc,
         xle,
         yle,
-        method=None,
         calculation_points=None,
         display_circles=None,
     ):
         self.spline_data = spline_data
         self.t_le = float(spline_data.leading_edge_parameter_value())
-        self._clearance_samples = None
 
         point_count = calculation_points or max(
             self.DEFAULT_CALCULATION_POINTS,
@@ -49,28 +38,12 @@ class CamberBuilder:
         point_count = max(40, int(point_count))
         display_count = max(3, int(display_circles or self.DEFAULT_DISPLAY_CIRCLES))
 
-        active_method = method or self._default_method()
-
-        if active_method == CAMBER_METHOD_LEGACY:
-            legacy = self._build_legacy(
-                point_count=point_count,
-                display_count=display_count,
-            )
-            self._log_metrics(legacy, label='legacy midpoint')
-            return legacy
-        if active_method == CAMBER_METHOD_CST:
-            cst_camber = self._build_cst(
-                point_count=point_count,
-                display_count=display_count,
-            )
-            self._log_metrics(cst_camber, label='CST')
-            return cst_camber
-        if active_method != CAMBER_METHOD_INSCRIBED_CIRCLES:
-            raise ValueError(f'Unsupported camber method: {active_method}')
-
-        legacy = self._build_legacy(point_count=point_count, display_count=display_count)
+        naive_midline = self._build_naive_midline(
+            point_count=point_count,
+            display_count=display_count,
+        )
         inscribed = self._build_inscribed(
-            legacy,
+            naive_midline,
             rc=rc,
             xc=xc,
             yc=yc,
@@ -88,27 +61,11 @@ class CamberBuilder:
             )
         return inscribed
 
-    def _default_method(self):
-        if getattr(self.spline_data, 'method', None) == METHOD_CST_MODIFIED:
-            return CAMBER_METHOD_CST
-        return CAMBER_METHOD_LEGACY
-
     def _upper_parameter(self, station):
         return self.spline_data.upper_surface_parameters(station)
 
     def _lower_parameter(self, station):
         return self.spline_data.lower_surface_parameters(station)
-
-    def _evaluate_point(self, parameter):
-        x, y = self.spline_data.evaluate(parameter, der=0)
-        return np.array((float(x), float(y)), dtype=float)
-
-    def _evaluate_derivative(self, parameter):
-        dx, dy = self.spline_data.evaluate(parameter, der=1)
-        return np.array((float(dx), float(dy)), dtype=float)
-
-    def _point_and_derivative(self, parameter):
-        return self._evaluate_point(parameter), self._evaluate_derivative(parameter)
 
     def _legacy_parameters(self, point_count):
         stations = np.linspace(0.0, 1.0, point_count)
@@ -116,13 +73,13 @@ class CamberBuilder:
         lower_parameters = self._lower_parameter(stations)
         return stations, upper_parameters, lower_parameters
 
-    def _surface_midline_data(
-        self,
-        point_count,
-        display_count,
-        method_name,
-        use_clearance_circles=False,
-    ):
+    def _build_naive_midline(self, point_count, display_count):
+        """Simple upper/lower-surface-midpoint construction. Not exposed as
+        a user-selectable camber method -- it exists purely to seed the
+        medial-axis tracer's trailing-edge blend fallback (see
+        CamberMedialAxis._append_legacy_tail), for the stretch near a sharp
+        trailing edge where a true inscribed circle isn't well-conditioned.
+        """
         stations, upper_parameters, lower_parameters = self._legacy_parameters(point_count)
         del stations
 
@@ -138,23 +95,14 @@ class CamberBuilder:
         centers = 0.5 * (upper + lower)
         radius = 0.5 * VectorUtils.vector_length(upper - lower)
         display_indices = self._display_indices(centers, display_count)
-        circle_radius = None
-
-        if use_clearance_circles:
-            circle_radius = np.array(radius, copy=True)
-            self._prepare_clearance_samples()
-            for index in display_indices:
-                clearance = self._clearance_radius(centers[index])
-                circle_radius[index] = min(circle_radius[index], clearance)
 
         valid = np.ones(point_count, dtype=bool)
         fallback_used = np.zeros(point_count, dtype=bool)
 
         return CamberData(
-            method=method_name,
+            method='legacy_midpoint',
             coordinates=(centers[:, 0], centers[:, 1]),
             radius=radius,
-            circle_radius=circle_radius,
             upper_contact=(upper[:, 0], upper[:, 1]),
             lower_contact=(lower[:, 0], lower[:, 1]),
             upper_parameters=upper_parameters,
@@ -164,94 +112,13 @@ class CamberBuilder:
             fallback_used=fallback_used,
         )
 
-    def _build_legacy(self, point_count, display_count):
-        return self._surface_midline_data(
-            point_count=point_count,
-            display_count=display_count,
-            method_name=CAMBER_METHOD_LEGACY,
-            use_clearance_circles=False,
-        )
-
-    def _build_cst(self, point_count, display_count):
-        return self._surface_midline_data(
-            point_count=point_count,
-            display_count=display_count,
-            method_name=CAMBER_METHOD_CST,
-            use_clearance_circles=True,
-        )
-
-    def _prepare_clearance_samples(self):
-        if self._clearance_samples is not None:
-            return
-
-        sample_count = max(24, int(self.CLEARANCE_SAMPLE_COUNT))
-        sample_sets = []
-        for bounds in ((0.0, self.t_le), (self.t_le, 1.0)):
-            lower, upper = bounds
-            if upper <= lower:
-                parameters = np.array((lower,), dtype=float)
-            else:
-                parameters = np.linspace(lower, upper, sample_count)
-            points = np.column_stack(self.spline_data.evaluate(parameters, der=0))
-            sample_sets.append((parameters, points))
-        self._clearance_samples = tuple(sample_sets)
-
-    def _distance_squared_to_center(self, parameter, center):
-        delta = self._evaluate_point(parameter) - center
-        return float(np.dot(delta, delta))
-
-    def _side_clearance_radius(self, center, parameters, points):
-        if len(parameters) == 0:
-            return np.inf
-
-        distances_sq = np.sum((points - center) ** 2, axis=1)
-        index = int(np.argmin(distances_sq))
-        best_sq = float(distances_sq[index])
-
-        lower_index = max(0, index - 1)
-        upper_index = min(len(parameters) - 1, index + 1)
-        lower_parameter = float(parameters[lower_index])
-        upper_parameter = float(parameters[upper_index])
-
-        if upper_parameter > lower_parameter:
-            result = optimize.minimize_scalar(
-                lambda parameter: self._distance_squared_to_center(parameter, center),
-                bounds=(lower_parameter, upper_parameter),
-                method='bounded',
-                options={
-                    'xatol': self.CLEARANCE_PARAMETER_TOLERANCE,
-                    'maxiter': self.CLEARANCE_MAX_ITERATIONS,
-                },
-            )
-            candidates = [lower_parameter, upper_parameter]
-            if result.success:
-                candidates.append(float(result.x))
-            for parameter in candidates:
-                best_sq = min(
-                    best_sq,
-                    self._distance_squared_to_center(parameter, center),
-                )
-
-        return np.sqrt(max(0.0, best_sq))
-
-    def _clearance_radius(self, center):
-        best_radius = np.inf
-        for parameters, points in self._clearance_samples:
-            best_radius = min(
-                best_radius,
-                self._side_clearance_radius(center, parameters, points),
-            )
-        if not np.isfinite(best_radius):
-            return 0.0
-        return float(best_radius)
-
-    def _build_inscribed(self, legacy, rc, xc, yc, xle, yle, display_count):
+    def _build_inscribed(self, naive_midline, rc, xc, yc, xle, yle, display_count):
         return CamberMedialAxis.trace(
             spline_data=self.spline_data,
             t_le=self.t_le,
-            legacy=legacy,
+            legacy=naive_midline,
             rc=rc, xc=xc, yc=yc, xle=xle, yle=yle,
-            point_count=legacy.point_count,
+            point_count=naive_midline.point_count,
             display_count=display_count,
         )
 

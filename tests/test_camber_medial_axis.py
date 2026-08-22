@@ -302,10 +302,7 @@ def test_camber_builder_inscribed_method_uses_medial_axis_tracer():
     t_le, rc, xc, yc, xle, yle, le_id = _le_radius_inputs(spline_data)
 
     builder = Camber.CamberBuilder()
-    result = builder.build(
-        spline_data, le_id, rc, xc, yc, xle, yle,
-        method=Camber.CAMBER_METHOD_INSCRIBED_CIRCLES,
-    )
+    result = builder.build(spline_data, rc, xc, yc, xle, yle)
     assert result.method == Camber.CAMBER_METHOD_INSCRIBED_CIRCLES
     assert result.point_count == builder.DEFAULT_CALCULATION_POINTS
     assert np.all(result.valid)

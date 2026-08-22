@@ -357,20 +357,13 @@ class ToolboxWorkflowController:
         refine.makeLeCircle(rc, xc, yc, xle, yle)
 
         camber_builder = Camber.CamberBuilder()
-        camber_method = (
-            Camber.CAMBER_METHOD_CST
-            if getattr(spline_data, 'method', None) == METHOD_CST_MODIFIED
-            else Camber.CAMBER_METHOD_LEGACY
-        )
         camber_data = camber_builder.build(
             spline_data,
-            le_id,
             rc,
             xc,
             yc,
             xle,
             yle,
-            method=camber_method,
         )
         airfoil.camber_data = camber_data
         airfoil.drawCamber(camber_data)
