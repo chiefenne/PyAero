@@ -124,6 +124,20 @@ def sample_polyline_at(points: np.ndarray,
     return np.column_stack((x, y))
 
 
+def cell_jacobians(rows: np.ndarray) -> np.ndarray:
+    """Signed area of each quad cell of a (nj, ni, 2) structured array."""
+    a = rows[:-1, :-1]
+    b = rows[:-1, 1:]
+    c = rows[1:, 1:]
+    d = rows[1:, :-1]
+    return 0.5 * (
+        (a[..., 0] * b[..., 1] - b[..., 0] * a[..., 1]) +
+        (b[..., 0] * c[..., 1] - c[..., 0] * b[..., 1]) +
+        (c[..., 0] * d[..., 1] - d[..., 0] * c[..., 1]) +
+        (d[..., 0] * a[..., 1] - a[..., 0] * d[..., 1])
+    )
+
+
 def distribute_on_polyline(points: np.ndarray, count: int,
                            distribution: str = 'uniform',
                            ratio: float = 1.0) -> np.ndarray:
