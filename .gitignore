@@ -7,10 +7,11 @@ data/LOGS/
 docs/*.pptx
 *.txt
 lib_AE/
+boundary_layer_code/
 PyInstaller/
 setup.py
 .vscode/
-src/__pycache__/
+__pycache__/
 SU2/
 todo.txt
 environment.yml

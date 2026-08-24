@@ -6,6 +6,7 @@ import numpy as np
 from scipy import interpolate
 
 from MathUtils import VectorUtils
+from QuadRedistribute import redistribute_polyline
 from Shape import Point2D
 
 
@@ -193,6 +194,40 @@ class BlockMesh:
         else:
             for index, uline in enumerate(self.getULines()):
                 uline[number] = redistributed[index]
+
+    def redistributeLine(self, direction='u', number=0, monitor=None, metric=None,
+                         point_count=None):
+        if direction == 'u':
+            line = np.asarray(self.getULines()[number], dtype=float)
+        elif direction == 'v':
+            line = np.asarray(self.getVLines()[number], dtype=float)
+        else:
+            raise ValueError(f'Unknown line direction: {direction}')
+
+        if point_count is None:
+            point_count = len(line)
+        if int(point_count) != len(line):
+            raise ValueError(
+                'Structured block redistribution must preserve the line point count.'
+            )
+
+        redistributed = redistribute_polyline(
+            line,
+            point_count=point_count,
+            monitor=monitor,
+            metric=metric,
+        )
+        redistributed_points = list(
+            zip(redistributed[:, 0].tolist(), redistributed[:, 1].tolist())
+        )
+
+        if direction == 'u':
+            self.getULines()[number] = redistributed_points
+        else:
+            for index, uline in enumerate(self.getULines()):
+                uline[number] = redistributed_points[index]
+
+        return redistributed_points
 
     @staticmethod
     def spacing_cell_thickness(cell_thickness=0.04, growth=1.1, divisions=10):

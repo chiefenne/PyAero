@@ -122,6 +122,7 @@ class Slots:
         if airfoil is None:
             return
 
+        self.mw._viewer_subject = 'airfoil'
         self._clearScene()
         self._addAirfoilToScene(airfoil)
         self._selectAirfoilInList(airfoil)

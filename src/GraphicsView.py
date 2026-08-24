@@ -1,6 +1,7 @@
 import os
 
 from PySide6 import QtGui, QtCore, QtWidgets
+import shiboken6
 
 import MagnifierLens
 from Utils import get_main_window
@@ -472,6 +473,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
         This method imitates the behaviour of pen.setCosmetic().
         """
 
+        if getattr(self.mw, '_viewer_subject', 'airfoil') != 'airfoil':
+            return
+
         airfoil = getattr(self.mw, 'airfoil', None)
         if airfoil is None:
             return
@@ -503,6 +507,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
     def _resizeMarkers(self, markers, coordinates, marker_radius):
         x_values, y_values = coordinates
         for marker, x_value, y_value in zip(markers, x_values, y_values):
+            if not shiboken6.isValid(marker):
+                continue
             marker.args = [
                 QtCore.QRectF(
                     x_value - marker_radius,

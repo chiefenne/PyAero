@@ -199,21 +199,18 @@ class DomainBuilder:
     @classmethod
     def build_outer_boundary(cls, mesh: 'Mesh',
                              name: str = 'wind_tunnel_outer_boundary') -> BoundaryLoop:
-        segments = []
-        for boundary_name in cls.outer_boundary_order:
-            shape = mesh.data.boundary_shape(
-                boundary_name,
-                closed=False,
-                name=f'{boundary_name}_boundary',
-            )
-            if shape is not None:
-                segments.append(shape)
+        points = mesh.data.outer_boundary_vertices(excluded_tags=('airfoil',))
+        if not points:
+            segments = []
+        else:
+            polygon_points = points[:-1] if points[0] == points[-1] else points
+            segments = [Polygon(polygon_points, name=name)]
 
         return BoundaryLoop(
             name=name,
             segments=segments,
             closed=True,
-            metadata={'source': 'mesh_boundaries'},
+            metadata={'source': 'mesh_outer_boundary_edges'},
         )
 
     @staticmethod

@@ -94,7 +94,6 @@ class ExperimentalCGridGenerator:
             wake_length_ratio=settings.farfield_wake_length_ratio,
             wake_start_ratio=settings.farfield_wake_start_ratio,
         )
-
         x_grid, y_grid = self._build_algebraic_grid(
             inner_boundary,
             outer_boundary,
@@ -390,7 +389,7 @@ class ExperimentalCGridGenerator:
     def _build_wake_branches(cls, start_point: np.ndarray, end_point: np.ndarray,
                              reference_te_x: float, wake_length: float,
                              point_count: int, first_spacing: float,
-                             cut_line: np.ndarray | None = None
+                             cut_line: np.ndarray | None = None,
                              ) -> tuple[np.ndarray, np.ndarray]:
         if cut_line is None:
             cut_x = float(reference_te_x) + max(0.0, float(wake_length))

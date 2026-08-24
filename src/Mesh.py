@@ -229,6 +229,29 @@ class MeshData:
             for vertex_id in ordered_ids
         ]
 
+    def boundary_vertices_from_edges(self, edges: Sequence[Sequence[int]]) -> list[Point2D]:
+        ordered_ids, _ = _trace_edge_path(edges)
+        return [
+            (
+                float(self.vertices[vertex_id][0]),
+                float(self.vertices[vertex_id][1]),
+            )
+            for vertex_id in ordered_ids
+        ]
+
+    def outer_boundary_vertices(self, excluded_tags: Sequence[str] = ('airfoil',)
+                                ) -> list[Point2D]:
+        excluded = set(excluded_tags)
+        edges = []
+        for tag, tagged_edges in self.boundary_tags.items():
+            if tag in excluded:
+                continue
+            edges.extend(tagged_edges)
+
+        if not edges:
+            return []
+        return self.boundary_vertices_from_edges(edges)
+
     def boundary_shape(self, tag: str, closed: bool | None = None,
                        name: str | None = None):
         edges = self.boundary_tags.get(tag, [])
@@ -438,6 +461,40 @@ class BoundaryClassifier:
             counts[edge] += 1
         return [edge for edge, count in counts.items() if count == 1]
 
+    @staticmethod
+    def _boundary_components(boundary_edges: Sequence[Sequence[int]]) -> list[list[Edge]]:
+        if not boundary_edges:
+            return []
+
+        adjacency: dict[int, list[Edge]] = defaultdict(list)
+        normalized_edges = [_sorted_edge(edge) for edge in boundary_edges]
+        for edge in normalized_edges:
+            adjacency[edge[0]].append(edge)
+            adjacency[edge[1]].append(edge)
+
+        components = []
+        seen_edges: set[Edge] = set()
+        for edge in normalized_edges:
+            if edge in seen_edges:
+                continue
+
+            stack = [edge]
+            component = []
+            while stack:
+                current = stack.pop()
+                if current in seen_edges:
+                    continue
+                seen_edges.add(current)
+                component.append(current)
+                for node in current:
+                    for neighbour in adjacency[node]:
+                        if neighbour not in seen_edges:
+                            stack.append(neighbour)
+
+            components.append(component)
+
+        return components
+
     @classmethod
     def classify(cls, vertices: Sequence[Sequence[float]],
                  edges: Sequence[Sequence[int]],
@@ -446,26 +503,62 @@ class BoundaryClassifier:
         boundary_edges = cls.find_boundary_edges(edges)
         boundary_tags = {tag: [] for tag in cls.default_tags}
 
+        if not boundary_edges:
+            return boundary_edges, boundary_tags
+
+        xmin = float(np.min(vertices_array[:, 0]))
         xmax = float(np.max(vertices_array[:, 0]))
         ymax = float(np.max(vertices_array[:, 1]))
         ymin = float(np.min(vertices_array[:, 1]))
+        x_span = max(xmax - xmin, tolerance)
+        y_span = max(ymax - ymin, tolerance)
+        components = cls._boundary_components(boundary_edges)
 
-        for edge in boundary_edges:
+        def _component_priority(component):
+            vertex_ids = sorted({vertex_id for edge in component for vertex_id in edge})
+            points = vertices_array[vertex_ids]
+            x_values = points[:, 0]
+            y_values = points[:, 1]
+            touches = int(np.any(np.abs(x_values - xmin) < tolerance))
+            touches += int(np.any(np.abs(x_values - xmax) < tolerance))
+            touches += int(np.any(np.abs(y_values - ymin) < tolerance))
+            touches += int(np.any(np.abs(y_values - ymax) < tolerance))
+            span_area = float(np.ptp(x_values) * np.ptp(y_values))
+            perimeter = float(sum(
+                np.linalg.norm(vertices_array[edge[1]] - vertices_array[edge[0]])
+                for edge in component
+            ))
+            return touches, span_area, perimeter
+
+        outer_component = max(components, key=_component_priority)
+
+        for component in components:
+            if component is outer_component:
+                continue
+            boundary_tags['airfoil'].extend(component)
+
+        for edge in outer_component:
             x1 = vertices_array[edge[0]][0]
             y1 = vertices_array[edge[0]][1]
             x2 = vertices_array[edge[1]][0]
             y2 = vertices_array[edge[1]][1]
             x_mid = 0.5 * (x1 + x2)
             y_mid = 0.5 * (y1 + y2)
+            dx = abs(x2 - x1)
+            dy = abs(y2 - y1)
 
-            if -0.1 < x_mid < 1.1 and -0.5 < y_mid < 0.5:
-                boundary_tags['airfoil'].append(edge)
-            elif abs(x1 - xmax) < tolerance and abs(x2 - xmax) < tolerance:
+            if abs(x1 - xmax) < tolerance and abs(x2 - xmax) < tolerance:
                 boundary_tags['outlet'].append(edge)
             elif abs(y1 - ymax) < tolerance and abs(y2 - ymax) < tolerance:
                 boundary_tags['top'].append(edge)
             elif abs(y1 - ymin) < tolerance and abs(y2 - ymin) < tolerance:
                 boundary_tags['bottom'].append(edge)
+            elif dx >= dy and (ymax - y_mid) <= 0.08 * y_span:
+                boundary_tags['top'].append(edge)
+            elif dx >= dy and (y_mid - ymin) <= 0.08 * y_span:
+                boundary_tags['bottom'].append(edge)
+            elif (xmax - x_mid) <= 0.08 * x_span:
+                boundary_tags['outlet'].append(edge)
             else:
                 boundary_tags['inlet'].append(edge)
 
