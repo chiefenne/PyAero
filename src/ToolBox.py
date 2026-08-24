@@ -3,6 +3,7 @@
 import os
 import shutil
 from string import Template
+from types import SimpleNamespace
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -16,6 +17,7 @@ import FileSystem
 import FileDialog
 import FileOperations
 import Icons
+import MeshGraphics
 import Meshing
 import MeshBuilders
 import ToolboxBoundaryConditions
@@ -37,7 +39,11 @@ class Toolbox(QtWidgets.QWidget):
         super().__init__()
 
         self.mw = get_main_window()
+        if not hasattr(self.mw, '_viewer_subject'):
+            self.mw._viewer_subject = 'airfoil'
         self.wind_tunnel = None
+        self.metric_test_result = None
+        self.metric_test_display = None
         self.workflow = None
         self._current_index = -1
         self._last_workflow_index = 0
@@ -53,6 +59,7 @@ class Toolbox(QtWidgets.QWidget):
         ToolboxPages.build_contour_analysis_panel(self)
         ToolboxPages.build_spline_refine_panel(self)
         ToolboxPages.build_meshing_panel(self)
+        ToolboxPages.build_metric_tests_panel(self)
 
         self.makeToolbox()
         self.workflow = ToolboxServices.ToolboxWorkflowController(self, self.mw)
@@ -655,6 +662,8 @@ class Toolbox(QtWidgets.QWidget):
                 self.applySplineFillPreference(airfoil)
 
         self._updateGeometryActionButtons(airfoil)
+        if hasattr(self, 'hybrid_staged_controls_changed'):
+            self.hybrid_staged_controls_changed()
 
         if not hasattr(self, 'tb1'):
             return
@@ -667,6 +676,11 @@ class Toolbox(QtWidgets.QWidget):
             )
             self._setPageStatus(self.tb2, 'disabled', 'Select an airfoil first')
             self._setPageStatus(self.tb4, 'disabled', 'Prepare contour first')
+            self._setPageStatus(
+                self.tb7,
+                'ready',
+                self._metricTestStatusSummary(),
+            )
             self._setPageStatus(self.tb6, 'info', 'Freestream helper inputs')
             self._setPageStatus(self.tb5, 'info', 'Reserved for quick aero tools')
             self._setPageStatus(self.tb3, 'disabled', 'Secondary analysis workspace')
@@ -693,6 +707,8 @@ class Toolbox(QtWidgets.QWidget):
         else:
             self._setPageStatus(self.tb4, 'disabled', 'Prepare contour first')
 
+        metric_status, metric_detail = self._metricTestWorkflowState()
+        self._setPageStatus(self.tb7, metric_status, metric_detail)
         self._setPageStatus(self.tb6, 'ready', 'Freestream and y+ helper inputs')
         self._setPageStatus(self.tb5, 'info', 'Future quick-aero workspace')
         contour_status = 'ready' if airfoil.has_spline else 'disabled'
@@ -735,13 +751,60 @@ class Toolbox(QtWidgets.QWidget):
         if airfoil.mesh_model is None:
             return 'not generated'
         stats = airfoil.mesh_model.mesh_statistics()
-        return f'{stats.cell_count} cells across {stats.block_count} blocks'
+        summary = f'{stats.cell_count} cells across {stats.block_count} blocks'
+        wind_tunnel = getattr(self, 'wind_tunnel', None)
+        if wind_tunnel is not None and getattr(wind_tunnel, 'mesh_engine', None) == 'metric_based':
+            layout_plan = getattr(wind_tunnel, 'layout_plan', None)
+            singularity_count = len(getattr(layout_plan, 'singularities', []))
+            return f'{summary} (Metric based, {singularity_count} singularities)'
+        if wind_tunnel is None or getattr(wind_tunnel, 'mesh_engine', None) != 'hybrid_staged':
+            return summary
+
+        stage_state = getattr(wind_tunnel, 'hybrid_stage_state', {}) or {}
+        if stage_state.get('stage1', False):
+            return f'{summary} (Stage 1 applied)'
+        if stage_state.get('stage2', False):
+            return f'{summary} (Stage 2 applied)'
+        if stage_state.get('stage4', False):
+            return f'{summary} (Stage 4 only)'
+        return summary
+
+    def _metricTestStatusSummary(self):
+        result = getattr(self, 'metric_test_result', None)
+        if result is None:
+            return 'Rectangle and circular-hole sandbox available'
+
+        stats = result.mesh.mesh_statistics()
+        warnings = len(getattr(result, 'warnings', []) or [])
+        detail = f'{stats.cell_count} triangles'
+        if warnings:
+            detail += f', {warnings} warnings'
+        return detail
+
+    def _metricTestWorkflowState(self):
+        result = getattr(self, 'metric_test_result', None)
+        if result is None:
+            return 'ready', self._metricTestStatusSummary()
+
+        stats = result.mesh.mesh_statistics()
+        warnings = len(getattr(result, 'warnings', []) or [])
+        detail = (
+            f'{stats.cell_count} triangles / {stats.vertex_count} vertices'
+        )
+        if warnings:
+            detail += f' ({warnings} warnings)'
+            return 'info', detail
+        return 'done', detail
 
     def toolboxChanged(self, _index=None):
         if self.currentIndex() == self.tb3:
             self.mw.mainArea.tabs.setCurrentIndex(1)
         else:
             self.mw.mainArea.tabs.setCurrentIndex(0)
+            if self.currentIndex() == self.tb7:
+                self.showMetricTestScene()
+            else:
+                self.restoreAirfoilScene()
 
         if self.currentIndex() == self.tb4:
             points = 0
@@ -995,6 +1058,12 @@ class Toolbox(QtWidgets.QWidget):
             description='Set block sizes and export the tunnel mesh.',
             icon='mesh',
         )
+        self.tb7 = self.addPage(
+            self.item_metric_tests,
+            title='Metric Tests',
+            description='Try the cleanroom triangulation core on simple domains.',
+            icon='mesh',
+        )
         self.tb6 = self.addPage(
             self.item_abc,
             title='CFD Inputs',
@@ -1048,31 +1117,58 @@ class Toolbox(QtWidgets.QWidget):
     def mesh_engine_changed(self, _index=None):
         selector = getattr(self, 'meshEngineSelector', None)
         if selector is None:
-            self.mesh_engine = 'standard'
+            self.mesh_engine = 'metric_based'
             return
 
         engine = selector.currentData()
-        self.mesh_engine = engine or 'standard'
+        self.mesh_engine = engine or 'metric_based'
         if self.mesh_engine == 'experimental':
             self.mesh_engine = 'experimental_c'
-        is_experimental = self.mesh_engine.startswith('experimental_')
+        is_hybrid_staged = self.mesh_engine == 'hybrid_staged'
 
-        for group in getattr(self, 'mesh_standard_only_groups', []):
-            group.setVisible(not is_experimental)
-            group.setEnabled(not is_experimental)
+        airfoil_group = getattr(self, 'mesh_airfoil_group', None)
+        if airfoil_group is not None:
+            show_airfoil = self.mesh_engine in (
+                'standard',
+                'hybrid',
+                'hybrid_staged',
+                'metric_based',
+            )
+            airfoil_group.setVisible(show_airfoil)
+            airfoil_group.setEnabled(show_airfoil)
 
-        for group in getattr(self, 'mesh_shared_groups', []):
-            group.setVisible(True)
-            group.setEnabled(True)
+        te_group = getattr(self, 'mesh_te_group', None)
+        if te_group is not None:
+            show_te = self.mesh_engine in ('standard', 'hybrid')
+            te_group.setVisible(show_te)
+            te_group.setEnabled(show_te)
 
-        for engine_name, experimental_group in getattr(
+        smoothing_group = getattr(self, 'mesh_smoothing_group', None)
+        if smoothing_group is not None:
+            show_smoothing = self.mesh_engine in ('standard', 'hybrid')
+            smoothing_group.setVisible(show_smoothing)
+            smoothing_group.setEnabled(show_smoothing)
+
+        tunnel_group = getattr(self, 'mesh_tunnel_group', None)
+        if tunnel_group is not None:
+            # the structured engine owns its tunnel parameters
+            show_tunnel = self.mesh_engine != 'structured'
+            tunnel_group.setVisible(show_tunnel)
+            tunnel_group.setEnabled(show_tunnel)
+
+        wake_group = getattr(self, 'mesh_wake_group', None)
+        if wake_group is not None:
+            wake_group.setVisible(True)
+            wake_group.setEnabled(True)
+
+        for engine_name, engine_group in getattr(
                 self,
-                'mesh_experimental_groups',
+                'mesh_engine_specific_groups',
                 {},
         ).items():
-            is_active = is_experimental and engine_name == self.mesh_engine
-            experimental_group.setVisible(is_active)
-            experimental_group.setEnabled(is_active)
+            is_active = engine_name == self.mesh_engine
+            engine_group.setVisible(is_active)
+            engine_group.setEnabled(is_active)
 
         wake_group = getattr(self, 'mesh_wake_group', None)
         if wake_group is not None:
@@ -1091,38 +1187,263 @@ class Toolbox(QtWidgets.QWidget):
                     farfield_shape == 'circle'
                 )
             )
+        create_mesh_panel = getattr(self, 'createMeshActionPanel', None)
+        if create_mesh_panel is not None:
+            create_mesh_panel.setVisible(not is_hybrid_staged)
+        self.hybrid_controls_changed()
+        self.hybrid_staged_controls_changed()
+
+    def hybrid_controls_changed(self, _index=None):
+        stage2_enabled = bool(
+            getattr(self, 'hybrid_stage2_enabled', None) and
+            self.hybrid_stage2_enabled.isChecked()
+        )
+        stage1_enabled = bool(
+            getattr(self, 'hybrid_stage1_enabled', None) and
+            self.hybrid_stage1_enabled.isChecked()
+        )
+
+        for control_name in (
+                'hybrid_stage2_sweeps',
+                'hybrid_redistribute_u',
+                'hybrid_redistribute_v'):
+            control = getattr(self, control_name, None)
+            if control is not None:
+                control.setEnabled(stage2_enabled)
+
+        stage1_algorithm = getattr(self, 'hybrid_stage1_algorithm', None)
+        algorithm_key = (
+            stage1_algorithm.currentData()
+            if stage1_algorithm is not None else 'angle_based'
+        )
+        stage1_controls_enabled = stage1_enabled and algorithm_key != 'none'
+
+        for control_name in (
+                'hybrid_stage1_algorithm',
+                'hybrid_stage1_iterations',
+                'hybrid_stage1_tolerance'):
+            control = getattr(self, control_name, None)
+            if control is not None:
+                control.setEnabled(stage1_enabled)
+
+        relaxation = getattr(self, 'hybrid_stage1_relaxation', None)
+        if relaxation is not None:
+            relaxation.setEnabled(stage1_controls_enabled and algorithm_key == 'elliptic')
+
+    def hybrid_staged_controls_changed(self, _index=None):
+        engine_active = getattr(self, 'mesh_engine', 'standard') == 'hybrid_staged'
+        airfoil = self._active_airfoil()
+        airfoil_ready = airfoil is not None and airfoil.has_spline
+        wind_tunnel = getattr(self, 'wind_tunnel', None)
+        stage_state = getattr(wind_tunnel, 'hybrid_stage_state', {}) or {}
+        stage4_ready = bool(
+            wind_tunnel is not None and
+            getattr(wind_tunnel, 'mesh_engine', None) == 'hybrid_staged' and
+            stage_state.get('stage4', False)
+        )
+
+        for control_name in (
+                'hybrid_staged_stage2_sweeps',
+                'hybrid_staged_redistribute_u',
+                'hybrid_staged_redistribute_v'):
+            control = getattr(self, control_name, None)
+            if control is not None:
+                control.setEnabled(engine_active and stage4_ready)
+
+        algorithm = getattr(self, 'hybrid_staged_stage1_algorithm', None)
+        algorithm_key = (
+            algorithm.currentData()
+            if algorithm is not None else 'angle_based'
+        )
+        for control_name in (
+                'hybrid_staged_stage1_algorithm',
+                'hybrid_staged_stage1_iterations',
+                'hybrid_staged_stage1_tolerance'):
+            control = getattr(self, control_name, None)
+            if control is not None:
+                control.setEnabled(engine_active and stage4_ready)
+
+        relaxation = getattr(self, 'hybrid_staged_stage1_relaxation', None)
+        if relaxation is not None:
+            relaxation.setEnabled(
+                engine_active and
+                stage4_ready and
+                algorithm_key == 'elliptic'
+            )
+
+        stage4_button = getattr(self, 'hybridStagedStage4Button', None)
+        if stage4_button is not None:
+            stage4_button.setEnabled(engine_active and airfoil_ready)
+
+        stage2_button = getattr(self, 'hybridStagedStage2Button', None)
+        if stage2_button is not None:
+            stage2_button.setEnabled(engine_active and stage4_ready)
+
+        stage1_button = getattr(self, 'hybridStagedStage1Button', None)
+        if stage1_button is not None:
+            stage1_button.setEnabled(engine_active and stage4_ready)
+
+        status = getattr(self, 'hybrid_staged_status_label', None)
+        if status is not None:
+            status.setText(self._hybridStagedStatusText())
 
     def _active_airfoil(self):
         return getattr(self.mw, 'airfoil', None)
 
+    def _viewerSubject(self):
+        return getattr(self.mw, '_viewer_subject', 'airfoil')
+
+    def _activeViewerTarget(self):
+        if self._viewerSubject() == 'metric_test':
+            return getattr(self, 'metric_test_display', None)
+        return self._active_airfoil()
+
     def _toggleAirfoilItem(self, attribute_name):
-        airfoil = self._active_airfoil()
-        if airfoil is None:
+        target = self._activeViewerTarget()
+        if target is None:
             return
 
-        item = getattr(airfoil, attribute_name, None)
+        item = getattr(target, attribute_name, None)
         if item is None:
             return
 
         item.setVisible(not item.isVisible())
 
+    def _setMetricTestViewerControls(self):
+        controls = (
+            'airfoil_points_checkbox',
+            'airfoil_raw_contour_checkbox',
+            'airfoil_spline_points_checkbox',
+            'airfoil_spline_contour_checkbox',
+            'airfoil_spline_fill_checkbox',
+            'airfoil_chord_checkbox',
+            'leading_edge_circle_checkbox',
+            'airfoil_camber_line_checkbox',
+            'airfoil_camber_circles_checkbox',
+            'airfoil_max_thickness_checkbox',
+            'airfoil_max_camber_checkbox',
+        )
+        for name in controls:
+            button = getattr(self.mw.mainArea, name, None)
+            if button is None:
+                continue
+            blocker = QtCore.QSignalBlocker(button)
+            button.setChecked(False)
+            button.setEnabled(False)
+            del blocker
+
+        for name in ('mesh_checkbox', 'mesh_blocks_checkbox'):
+            button = getattr(self.mw.mainArea, name, None)
+            if button is None:
+                continue
+            blocker = QtCore.QSignalBlocker(button)
+            button.setChecked(True)
+            button.setEnabled(True)
+            del blocker
+
+    def showMetricTestScene(self):
+        result = getattr(self, 'metric_test_result', None)
+        if result is None:
+            return
+
+        renderer = MeshGraphics.MeshSceneRenderer(self.mw)
+        self.mw._viewer_subject = 'metric_test'
+        self.metric_test_display = SimpleNamespace(mesh=None, mesh_blocks=None)
+        self.mw.scene.clear()
+        renderer.render_unstructured_mesh(
+            self.metric_test_display,
+            result.mesh_data,
+        )
+        renderer.render_constraint_outline(
+            self.metric_test_display,
+            result.loops,
+        )
+        self._setMetricTestViewerControls()
+        self.mw.slots.onViewAll()
+
+    def restoreAirfoilScene(self):
+        if self._viewerSubject() != 'metric_test':
+            return
+
+        self.metric_test_display = None
+        self.mw._viewer_subject = 'airfoil'
+        airfoil = self._active_airfoil()
+        if airfoil is not None:
+            self.mw.slots.activateAirfoil(airfoil)
+            return
+
+        self.mw.scene.clear()
+        self.mw.mainArea.resetAirfoilViewControls()
+
     def _smootherToleranceValue(self):
-        text = self.smoother_tolerance.text().strip()
-        if not text:
-            return 1.0e-5
-        return float(text)
+        return self._parsedFloatText(self.smoother_tolerance, 1.0e-5)
 
     def _experimentalToleranceValue(self):
-        text = self.experimental_smoothing_tolerance.text().strip()
-        if not text:
-            return 1.0e-5
-        return float(text)
+        return self._parsedFloatText(
+            self.experimental_smoothing_tolerance,
+            1.0e-5,
+        )
 
     def _experimentalOToleranceValue(self):
-        text = self.experimental_o_smoothing_tolerance.text().strip()
+        return self._parsedFloatText(
+            self.experimental_o_smoothing_tolerance,
+            1.0e-5,
+        )
+
+    def _hybridToleranceValue(self):
+        return self._parsedFloatText(self.hybrid_stage1_tolerance, 1.0e-4)
+
+    def _hybridStagedToleranceValue(self):
+        return self._parsedFloatText(
+            self.hybrid_staged_stage1_tolerance,
+            1.0e-4,
+        )
+
+    def _parsedFloatText(self, widget, default):
+        text = widget.text().strip()
         if not text:
-            return 1.0e-5
-        return float(text)
+            return float(default)
+
+        normalized = text.replace(' ', '').replace(',', '.')
+        value = float(normalized)
+        if normalized != text:
+            widget.setText(normalized)
+        return value
+
+    def _hybridStagedStatusText(self):
+        airfoil = self._active_airfoil()
+        if airfoil is None:
+            return 'Load an airfoil and prepare its contour before running Stage 4.'
+        if not airfoil.has_spline:
+            return 'Prepare the contour first. Stage 4 uses the prepared spline geometry.'
+
+        wind_tunnel = getattr(self, 'wind_tunnel', None)
+        if wind_tunnel is None or getattr(wind_tunnel, 'mesh_engine', None) != 'hybrid_staged':
+            return 'Stage 4 has not been run yet. Run Stage 4 to build the layout-driven mesh.'
+
+        stage_state = getattr(wind_tunnel, 'hybrid_stage_state', {}) or {}
+        if not stage_state.get('stage4', False):
+            return 'Stage 4 has not been run yet. Run Stage 4 to build the layout-driven mesh.'
+
+        layout_plan = getattr(wind_tunnel, 'layout_plan', None)
+        stage4_metadata = getattr(wind_tunnel, 'pipeline_metadata', {}).get('stage4', {})
+        block_count = len(getattr(wind_tunnel, 'blocks', []) or [])
+        element_count = int(stage4_metadata.get('element_count', 0))
+        singularity_count = int(stage4_metadata.get('singularity_count', 0))
+        if layout_plan is not None:
+            element_count = max(element_count, len(getattr(layout_plan, 'boundary_loops', [])))
+            singularity_count = max(
+                singularity_count,
+                len(getattr(layout_plan, 'singularities', [])),
+            )
+
+        stage2_text = 'applied' if stage_state.get('stage2', False) else 'not applied'
+        stage1_text = 'applied' if stage_state.get('stage1', False) else 'not applied'
+        return (
+            f'Stage 4 ready: {block_count} blocks across {element_count} element loops, '
+            f'{singularity_count} singularities. Stage 2 is {stage2_text}. '
+            f'Stage 1 is {stage1_text}. Run Stage 4 again any time to restart from the geometry.'
+        )
 
     def selectedSplineMethod(self):
         method_selector = getattr(self, 'spline_method', None)
@@ -1190,6 +1511,52 @@ class Toolbox(QtWidgets.QWidget):
         )
 
     def mesh_generation_settings(self):
+        trailing_edge_divisions = (
+            self.te_div.value() if hasattr(self, 'te_div') else 3
+        )
+        tunnel_smoothing_iterations = (
+            self.smoother_iterations.value()
+            if hasattr(self, 'smoother_iterations') else 10
+        )
+        tunnel_smoothing_tolerance = (
+            self._smootherToleranceValue()
+            if hasattr(self, 'smoother_tolerance') else 1.0e-4
+        )
+        tunnel_outer_boundary_slide = (
+            self.outer_boundary_slide.value()
+            if hasattr(self, 'outer_boundary_slide') else 0.0
+        )
+        tunnel_elliptic_relaxation = (
+            self.elliptic_relaxation.value()
+            if hasattr(self, 'elliptic_relaxation') else 0.40
+        )
+        protected_guide_relaxation = (
+            self.protected_guide_relaxation.value()
+            if hasattr(self, 'protected_guide_relaxation') else 0.25
+        )
+        protected_guide_layers = (
+            self.protected_guide_layers.value()
+            if hasattr(self, 'protected_guide_layers') else 5
+        )
+        protected_guide_decay = (
+            self.protected_guide_decay.value()
+            if hasattr(self, 'protected_guide_decay') else 0.80
+        )
+        protected_guide_smoothing = (
+            self.protected_guide_smoothing.value()
+            if hasattr(self, 'protected_guide_smoothing') else 3
+        )
+        if getattr(self, 'mesh_engine', 'standard') == 'hybrid_staged':
+            trailing_edge_divisions = self.hybrid_staged_te_divisions.value()
+            tunnel_smoothing_iterations = 10
+            tunnel_smoothing_tolerance = 1.0e-4
+            tunnel_outer_boundary_slide = 0.0
+            tunnel_elliptic_relaxation = 0.40
+            protected_guide_relaxation = 0.25
+            protected_guide_layers = 5
+            protected_guide_decay = 0.80
+            protected_guide_smoothing = 3
+
         return Meshing.WindtunnelMeshSettings(
             airfoil=MeshBuilders.AirfoilBlockSettings(
                 name='block_airfoil',
@@ -1199,71 +1566,123 @@ class Toolbox(QtWidgets.QWidget):
             ),
             trailing_edge=MeshBuilders.TrailingEdgeBlockSettings(
                 name='block_TE',
-                trailing_edge_divisions=self.te_div.value(),
-                thickness=self.length_te.value(),
-                divisions=self.points_te.value(),
-                growth=self.ratio_te.value(),
+                trailing_edge_divisions=trailing_edge_divisions,
+                thickness=(
+                    self.length_te.value() if hasattr(self, 'length_te') else
+                    self.normal_thickness.value()
+                ),
+                divisions=(
+                    self.points_te.value() if hasattr(self, 'points_te') else
+                    max(8, self.points_n.value())
+                ),
+                growth=(
+                    self.ratio_te.value() if hasattr(self, 'ratio_te') else
+                    max(1.0, self.ratio.value())
+                ),
             ),
             tunnel=MeshBuilders.TunnelBlockSettings(
                 name='block_tunnel',
                 tunnel_height=self.tunnel_height.value(),
                 divisions_height=self.divisions_height.value(),
-                height_growth=self.ratio_height.value(),
-                distribution=self.dist.currentText(),
-                smoothing_algorithm=self.smoothing_algorithm,
-                smoothing_iterations=self.smoother_iterations.value(),
-                smoothing_tolerance=self._smootherToleranceValue(),
-                outer_boundary_slide=self.outer_boundary_slide.value(),
-                elliptic_relaxation=self.elliptic_relaxation.value(),
-                protected_guide_relaxation=self.protected_guide_relaxation.value(),
-                protected_guide_layers=self.protected_guide_layers.value(),
-                protected_guide_decay=self.protected_guide_decay.value(),
-                protected_guide_smoothing=self.protected_guide_smoothing.value(),
+                height_growth=(
+                    self.ratio_height.value() if hasattr(self, 'ratio_height')
+                    else 1.0
+                ),
+                distribution=(
+                    self.dist.currentText() if hasattr(self, 'dist')
+                    else 'symmetric'
+                ),
+                smoothing_algorithm=getattr(
+                    self,
+                    'smoothing_algorithm',
+                    'elliptic',
+                ),
+                smoothing_iterations=tunnel_smoothing_iterations,
+                smoothing_tolerance=tunnel_smoothing_tolerance,
+                outer_boundary_slide=tunnel_outer_boundary_slide,
+                elliptic_relaxation=tunnel_elliptic_relaxation,
+                protected_guide_relaxation=protected_guide_relaxation,
+                protected_guide_layers=protected_guide_layers,
+                protected_guide_decay=protected_guide_decay,
+                protected_guide_smoothing=protected_guide_smoothing,
             ),
             wake=MeshBuilders.WakeBlockSettings(
                 name='block_tunnel_wake',
                 tunnel_wake=self.tunnel_wake.value(),
-                divisions=self.divisions_wake.value(),
-                growth=self.ratio_wake.value(),
-                spread=self.spread.value() / 100.0,
+                divisions=(
+                    self.divisions_wake.value()
+                    if hasattr(self, 'divisions_wake') else 120
+                ),
+                growth=(
+                    self.ratio_wake.value()
+                    if hasattr(self, 'ratio_wake') else 1.0
+                ),
+                spread=(
+                    self.spread.value() / 100.0
+                    if hasattr(self, 'spread') else 0.3
+                ),
             ),
-            engine=getattr(self, 'mesh_engine', 'standard'),
+            engine=getattr(self, 'mesh_engine', 'metric_based'),
+            metric_based=Meshing.HybridQuadPipelineSettings(
+                layout_strategy=self.metric_layout_strategy.currentData(),
+                protect_near_wall=False,
+                singularity_template=self.metric_singularity_template.currentData(),
+                stage2=Meshing.HybridStage2Settings(enabled=False, sweeps=0),
+                stage1=Meshing.HybridStage1Settings(
+                    enabled=False,
+                    algorithm='none',
+                    iterations=0,
+                ),
+            ),
+            hybrid=Meshing.HybridQuadPipelineSettings(
+                layout_strategy='multi_element_oc',
+            ),
+            hybrid_staged=Meshing.HybridQuadPipelineSettings(
+                layout_strategy='multi_element_oc',
+                protect_near_wall=True,
+                stage2=Meshing.HybridStage2Settings(
+                    enabled=True,
+                    sweeps=2,
+                    redistribute_u=True,
+                    redistribute_v=True,
+                ),
+                stage1=Meshing.HybridStage1Settings(
+                    enabled=True,
+                    algorithm='angle_based',
+                    iterations=15,
+                    tolerance=1.0e-4,
+                    relaxation=0.60,
+                ),
+            ),
             experimental=Meshing.ExperimentalCGridSettings(
                 name='block_experimental_c_grid',
-                surface_points=self.experimental_surface_points.value(),
-                normal_divisions=self.experimental_normal_divisions.value(),
-                first_layer_thickness=self.experimental_first_layer.value(),
-                wake_points=self.experimental_wake_points.value(),
-                farfield_wake_length_ratio=(
-                    self.experimental_farfield_wake_length_ratio.value()
-                ),
-                farfield_wake_start_ratio=(
-                    self.experimental_farfield_wake_start_ratio.value()
-                ),
-                initial_smoothing_iterations=(
-                    self.experimental_initial_smoothing.value()
-                ),
-                final_smoothing_iterations=self.experimental_final_smoothing.value(),
-                local_te_smoothing_iterations=(
-                    self.experimental_local_te_smoothing.value()
-                ),
-                smoothing_tolerance=self._experimentalToleranceValue(),
-                relaxation=self.experimental_relaxation.value(),
+                surface_points=0,
+                normal_divisions=100,
+                first_layer_thickness=0.004,
+                wake_points=100,
+                farfield_wake_length_ratio=7.0,
+                farfield_wake_start_ratio=10.0,
+                initial_smoothing_iterations=100,
+                final_smoothing_iterations=20,
+                local_te_smoothing_iterations=10,
+                smoothing_tolerance=1.0e-5,
+                relaxation=0.60,
             ),
             experimental_o=Meshing.ExperimentalOGridSettings(
                 name='block_experimental_o_grid',
-                surface_points=self.experimental_o_surface_points.value(),
-                normal_divisions=self.experimental_o_normal_divisions.value(),
-                first_layer_thickness=self.experimental_o_first_layer.value(),
-                farfield_shape=self.experimental_o_farfield_shape.currentData(),
-                initial_smoothing_iterations=(
-                    self.experimental_o_initial_smoothing.value()
-                ),
-                final_smoothing_iterations=(
-                    self.experimental_o_final_smoothing.value()
-                ),
-                smoothing_tolerance=self._experimentalOToleranceValue(),
-                relaxation=self.experimental_o_relaxation.value(),
+                surface_points=0,
+                normal_divisions=100,
+                first_layer_thickness=0.004,
+                farfield_shape='wind_tunnel',
+                initial_smoothing_iterations=100,
+                final_smoothing_iterations=20,
+                smoothing_tolerance=1.0e-5,
+                relaxation=0.60,
+            ),
+            structured=(
+                ToolboxPages.structured_settings_from_toolbox(self)
+                if hasattr(self, 'structured_topology')
+                else Meshing.StructuredMeshSettings()
             ),
         )
 
@@ -1287,6 +1706,20 @@ class Toolbox(QtWidgets.QWidget):
                 'bottom': self.lineedit_bottom.text(),
             },
             formats=formats,
+        )
+
+    def metric_test_settings(self):
+        return ToolboxServices.MetricTestSettings(
+            example=self.metric_test_example.currentData(),
+            width=self.metric_test_width.value(),
+            height=self.metric_test_height.value(),
+            hole_radius=self.metric_test_hole_radius.value(),
+            hole_spacing=self.metric_test_hole_spacing.value(),
+            outer_resolution=self.metric_test_outer_resolution.value(),
+            hole_resolution=self.metric_test_hole_resolution.value(),
+            interior_x=self.metric_test_interior_x.value(),
+            interior_y=self.metric_test_interior_y.value(),
+            airfoil_path=getattr(self.mw, 'DEFAULT_AIRFOIL', None),
         )
 
     def selected_contour_analysis_quantity(self):
@@ -1446,6 +1879,75 @@ class Toolbox(QtWidgets.QWidget):
         )
         if wind_tunnel is not None:
             self.wind_tunnel = wind_tunnel
+        self.refreshWorkflowState()
+
+    def generateHybridStage4(self):
+        wind_tunnel = self.workflow.generate_hybrid_stage4(
+            self.mesh_generation_settings()
+        )
+        if wind_tunnel is not None:
+            self.wind_tunnel = wind_tunnel
+        self.refreshWorkflowState()
+
+    def applyHybridStage2(self):
+        wind_tunnel = self.workflow.apply_hybrid_stage2(
+            self.wind_tunnel,
+            self.mesh_generation_settings(),
+        )
+        if wind_tunnel is not None:
+            self.wind_tunnel = wind_tunnel
+        self.refreshWorkflowState()
+
+    def applyHybridStage1(self):
+        wind_tunnel = self.workflow.apply_hybrid_stage1(
+            self.wind_tunnel,
+            self.mesh_generation_settings(),
+        )
+        if wind_tunnel is not None:
+            self.wind_tunnel = wind_tunnel
+        self.refreshWorkflowState()
+
+    def metricTestControlsChanged(self, _index=None):
+        example = self.metric_test_example.currentData()
+        uses_spacing = example == 'rectangle_two_circles'
+        uses_circle_radius = example in ('rectangle_circle', 'rectangle_two_circles')
+        uses_hole_resolution = example in (
+            'rectangle_circle',
+            'rectangle_two_circles',
+        )
+
+        self.metric_test_hole_radius.setEnabled(uses_circle_radius)
+        self.metric_test_hole_spacing.setEnabled(uses_spacing)
+        self.metric_test_hole_resolution.setEnabled(uses_hole_resolution)
+
+    def generateMetricTest(self):
+        result = self.workflow.generate_metric_test(
+            self.metric_test_settings()
+        )
+        if result is None:
+            return
+
+        self.metric_test_result = result
+        stats = result.mesh.mesh_statistics()
+        warning_text = ''
+        if result.warnings:
+            warning_text = ' Warning: ' + ' '.join(result.warnings)
+        self.metric_test_status.setText(
+            f'{stats.cell_count} triangles, {stats.vertex_count} vertices, '
+            f'{len(result.loops)} loops.{warning_text}'
+        )
+        if self.currentIndex() == self.tb7:
+            self.showMetricTestScene()
+        self.refreshWorkflowState()
+
+    def clearMetricTest(self):
+        self.metric_test_result = None
+        self.metric_test_display = None
+        self.metric_test_status.setText(
+            'Choose an example and click Generate Example to draw the triangulation in the viewer.'
+        )
+        if self.currentIndex() == self.tb7:
+            self.restoreAirfoilScene()
         self.refreshWorkflowState()
 
     def analyzeAirfoil(self):

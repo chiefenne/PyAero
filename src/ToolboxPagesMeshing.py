@@ -11,12 +11,9 @@ from ToolboxWidgets import (
 def build_meshing_panel(toolbox):
     engine_group = _build_engine_group(toolbox)
     _build_airfoil_mesh_form(toolbox)
-    _build_trailing_edge_mesh_form(toolbox)
     _build_tunnel_mesh_form(toolbox)
-    _build_wake_mesh_form(toolbox)
-    experimental_c_group = _build_experimental_c_group(toolbox)
-    experimental_o_group = _build_experimental_o_group(toolbox)
-    smoothing_group = _build_smoothing_group(toolbox)
+    metric_group = _build_metric_group(toolbox)
+    structured_group = _build_structured_group(toolbox)
     export_group = _build_export_group(toolbox)
 
     box_airfoil = QtWidgets.QGroupBox('Airfoil')
@@ -24,44 +21,38 @@ def build_meshing_panel(toolbox):
     airfoil_layout.addLayout(toolbox.form_mesh_airfoil)
     box_airfoil.setLayout(airfoil_layout)
 
-    box_te = QtWidgets.QGroupBox('Trailing Edge')
-    te_layout = QtWidgets.QVBoxLayout()
-    te_layout.addLayout(toolbox.form_mesh_TE)
-    box_te.setLayout(te_layout)
-
     box_tunnel = QtWidgets.QGroupBox('Tunnel')
     tunnel_layout = QtWidgets.QVBoxLayout()
     tunnel_layout.addLayout(toolbox.form_mesh_tunnel)
     box_tunnel.setLayout(tunnel_layout)
 
-    box_wake = QtWidgets.QGroupBox('Wake')
-    wake_layout = QtWidgets.QVBoxLayout()
-    wake_layout.addLayout(toolbox.form_mesh_wake)
-    box_wake.setLayout(wake_layout)
-
-    toolbox.mesh_standard_only_groups = [box_airfoil, box_te, smoothing_group]
-    toolbox.mesh_shared_groups = [box_tunnel, box_wake]
-    toolbox.mesh_wake_group = box_wake
-    toolbox.mesh_experimental_groups = {
-        'experimental_c': experimental_c_group,
-        'experimental_o': experimental_o_group,
+    toolbox.mesh_airfoil_group = box_airfoil
+    toolbox.mesh_tunnel_group = box_tunnel
+    toolbox.mesh_te_group = None
+    toolbox.mesh_wake_group = None
+    toolbox.mesh_smoothing_group = None
+    toolbox.mesh_standard_only_groups = []
+    toolbox.mesh_shared_groups = [box_airfoil, box_tunnel]
+    toolbox.mesh_engine_specific_groups = {
+        'metric_based': metric_group,
+        'structured': structured_group,
     }
 
     toolbox.createMeshButton = QtWidgets.QPushButton('Create Mesh')
     toolbox.createMeshButton.setObjectName('pagePrimaryActionButton')
-    create_mesh_layout = right_aligned_row(toolbox.createMeshButton)
+    toolbox.createMeshActionPanel = QtWidgets.QWidget()
+    toolbox.createMeshActionPanel.setLayout(
+        right_aligned_row(toolbox.createMeshButton)
+    )
 
     layout = QtWidgets.QVBoxLayout()
     layout.addStretch(1)
     layout.addWidget(engine_group)
     layout.addWidget(box_airfoil)
-    layout.addWidget(box_te)
     layout.addWidget(box_tunnel)
-    layout.addWidget(box_wake)
-    layout.addWidget(experimental_c_group)
-    layout.addWidget(experimental_o_group)
-    layout.addWidget(smoothing_group)
-    layout.addLayout(create_mesh_layout)
+    layout.addWidget(metric_group)
+    layout.addWidget(structured_group)
+    layout.addWidget(toolbox.createMeshActionPanel)
     layout.addStretch(1)
     layout.addWidget(export_group)
     layout.addStretch(10)
@@ -72,37 +63,496 @@ def build_meshing_panel(toolbox):
     toolbox.meshEngineSelector.currentIndexChanged.connect(
         toolbox.mesh_engine_changed
     )
-    toolbox.experimental_o_farfield_shape.currentIndexChanged.connect(
-        toolbox.mesh_engine_changed
-    )
     toolbox.createMeshButton.clicked.connect(toolbox.generateMesh)
     toolbox.exportMeshButton.clicked.connect(toolbox.exportMesh)
     toolbox.mesh_engine_changed()
 
 
 def _build_engine_group(toolbox):
-    toolbox.mesh_engine = 'standard'
+    toolbox.mesh_engine = 'metric_based'
     toolbox.meshEngineSelector = QtWidgets.QComboBox()
-    toolbox.meshEngineSelector.addItem('Standard', userData='standard')
     toolbox.meshEngineSelector.addItem(
-        'Experimental C-grid',
-        userData='experimental_c',
+        'Metric based',
+        userData='metric_based',
     )
     toolbox.meshEngineSelector.addItem(
-        'Experimental O-grid',
-        userData='experimental_o',
+        'Structured',
+        userData='structured',
     )
 
     form = QtWidgets.QFormLayout()
     configure_form_layout(form)
     label = make_page_label('Mesh engine')
     label.setToolTip(
-        'Choose between the established multi-block tunnel mesher and the experimental C-grid or O-grid paths'
+        'Metric-based structured wind-tunnel mesher inspired by the reference paper.'
     )
     form.addRow(label, toolbox.meshEngineSelector)
 
     group = QtWidgets.QGroupBox('Engine')
     group.setLayout(form)
+    return group
+
+
+def _build_structured_group(toolbox):
+    layout = QtWidgets.QVBoxLayout()
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(10)
+
+    intro = QtWidgets.QLabel(
+        'Composable structured mesher: topology × tunnel shape × '
+        'algorithm. Sharp vs blunt trailing edge is detected automatically '
+        'from the prepared contour and changes the block topology (a blunt '
+        'C-mesh adds a wake strip).'
+    )
+    intro.setWordWrap(True)
+    intro.setProperty('pageSectionHint', 'true')
+    layout.addWidget(intro)
+
+    form = QtWidgets.QFormLayout()
+    configure_form_layout(form)
+
+    toolbox.structured_topology = QtWidgets.QComboBox()
+    toolbox.structured_topology.addItem('C-mesh', userData='c')
+    toolbox.structured_topology.addItem('O-grid', userData='o')
+    form.addRow(make_page_label('Topology'), toolbox.structured_topology)
+
+    toolbox.structured_tunnel_shape = QtWidgets.QComboBox()
+    toolbox.structured_tunnel_shape.addItem(
+        'Legacy (half-circle + rectangle)', userData='legacy')
+    toolbox.structured_tunnel_shape.addItem('Circular', userData='circular')
+    form.addRow(make_page_label('Tunnel shape'),
+                toolbox.structured_tunnel_shape)
+
+    toolbox.structured_tunnel_height = QtWidgets.QDoubleSpinBox()
+    toolbox.structured_tunnel_height.setRange(0.5, 50.0)
+    toolbox.structured_tunnel_height.setSingleStep(0.5)
+    toolbox.structured_tunnel_height.setValue(3.5)
+    form.addRow(make_page_label('Farfield radius / half-height'),
+                toolbox.structured_tunnel_height)
+
+    toolbox.structured_wake_length = QtWidgets.QDoubleSpinBox()
+    toolbox.structured_wake_length.setRange(0.5, 50.0)
+    toolbox.structured_wake_length.setSingleStep(0.5)
+    toolbox.structured_wake_length.setValue(7.0)
+    form.addRow(make_page_label('Wake length'),
+                toolbox.structured_wake_length)
+
+    toolbox.structured_algorithm = QtWidgets.QComboBox()
+    toolbox.structured_algorithm.addItem('TFI (standard)',
+                                         userData='standard')
+    toolbox.structured_algorithm.addItem('TFI (Hermite)',
+                                         userData='hermite')
+    form.addRow(make_page_label('Algorithm'), toolbox.structured_algorithm)
+
+    toolbox.structured_normal_divisions = QtWidgets.QSpinBox()
+    toolbox.structured_normal_divisions.setRange(5, 500)
+    toolbox.structured_normal_divisions.setValue(60)
+    form.addRow(make_page_label('Normal divisions'),
+                toolbox.structured_normal_divisions)
+
+    toolbox.structured_first_layer = QtWidgets.QDoubleSpinBox()
+    toolbox.structured_first_layer.setDecimals(5)
+    toolbox.structured_first_layer.setRange(1.0e-5, 1.0)
+    toolbox.structured_first_layer.setSingleStep(0.001)
+    toolbox.structured_first_layer.setValue(0.002)
+    form.addRow(make_page_label('First layer thickness'),
+                toolbox.structured_first_layer)
+
+    toolbox.structured_wake_points = QtWidgets.QSpinBox()
+    toolbox.structured_wake_points.setRange(5, 500)
+    toolbox.structured_wake_points.setValue(60)
+    form.addRow(make_page_label('Wake points'),
+                toolbox.structured_wake_points)
+
+    toolbox.structured_ortho_layers = QtWidgets.QSpinBox()
+    toolbox.structured_ortho_layers.setRange(0, 100)
+    toolbox.structured_ortho_layers.setValue(0)
+    toolbox.structured_ortho_layers.setToolTip(
+        'Exact-normal near-wall layers (0 = off).')
+    form.addRow(make_page_label('Ortho layers'),
+                toolbox.structured_ortho_layers)
+
+    toolbox.structured_ortho_growth = QtWidgets.QDoubleSpinBox()
+    toolbox.structured_ortho_growth.setRange(1.0, 2.0)
+    toolbox.structured_ortho_growth.setSingleStep(0.05)
+    toolbox.structured_ortho_growth.setValue(1.15)
+    form.addRow(make_page_label('Ortho growth'),
+                toolbox.structured_ortho_growth)
+
+    toolbox.structured_outer_distribution = QtWidgets.QComboBox()
+    toolbox.structured_outer_distribution.addItem('Uniform',
+                                                  userData='uniform')
+    toolbox.structured_outer_distribution.addItem('Clustered to outlet',
+                                                  userData='clustered')
+    form.addRow(make_page_label('Outer distribution'),
+                toolbox.structured_outer_distribution)
+
+    toolbox.structured_outer_ratio = QtWidgets.QDoubleSpinBox()
+    toolbox.structured_outer_ratio.setRange(1.0, 20.0)
+    toolbox.structured_outer_ratio.setSingleStep(0.5)
+    toolbox.structured_outer_ratio.setValue(2.0)
+    form.addRow(make_page_label('Outer clustering ratio'),
+                toolbox.structured_outer_ratio)
+
+    toolbox.structured_outer_angle = QtWidgets.QComboBox()
+    toolbox.structured_outer_angle.addItem('Free', userData='free')
+    toolbox.structured_outer_angle.addItem('Orthogonal',
+                                           userData='orthogonal')
+    form.addRow(make_page_label('Outer boundary angle'),
+                toolbox.structured_outer_angle)
+
+    layout.addLayout(form)
+
+    group = QtWidgets.QGroupBox('Structured Grid')
+    group.setLayout(layout)
+    return group
+
+
+def structured_settings_from_toolbox(toolbox):
+    import Meshing
+    return Meshing.StructuredMeshSettings(
+        topology=toolbox.structured_topology.currentData(),
+        tunnel_shape=toolbox.structured_tunnel_shape.currentData(),
+        tunnel_height=toolbox.structured_tunnel_height.value(),
+        wake_length=toolbox.structured_wake_length.value(),
+        tfi_variant=toolbox.structured_algorithm.currentData(),
+        normal_divisions=toolbox.structured_normal_divisions.value(),
+        first_layer_thickness=toolbox.structured_first_layer.value(),
+        wake_points=toolbox.structured_wake_points.value(),
+        ortho_layers=toolbox.structured_ortho_layers.value(),
+        ortho_growth=toolbox.structured_ortho_growth.value(),
+        boundary_control=Meshing.TunnelBoundaryControl(
+            distribution=toolbox.structured_outer_distribution.currentData(),
+            clustering_ratio=toolbox.structured_outer_ratio.value(),
+            angle_mode=toolbox.structured_outer_angle.currentData(),
+        ),
+    )
+
+
+def _build_metric_group(toolbox):
+    layout = QtWidgets.QVBoxLayout()
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(10)
+
+    intro = QtWidgets.QLabel(
+        'This engine currently builds a sharp-trailing-edge C-mesh in the legacy half-circle / rectangular wind-tunnel. Boundary singularities are created automatically at TE upper, TE lower, wake upper, and wake lower, with the wake cut collapsing back onto the outlet centerline for CFD-ready topology. The future singularity editor will expose full manual placement and valence editing on top of this data model.'
+    )
+    intro.setWordWrap(True)
+    intro.setProperty('pageSectionHint', 'true')
+    layout.addWidget(intro)
+
+    form = QtWidgets.QFormLayout()
+    configure_form_layout(form)
+
+    label = make_page_label('Layout family')
+    toolbox.metric_layout_strategy = QtWidgets.QComboBox()
+    toolbox.metric_layout_strategy.addItem(
+        'C-mesh (sharp TE)',
+        userData='metric_c_grid',
+    )
+    form.addRow(label, toolbox.metric_layout_strategy)
+
+    label = make_page_label('Singularity model')
+    toolbox.metric_singularity_template = QtWidgets.QComboBox()
+    toolbox.metric_singularity_template.addItem(
+        'Auto boundary singularities',
+        userData='auto_boundary_c',
+    )
+    form.addRow(label, toolbox.metric_singularity_template)
+
+    layout.addLayout(form)
+
+    group = QtWidgets.QGroupBox('Metric Based Layout')
+    group.setLayout(layout)
+    return group
+
+
+def _build_hybrid_group(toolbox):
+    form = QtWidgets.QFormLayout()
+    configure_form_layout(form)
+
+    label = make_page_label('Layout source')
+    label.setToolTip(
+        'Stage 4 global layout source. The hybrid engine builds per-element boundary loops, near-wall orthogonal rings, and outer O/C-style connector blocks.'
+    )
+    toolbox.hybrid_layout_strategy = QtWidgets.QComboBox()
+    toolbox.hybrid_layout_strategy.addItem(
+        'Multi-element O/C layout',
+        userData='multi_element_oc',
+    )
+    form.addRow(label, toolbox.hybrid_layout_strategy)
+
+    label = make_page_label('Protect wall layers')
+    label.setToolTip(
+        'Keep the per-element near-wall orthogonal ring blocks out of Stage 2 redistribution and Stage 1 cleanup to preserve wall orthogonality.'
+    )
+    toolbox.hybrid_protect_near_wall = QtWidgets.QCheckBox(
+        'Preserve near-wall rings'
+    )
+    toolbox.hybrid_protect_near_wall.setChecked(True)
+    form.addRow(label, toolbox.hybrid_protect_near_wall)
+
+    label = make_page_label('Stage 2 enabled')
+    label.setToolTip(
+        'Apply local monitor/metric-based redistribution in the connector blocks while keeping block boundaries fixed.'
+    )
+    toolbox.hybrid_stage2_enabled = QtWidgets.QCheckBox('Enable redistribution')
+    toolbox.hybrid_stage2_enabled.setChecked(True)
+    form.addRow(label, toolbox.hybrid_stage2_enabled)
+
+    label = make_page_label('Stage 2 sweeps')
+    label.setToolTip(
+        'Number of alternating U/V redistribution sweeps.'
+    )
+    toolbox.hybrid_stage2_sweeps = QtWidgets.QSpinBox()
+    toolbox.hybrid_stage2_sweeps.setRange(0, 20)
+    toolbox.hybrid_stage2_sweeps.setValue(2)
+    form.addRow(label, toolbox.hybrid_stage2_sweeps)
+
+    label = make_page_label('Redistribute U')
+    label.setToolTip(
+        'Redistribute interior U-lines using boundary-derived size fields.'
+    )
+    toolbox.hybrid_redistribute_u = QtWidgets.QCheckBox('Use U-lines')
+    toolbox.hybrid_redistribute_u.setChecked(True)
+    form.addRow(label, toolbox.hybrid_redistribute_u)
+
+    label = make_page_label('Redistribute V')
+    label.setToolTip(
+        'Redistribute interior V-lines using boundary-derived size fields.'
+    )
+    toolbox.hybrid_redistribute_v = QtWidgets.QCheckBox('Use V-lines')
+    toolbox.hybrid_redistribute_v.setChecked(True)
+    form.addRow(label, toolbox.hybrid_redistribute_v)
+
+    label = make_page_label('Stage 1 enabled')
+    label.setToolTip(
+        'Run a final cleanup pass on the layout-driven mesh after redistribution.'
+    )
+    toolbox.hybrid_stage1_enabled = QtWidgets.QCheckBox('Enable cleanup')
+    toolbox.hybrid_stage1_enabled.setChecked(True)
+    form.addRow(label, toolbox.hybrid_stage1_enabled)
+
+    label = make_page_label('Cleanup method')
+    label.setToolTip(
+        'Final practical optimizer proxy used after redistribution.'
+    )
+    toolbox.hybrid_stage1_algorithm = QtWidgets.QComboBox()
+    toolbox.hybrid_stage1_algorithm.addItem('Angle based', userData='angle_based')
+    toolbox.hybrid_stage1_algorithm.addItem('Elliptic', userData='elliptic')
+    toolbox.hybrid_stage1_algorithm.addItem('Simple', userData='simple')
+    toolbox.hybrid_stage1_algorithm.addItem('None', userData='none')
+    form.addRow(label, toolbox.hybrid_stage1_algorithm)
+
+    label = make_page_label('Cleanup iterations')
+    toolbox.hybrid_stage1_iterations = QtWidgets.QSpinBox()
+    toolbox.hybrid_stage1_iterations.setRange(0, 2000)
+    toolbox.hybrid_stage1_iterations.setValue(15)
+    form.addRow(label, toolbox.hybrid_stage1_iterations)
+
+    label = make_page_label('Cleanup tolerance')
+    toolbox.hybrid_stage1_tolerance = QtWidgets.QLineEdit()
+    hybrid_validator = QtGui.QDoubleValidator()
+    hybrid_validator.setRange(1.0e-10, 1.0)
+    hybrid_validator.setDecimals(10)
+    toolbox.hybrid_stage1_tolerance.setValidator(hybrid_validator)
+    toolbox.hybrid_stage1_tolerance.setText('1.e-4')
+    form.addRow(label, toolbox.hybrid_stage1_tolerance)
+
+    label = make_page_label('Cleanup relaxation')
+    label.setToolTip(
+        'Under-relaxation used when the cleanup method is elliptic.'
+    )
+    toolbox.hybrid_stage1_relaxation = QtWidgets.QDoubleSpinBox()
+    toolbox.hybrid_stage1_relaxation.setSingleStep(0.05)
+    toolbox.hybrid_stage1_relaxation.setRange(0.01, 1.0)
+    toolbox.hybrid_stage1_relaxation.setDecimals(2)
+    toolbox.hybrid_stage1_relaxation.setValue(0.60)
+    form.addRow(label, toolbox.hybrid_stage1_relaxation)
+
+    group = QtWidgets.QGroupBox('Hybrid Pipeline (One Shot)')
+    group.setLayout(form)
+    group.setVisible(False)
+    return group
+
+
+def _build_hybrid_staged_group(toolbox):
+    layout = QtWidgets.QVBoxLayout()
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(10)
+
+    intro = QtWidgets.QLabel(
+        'This staged engine always starts with Stage 4. Run Stage 4 first to inspect the layout-driven mesh, then apply Stage 2 redistribution and Stage 1 cleanup explicitly. The legacy trailing-edge block and legacy smoother controls are not used by this staged path.'
+    )
+    intro.setWordWrap(True)
+    intro.setProperty('pageSectionHint', 'true')
+    layout.addWidget(intro)
+
+    form = QtWidgets.QFormLayout()
+    configure_form_layout(form)
+
+    label = make_page_label('Layout source')
+    label.setToolTip(
+        'Stage 4 global layout source. This staged path builds per-element boundary loops, near-wall orthogonal rings, and outer O/C-style connector blocks.'
+    )
+    toolbox.hybrid_staged_layout_strategy = QtWidgets.QComboBox()
+    toolbox.hybrid_staged_layout_strategy.addItem(
+        'Multi-element O/C layout',
+        userData='multi_element_oc',
+    )
+    form.addRow(label, toolbox.hybrid_staged_layout_strategy)
+
+    label = make_page_label('Protect wall layers')
+    label.setToolTip(
+        'Keep the per-element near-wall orthogonal ring blocks out of Stage 2 redistribution and Stage 1 cleanup to preserve wall orthogonality.'
+    )
+    toolbox.hybrid_staged_protect_near_wall = QtWidgets.QCheckBox(
+        'Preserve near-wall rings'
+    )
+    toolbox.hybrid_staged_protect_near_wall.setChecked(True)
+    form.addRow(label, toolbox.hybrid_staged_protect_near_wall)
+
+    label = make_page_label('TE closure divisions')
+    label.setToolTip(
+        'Number of points used to close a blunt trailing edge or an open boundary loop during Stage 4 layout preparation.'
+    )
+    toolbox.hybrid_staged_te_divisions = QtWidgets.QSpinBox()
+    toolbox.hybrid_staged_te_divisions.setRange(1, 40)
+    toolbox.hybrid_staged_te_divisions.setValue(3)
+    form.addRow(label, toolbox.hybrid_staged_te_divisions)
+
+    layout.addLayout(form)
+
+    toolbox.hybrid_staged_status_label = QtWidgets.QLabel(
+        'Stage 4 has not been run yet.'
+    )
+    toolbox.hybrid_staged_status_label.setWordWrap(True)
+    toolbox.hybrid_staged_status_label.setProperty('pageSectionHint', 'true')
+    layout.addWidget(toolbox.hybrid_staged_status_label)
+
+    stage4_row = QtWidgets.QHBoxLayout()
+    stage4_row.setContentsMargins(0, 0, 0, 0)
+    stage4_row.setSpacing(8)
+    toolbox.hybridStagedStage4Button = QtWidgets.QPushButton('Run Stage 4')
+    toolbox.hybridStagedStage4Button.setObjectName('pagePrimaryActionButton')
+    stage4_row.addWidget(toolbox.hybridStagedStage4Button)
+    stage4_row.addStretch(1)
+    layout.addLayout(stage4_row)
+
+    separator_1 = QtWidgets.QFrame()
+    separator_1.setFrameShape(QtWidgets.QFrame.HLine)
+    separator_1.setFrameShadow(QtWidgets.QFrame.Sunken)
+    layout.addWidget(separator_1)
+
+    stage2_hint = QtWidgets.QLabel(
+        'Stage 2 redistributes points on the Stage 4 connectivity without changing the block topology.'
+    )
+    stage2_hint.setWordWrap(True)
+    stage2_hint.setProperty('pageSectionHint', 'true')
+    layout.addWidget(stage2_hint)
+
+    stage2_form = QtWidgets.QFormLayout()
+    configure_form_layout(stage2_form)
+
+    label = make_page_label('Stage 2 sweeps')
+    toolbox.hybrid_staged_stage2_sweeps = QtWidgets.QSpinBox()
+    toolbox.hybrid_staged_stage2_sweeps.setRange(1, 20)
+    toolbox.hybrid_staged_stage2_sweeps.setValue(2)
+    stage2_form.addRow(label, toolbox.hybrid_staged_stage2_sweeps)
+
+    label = make_page_label('Redistribute U')
+    toolbox.hybrid_staged_redistribute_u = QtWidgets.QCheckBox('Use U-lines')
+    toolbox.hybrid_staged_redistribute_u.setChecked(True)
+    stage2_form.addRow(label, toolbox.hybrid_staged_redistribute_u)
+
+    label = make_page_label('Redistribute V')
+    toolbox.hybrid_staged_redistribute_v = QtWidgets.QCheckBox('Use V-lines')
+    toolbox.hybrid_staged_redistribute_v.setChecked(True)
+    stage2_form.addRow(label, toolbox.hybrid_staged_redistribute_v)
+
+    layout.addLayout(stage2_form)
+
+    stage2_row = QtWidgets.QHBoxLayout()
+    stage2_row.setContentsMargins(0, 0, 0, 0)
+    stage2_row.setSpacing(8)
+    toolbox.hybridStagedStage2Button = QtWidgets.QPushButton('Apply Stage 2')
+    toolbox.hybridStagedStage2Button.setObjectName('pageSecondaryActionButton')
+    stage2_row.addWidget(toolbox.hybridStagedStage2Button)
+    stage2_row.addStretch(1)
+    layout.addLayout(stage2_row)
+
+    separator_2 = QtWidgets.QFrame()
+    separator_2.setFrameShape(QtWidgets.QFrame.HLine)
+    separator_2.setFrameShadow(QtWidgets.QFrame.Sunken)
+    layout.addWidget(separator_2)
+
+    stage1_hint = QtWidgets.QLabel(
+        'Stage 1 runs the final cleanup pass on the current staged mesh.'
+    )
+    stage1_hint.setWordWrap(True)
+    stage1_hint.setProperty('pageSectionHint', 'true')
+    layout.addWidget(stage1_hint)
+
+    stage1_form = QtWidgets.QFormLayout()
+    configure_form_layout(stage1_form)
+
+    label = make_page_label('Cleanup method')
+    toolbox.hybrid_staged_stage1_algorithm = QtWidgets.QComboBox()
+    toolbox.hybrid_staged_stage1_algorithm.addItem(
+        'Angle based',
+        userData='angle_based',
+    )
+    toolbox.hybrid_staged_stage1_algorithm.addItem(
+        'Elliptic',
+        userData='elliptic',
+    )
+    toolbox.hybrid_staged_stage1_algorithm.addItem(
+        'Simple',
+        userData='simple',
+    )
+    toolbox.hybrid_staged_stage1_algorithm.addItem(
+        'None',
+        userData='none',
+    )
+    stage1_form.addRow(label, toolbox.hybrid_staged_stage1_algorithm)
+
+    label = make_page_label('Cleanup iterations')
+    toolbox.hybrid_staged_stage1_iterations = QtWidgets.QSpinBox()
+    toolbox.hybrid_staged_stage1_iterations.setRange(0, 2000)
+    toolbox.hybrid_staged_stage1_iterations.setValue(15)
+    stage1_form.addRow(label, toolbox.hybrid_staged_stage1_iterations)
+
+    label = make_page_label('Cleanup tolerance')
+    toolbox.hybrid_staged_stage1_tolerance = QtWidgets.QLineEdit()
+    hybrid_validator = QtGui.QDoubleValidator()
+    hybrid_validator.setRange(1.0e-10, 1.0)
+    hybrid_validator.setDecimals(10)
+    toolbox.hybrid_staged_stage1_tolerance.setValidator(hybrid_validator)
+    toolbox.hybrid_staged_stage1_tolerance.setText('1.e-4')
+    stage1_form.addRow(label, toolbox.hybrid_staged_stage1_tolerance)
+
+    label = make_page_label('Cleanup relaxation')
+    toolbox.hybrid_staged_stage1_relaxation = QtWidgets.QDoubleSpinBox()
+    toolbox.hybrid_staged_stage1_relaxation.setSingleStep(0.05)
+    toolbox.hybrid_staged_stage1_relaxation.setRange(0.01, 1.0)
+    toolbox.hybrid_staged_stage1_relaxation.setDecimals(2)
+    toolbox.hybrid_staged_stage1_relaxation.setValue(0.60)
+    stage1_form.addRow(label, toolbox.hybrid_staged_stage1_relaxation)
+
+    layout.addLayout(stage1_form)
+
+    stage1_row = QtWidgets.QHBoxLayout()
+    stage1_row.setContentsMargins(0, 0, 0, 0)
+    stage1_row.setSpacing(8)
+    toolbox.hybridStagedStage1Button = QtWidgets.QPushButton('Apply Stage 1')
+    toolbox.hybridStagedStage1Button.setObjectName('pageSecondaryActionButton')
+    stage1_row.addWidget(toolbox.hybridStagedStage1Button)
+    stage1_row.addStretch(1)
+    layout.addLayout(stage1_row)
+
+    group = QtWidgets.QGroupBox('Hybrid Pipeline (Staged 4 -> 2 -> 1)')
+    group.setLayout(layout)
+    group.setVisible(False)
     return group
 
 
@@ -197,31 +647,15 @@ def _build_tunnel_mesh_form(toolbox):
     toolbox.tunnel_height.setDecimals(1)
     toolbox.form_mesh_tunnel.addRow(label, toolbox.tunnel_height)
 
-    label = make_page_label(u'Height divisions')
+    label = make_page_label('Wake divisions')
+    label.setToolTip(
+        'Number of points traced along each sharp-TE wake branch from the trailing edge to the outlet.'
+    )
     toolbox.divisions_height = QtWidgets.QSpinBox()
-    toolbox.divisions_height.setSingleStep(10)
-    toolbox.divisions_height.setRange(1, 1000)
-    toolbox.divisions_height.setValue(100)
+    toolbox.divisions_height.setSingleStep(5)
+    toolbox.divisions_height.setRange(4, 1000)
+    toolbox.divisions_height.setValue(80)
     toolbox.form_mesh_tunnel.addRow(label, toolbox.divisions_height)
-
-    label = make_page_label('Thickness ratio')
-    toolbox.ratio_height = QtWidgets.QDoubleSpinBox()
-    toolbox.ratio_height.setSingleStep(1.0)
-    toolbox.ratio_height.setRange(0.1, 100.)
-    toolbox.ratio_height.setValue(10.0)
-    toolbox.ratio_height.setDecimals(1)
-    toolbox.form_mesh_tunnel.addRow(label, toolbox.ratio_height)
-
-    label = make_page_label('Bias')
-    toolbox.dist = QtWidgets.QComboBox()
-    toolbox.dist.addItems(['symmetric', 'lower', 'upper'])
-    toolbox.dist.setCurrentIndex(0)
-    toolbox.form_mesh_tunnel.addRow(label, toolbox.dist)
-
-
-def _build_wake_mesh_form(toolbox):
-    toolbox.form_mesh_wake = QtWidgets.QFormLayout()
-    configure_form_layout(toolbox.form_mesh_wake)
 
     label = make_page_label('Wake length (c)')
     label.setToolTip(
@@ -232,36 +666,7 @@ def _build_wake_mesh_form(toolbox):
     toolbox.tunnel_wake.setRange(0.1, 100.)
     toolbox.tunnel_wake.setValue(7.0)
     toolbox.tunnel_wake.setDecimals(1)
-    toolbox.form_mesh_wake.addRow(label, toolbox.tunnel_wake)
-
-    label = make_page_label(u'Wake divisions')
-    toolbox.divisions_wake = QtWidgets.QSpinBox()
-    toolbox.divisions_wake.setSingleStep(10)
-    toolbox.divisions_wake.setRange(1, 1000)
-    toolbox.divisions_wake.setValue(100)
-    toolbox.form_mesh_wake.addRow(label, toolbox.divisions_wake)
-
-    label = make_page_label('Thickness ratio')
-    label.setToolTip(
-        'Thickness of the last cell vs. the first cell in the wake mesh block'
-    )
-    toolbox.ratio_wake = QtWidgets.QDoubleSpinBox()
-    toolbox.ratio_wake.setSingleStep(0.1)
-    toolbox.ratio_wake.setRange(0.01, 100.0)
-    toolbox.ratio_wake.setValue(15.0)
-    toolbox.ratio_wake.setDecimals(1)
-    toolbox.form_mesh_wake.addRow(label, toolbox.ratio_wake)
-
-    label = make_page_label('Wake equalize (%)')
-    label.setToolTip(
-        'Equalize  the wake line vertically. Homogeneous vertical distribution at x% downstream'
-    )
-    toolbox.spread = QtWidgets.QDoubleSpinBox()
-    toolbox.spread.setSingleStep(5.0)
-    toolbox.spread.setRange(10.0, 90.0)
-    toolbox.spread.setValue(30.0)
-    toolbox.spread.setDecimals(1)
-    toolbox.form_mesh_wake.addRow(label, toolbox.spread)
+    toolbox.form_mesh_tunnel.addRow(label, toolbox.tunnel_wake)
 
 
 def _build_experimental_c_group(toolbox):
