@@ -18,10 +18,9 @@ from test_structured_topologies import (
     NACA0012, _blunt_contour, _load_dat, _sharp_contour,
 )
 
-NACA2315 = PROJECT_ROOT / 'lib_AE' / 'Construct2D_2.1.4' / \
-    'sample_airfoils' / 'naca2315.dat'
-MW166 = PROJECT_ROOT / 'boundary_layer_code' / 'Airfoils' / \
-    'MW-166-39-44-43.dat'
+DATA_DIR = Path(__file__).resolve().parent / 'data'
+NACA2315 = DATA_DIR / 'naca2315.dat'
+MW166 = DATA_DIR / 'MW-166-39-44-43.dat'
 
 
 def _spline_data_for(contour):

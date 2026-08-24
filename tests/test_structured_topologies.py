@@ -26,8 +26,7 @@ def _load_dat(path):
     return np.column_stack((np.array(xs), np.array(ys)))
 
 
-NACA0012 = PROJECT_ROOT / 'lib_AE' / 'Construct2D_2.1.4' / \
-    'sample_airfoils' / 'naca0012.dat'
+NACA0012 = Path(__file__).resolve().parent / 'data' / 'naca0012.dat'
 
 
 def _sharp_contour():

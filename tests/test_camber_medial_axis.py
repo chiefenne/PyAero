@@ -43,18 +43,10 @@ def _load_dat(path):
     return np.array(xs), np.array(ys)
 
 
-NACA2315 = os.path.join(
-    os.path.dirname(__file__), '..',
-    'lib_AE', 'Construct2D_2.1.4', 'sample_airfoils', 'naca2315.dat',
-)
-NACA0012 = os.path.join(
-    os.path.dirname(__file__), '..',
-    'lib_AE', 'Construct2D_2.1.4', 'sample_airfoils', 'naca0012.dat',
-)
-MW166 = os.path.join(
-    os.path.dirname(__file__), '..',
-    'boundary_layer_code', 'Airfoils', 'MW-166-39-44-43.dat',
-)
+_DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+NACA2315 = os.path.join(_DATA_DIR, 'naca2315.dat')
+NACA0012 = os.path.join(_DATA_DIR, 'naca0012.dat')
+MW166 = os.path.join(_DATA_DIR, 'MW-166-39-44-43.dat')
 
 
 def _le_radius_inputs(spline_data):
