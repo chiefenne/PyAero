@@ -106,6 +106,63 @@ class StructuredEngineMatrixTests(unittest.TestCase):
                                     main[:wake_points][::-1]))
 
 
+class StructuredEllipticEngineTests(unittest.TestCase):
+    def test_elliptic_matrix_no_inverted_cells(self):
+        engine = StructuredEngine()
+        contours = {'sharp': _sharp_contour(), 'blunt': _blunt_contour(),
+                    'mw166': _load_dat(MW166)}
+        for topology in ('c', 'o'):
+            for te_name, contour in contours.items():
+                for ortho in (0, 6):
+                    with self.subTest(topology=topology, te=te_name,
+                                      ortho=ortho):
+                        settings = core.StructuredMeshSettings(
+                            topology=topology,
+                            algorithm='elliptic',
+                            elliptic_iterations=40,
+                            normal_divisions=40, wake_points=40,
+                            ortho_layers=ortho,
+                        )
+                        spline_data = _spline_data_for(contour)
+                        named = engine.build_blocks(
+                            spline_data=spline_data, settings=settings)
+                        blocks = [block for _, block in named]
+                        connector = Connect.Connect()
+                        vertices, connectivity = \
+                            connector.connectAllBlocks(blocks)
+                        self.assertGreater(
+                            _minimum_cell_area(vertices, connectivity),
+                            1.0e-12)
+
+    def test_elliptic_keeps_wall_verbatim(self):
+        engine = StructuredEngine()
+        contour = _load_dat(MW166)
+        spline_data = _spline_data_for(contour)
+        prepared = core.contour_array(spline_data)
+        for topology in ('c', 'o'):
+            with self.subTest(topology=topology):
+                settings = core.StructuredMeshSettings(
+                    topology=topology, algorithm='elliptic',
+                    elliptic_iterations=30,
+                    normal_divisions=30, wake_points=30)
+                named = engine.build_blocks(
+                    spline_data=spline_data, settings=settings)
+                wall = np.asarray(named[0][1].getULines()[0])
+                found = any(
+                    np.allclose(wall[s:s + len(prepared)], prepared,
+                                atol=1e-12)
+                    for s in range(len(wall) - len(prepared) + 1))
+                self.assertTrue(found)
+
+    def test_unknown_algorithm_raises(self):
+        engine = StructuredEngine()
+        spline_data = _spline_data_for(_sharp_contour())
+        settings = core.StructuredMeshSettings(
+            algorithm='spectral', normal_divisions=20, wake_points=20)
+        with self.assertRaises(ValueError):
+            engine.build_blocks(spline_data=spline_data, settings=settings)
+
+
 class StructuredDispatchTests(unittest.TestCase):
     def test_makemesh_dispatches_structured(self):
         import Meshing

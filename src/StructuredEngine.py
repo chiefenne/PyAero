@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
+import GridElliptic
 import GridTFI
 import OrthoLayers
 from BlockMesh import BlockMesh
@@ -42,11 +43,28 @@ class StructuredEngine:
             named_blocks.append((name, self._emit_block(name, rows)))
         return named_blocks
 
+    def _volume_fill(self, frame,
+                     settings: StructuredMeshSettings) -> np.ndarray:
+        rows = GridTFI.fill(frame, settings.tfi_variant,
+                            settings.boundary_control)
+        if settings.algorithm == 'elliptic':
+            rows, _info = GridElliptic.solve(
+                rows,
+                periodic=frame.periodic,
+                iterations=settings.elliptic_iterations,
+                relaxation=settings.elliptic_relaxation,
+                outer_orthogonal=(
+                    settings.boundary_control.angle_mode == 'orthogonal'),
+            )
+        return rows
+
     def _fill_main_frame(self, frame, spline_data,
                          settings: StructuredMeshSettings) -> np.ndarray:
+        if settings.algorithm not in ('tfi', 'elliptic'):
+            raise ValueError(
+                f'Unknown structured algorithm: {settings.algorithm!r}.')
         if settings.ortho_layers <= 0:
-            return GridTFI.fill(frame, settings.tfi_variant,
-                                settings.boundary_control)
+            return self._volume_fill(frame, settings)
 
         if settings.ortho_layers >= settings.normal_divisions:
             raise ValueError(
@@ -86,8 +104,7 @@ class StructuredEngine:
             kind=frame.kind, te_type=frame.te_type,
             periodic=frame.periodic, metadata=dict(frame.metadata),
         )
-        outer_rows = GridTFI.fill(reduced, settings.tfi_variant,
-                                  settings.boundary_control)
+        outer_rows = self._volume_fill(reduced, settings)
         return np.vstack((ortho_rows, outer_rows[1:]))
 
     @staticmethod

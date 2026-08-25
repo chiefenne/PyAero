@@ -9,7 +9,10 @@ rectangle) a fixed point — pure Winslow would uniformize it and destroy
 the first-layer clustering.
 
 Periodic xi (O-grids) treats the seam column as interior: the seam
-relaxes, and both duplicate columns stay welded.
+relaxes, and both duplicate columns stay welded. Near-wall rows are
+anchored to the initial grid (releasing quadratically over
+``wall_anchor_rows``) because harmonic maps otherwise invert the first
+cell at convex wall corners (TE wedge, blunt base corners).
 
 Outer-boundary orthogonality is a simplified Sorenson-style forcing: the
 row next to the outer boundary is nudged toward the foot of the local
@@ -81,7 +84,7 @@ def solve(rows: np.ndarray, *, periodic: bool = False,
           tolerance: float = 1.0e-8, control: str = 'thomas_middlecoff',
           outer_orthogonal: bool = False,
           ortho_relaxation: float = 0.3,
-          seam_anchor_rows: int = 6) -> tuple[np.ndarray, dict]:
+          wall_anchor_rows: int = 4) -> tuple[np.ndarray, dict]:
     if control not in ('thomas_middlecoff', 'none'):
         raise ValueError(f'Unknown elliptic control: {control!r}.')
     rows = np.array(rows, dtype=float, copy=True)
@@ -117,15 +120,16 @@ def solve(rows: np.ndarray, *, periodic: bool = False,
     phi3 = np.asarray(phi)[..., None] if np.ndim(phi) else 0.0
     psi3 = np.asarray(psi)[..., None] if np.ndim(psi) else 0.0
 
-    # A relaxing periodic seam must not leave the TE wedge bisector near
-    # the wall: harmonic maps squeeze the corner cell at a sharp/reflexed
-    # TE (near-2*pi exterior angle) and invert it. Anchor the seam's
-    # near-wall nodes to their initial (bisector) positions with a weight
-    # that releases smoothly away from the wall.
-    seam_initial = rows[:, 0].copy()
-    if periodic and seam_anchor_rows > 0:
+    # Harmonic maps squeeze the first cell at convex wall corners (sharp
+    # or reflexed TE wedge, blunt base corners) until it inverts. Anchor
+    # the near-wall rows to the initial grid — whose near-wall structure
+    # comes from the clustering/ortho construction and is already good —
+    # with a weight that releases smoothly away from the wall.
+    initial_interior = rows[1:-1].copy()
+    if wall_anchor_rows > 0:
         release = np.minimum(
-            np.arange(nj) / float(seam_anchor_rows), 1.0) ** 2
+            np.arange(1, nj - 1) / float(wall_anchor_rows),
+            1.0)[:, None, None] ** 2
     else:
         release = None
 
@@ -174,12 +178,13 @@ def solve(rows: np.ndarray, *, periodic: bool = False,
         ) / (2.0 * (alpha3 + gamma3) + _EPS)
 
         updated = (1.0 - relaxation) * center + relaxation * candidate
+        if release is not None:
+            anchor = initial_interior[:, :-1] if periodic \
+                else initial_interior[:, 1:-1]
+            updated = (1.0 - release) * anchor + release * updated
         residual = float(np.max(np.abs(updated - center)))
         if periodic:
             rows[1:-1, :-1] = updated
-            if release is not None:
-                rows[:, 0] = ((1.0 - release[:, None]) * seam_initial +
-                              release[:, None] * rows[:, 0])
             rows[:, -1] = rows[:, 0]
         else:
             rows[1:-1, 1:-1] = updated

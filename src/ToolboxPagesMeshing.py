@@ -139,10 +139,18 @@ def _build_structured_group(toolbox):
 
     toolbox.structured_algorithm = QtWidgets.QComboBox()
     toolbox.structured_algorithm.addItem('TFI (standard)',
-                                         userData='standard')
+                                         userData='tfi:standard')
     toolbox.structured_algorithm.addItem('TFI (Hermite)',
-                                         userData='hermite')
+                                         userData='tfi:hermite')
+    toolbox.structured_algorithm.addItem('Elliptic (Winslow + TM)',
+                                         userData='elliptic:standard')
     form.addRow(make_page_label('Algorithm'), toolbox.structured_algorithm)
+
+    toolbox.structured_elliptic_iterations = QtWidgets.QSpinBox()
+    toolbox.structured_elliptic_iterations.setRange(10, 2000)
+    toolbox.structured_elliptic_iterations.setValue(150)
+    form.addRow(make_page_label('Elliptic iterations'),
+                toolbox.structured_elliptic_iterations)
 
     toolbox.structured_normal_divisions = QtWidgets.QSpinBox()
     toolbox.structured_normal_divisions.setRange(5, 500)
@@ -210,12 +218,16 @@ def _build_structured_group(toolbox):
 
 def structured_settings_from_toolbox(toolbox):
     import Meshing
+    algorithm, _, tfi_variant = \
+        toolbox.structured_algorithm.currentData().partition(':')
     return Meshing.StructuredMeshSettings(
         topology=toolbox.structured_topology.currentData(),
         tunnel_shape=toolbox.structured_tunnel_shape.currentData(),
         tunnel_height=toolbox.structured_tunnel_height.value(),
         wake_length=toolbox.structured_wake_length.value(),
-        tfi_variant=toolbox.structured_algorithm.currentData(),
+        algorithm=algorithm,
+        tfi_variant=tfi_variant,
+        elliptic_iterations=toolbox.structured_elliptic_iterations.value(),
         normal_divisions=toolbox.structured_normal_divisions.value(),
         first_layer_thickness=toolbox.structured_first_layer.value(),
         wake_points=toolbox.structured_wake_points.value(),

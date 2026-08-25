@@ -40,10 +40,30 @@ def test_structured_group_selection_roundtrip():
     toolbox = _toolbox_with_group()
     toolbox.structured_topology.setCurrentIndex(1)      # O-grid
     toolbox.structured_tunnel_shape.setCurrentIndex(1)  # circular
-    toolbox.structured_algorithm.setCurrentIndex(1)     # hermite
+    toolbox.structured_algorithm.setCurrentIndex(1)     # TFI Hermite
     toolbox.structured_ortho_layers.setValue(8)
     settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
     assert settings.topology == 'o'
     assert settings.tunnel_shape == 'circular'
+    assert settings.algorithm == 'tfi'
     assert settings.tfi_variant == 'hermite'
     assert settings.ortho_layers == 8
+
+
+def test_structured_algorithm_defaults_to_tfi():
+    toolbox = _toolbox_with_group()
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.algorithm == 'tfi'
+    assert settings.elliptic_iterations == 150
+
+
+def test_structured_elliptic_selection():
+    toolbox = _toolbox_with_group()
+    index = toolbox.structured_algorithm.findData('elliptic:standard')
+    assert index >= 0
+    toolbox.structured_algorithm.setCurrentIndex(index)
+    toolbox.structured_elliptic_iterations.setValue(80)
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.algorithm == 'elliptic'
+    assert settings.tfi_variant == 'standard'
+    assert settings.elliptic_iterations == 80
