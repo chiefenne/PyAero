@@ -67,3 +67,22 @@ def test_structured_elliptic_selection():
     assert settings.algorithm == 'elliptic'
     assert settings.tfi_variant == 'standard'
     assert settings.elliptic_iterations == 80
+
+
+def test_structured_hyperbolic_selection():
+    toolbox = _toolbox_with_group()
+    index = toolbox.structured_algorithm.findData('hyperbolic:standard')
+    assert index >= 0
+    toolbox.structured_algorithm.setCurrentIndex(index)
+    toolbox.structured_hyperbolic_fraction_cap.setValue(0.35)
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.algorithm == 'hyperbolic'
+    assert settings.tfi_variant == 'standard'
+    assert abs(settings.hyperbolic_fraction_cap - 0.35) < 1e-9
+
+
+def test_structured_hyperbolic_defaults():
+    toolbox = _toolbox_with_group()
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert abs(settings.hyperbolic_fraction_cap - 0.5) < 1e-9
+    assert abs(settings.hyperbolic_smoothing - 1.0) < 1e-9

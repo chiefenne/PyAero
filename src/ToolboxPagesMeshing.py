@@ -144,6 +144,8 @@ def _build_structured_group(toolbox):
                                          userData='tfi:hermite')
     toolbox.structured_algorithm.addItem('Elliptic (Winslow + TM)',
                                          userData='elliptic:standard')
+    toolbox.structured_algorithm.addItem('Hyperbolic (marching)',
+                                         userData='hyperbolic:standard')
     form.addRow(make_page_label('Algorithm'), toolbox.structured_algorithm)
 
     toolbox.structured_elliptic_iterations = QtWidgets.QSpinBox()
@@ -151,6 +153,17 @@ def _build_structured_group(toolbox):
     toolbox.structured_elliptic_iterations.setValue(150)
     form.addRow(make_page_label('Elliptic iterations'),
                 toolbox.structured_elliptic_iterations)
+
+    toolbox.structured_hyperbolic_fraction_cap = QtWidgets.QDoubleSpinBox()
+    toolbox.structured_hyperbolic_fraction_cap.setRange(0.05, 0.9)
+    toolbox.structured_hyperbolic_fraction_cap.setSingleStep(0.05)
+    toolbox.structured_hyperbolic_fraction_cap.setValue(0.5)
+    toolbox.structured_hyperbolic_fraction_cap.setToolTip(
+        'Maximum wall-to-farfield height fraction the march may reach '
+        'before the remainder is filled algebraically onto the '
+        'prescribed outer boundary.')
+    form.addRow(make_page_label('Hyperbolic march height fraction'),
+                toolbox.structured_hyperbolic_fraction_cap)
 
     toolbox.structured_normal_divisions = QtWidgets.QSpinBox()
     toolbox.structured_normal_divisions.setRange(5, 500)
@@ -228,6 +241,8 @@ def structured_settings_from_toolbox(toolbox):
         algorithm=algorithm,
         tfi_variant=tfi_variant,
         elliptic_iterations=toolbox.structured_elliptic_iterations.value(),
+        hyperbolic_fraction_cap=(
+            toolbox.structured_hyperbolic_fraction_cap.value()),
         normal_divisions=toolbox.structured_normal_divisions.value(),
         first_layer_thickness=toolbox.structured_first_layer.value(),
         wake_points=toolbox.structured_wake_points.value(),

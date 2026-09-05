@@ -22,10 +22,12 @@ class StructuredMeshSettings:
     tunnel_shape: str = 'legacy'       # 'legacy' | 'circular'
     tunnel_height: float = 3.5         # legacy half-height / circular radius
     wake_length: float = 7.0           # TE to outlet (C-mesh only)
-    algorithm: str = 'tfi'             # 'tfi' | 'elliptic'
+    algorithm: str = 'tfi'             # 'tfi' | 'elliptic' | 'hyperbolic'
     tfi_variant: str = 'standard'      # 'standard' | 'hermite'
     elliptic_iterations: int = 150
     elliptic_relaxation: float = 0.8
+    hyperbolic_fraction_cap: float = 0.5
+    hyperbolic_smoothing: float = 1.0
     normal_divisions: int = 60         # total wall->outer cells (incl. ortho)
     first_layer_thickness: float = 0.002
     wake_points: int = 60              # nodes along each wake cut (C-mesh)

@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy as np
 
 import GridElliptic
+import GridHyperbolic
 import GridTFI
 import OrthoLayers
 from BlockMesh import BlockMesh
@@ -43,8 +44,23 @@ class StructuredEngine:
             named_blocks.append((name, self._emit_block(name, rows)))
         return named_blocks
 
-    def _volume_fill(self, frame,
-                     settings: StructuredMeshSettings) -> np.ndarray:
+    def _volume_fill(self, frame, settings: StructuredMeshSettings, *,
+                     spline_data=None, corner_indices=None) -> np.ndarray:
+        if settings.algorithm == 'hyperbolic':
+            contour_slice = (frame.metadata.get('contour_slice')
+                            if spline_data is not None else None)
+            normals = OrthoLayers.wall_normals(
+                frame.wall, corner_indices or [],
+                spline_data=spline_data, contour_slice=contour_slice,
+                closed=frame.periodic,
+            )
+            return GridHyperbolic.march(
+                frame, normals=normals,
+                first_spacing=settings.first_layer_thickness,
+                fraction_cap=settings.hyperbolic_fraction_cap,
+                smoothing=settings.hyperbolic_smoothing,
+            )
+
         rows = GridTFI.fill(frame, settings.tfi_variant,
                             settings.boundary_control)
         if settings.algorithm == 'elliptic':
@@ -60,17 +76,19 @@ class StructuredEngine:
 
     def _fill_main_frame(self, frame, spline_data,
                          settings: StructuredMeshSettings) -> np.ndarray:
-        if settings.algorithm not in ('tfi', 'elliptic'):
+        if settings.algorithm not in ('tfi', 'elliptic', 'hyperbolic'):
             raise ValueError(
                 f'Unknown structured algorithm: {settings.algorithm!r}.')
+        corner_indices = self._corner_indices(frame)
         if settings.ortho_layers <= 0:
-            return self._volume_fill(frame, settings)
+            return self._volume_fill(
+                frame, settings, spline_data=spline_data,
+                corner_indices=corner_indices)
 
         if settings.ortho_layers >= settings.normal_divisions:
             raise ValueError(
                 'Ortho layers must be fewer than total normal divisions.')
 
-        corner_indices = self._corner_indices(frame)
         contour_slice = frame.metadata.get('contour_slice')
         normals = OrthoLayers.wall_normals(
             frame.wall, corner_indices,
@@ -104,7 +122,13 @@ class StructuredEngine:
             kind=frame.kind, te_type=frame.te_type,
             periodic=frame.periodic, metadata=dict(frame.metadata),
         )
-        outer_rows = self._volume_fill(reduced, settings)
+        # The rim is no longer the exact contour, so the reduced-frame
+        # fill never uses spline_data/contour_slice for its normals
+        # (hyperbolic) — only finite differences on the rim polyline,
+        # per the design spec's "rim normals from finite differences".
+        outer_rows = self._volume_fill(
+            reduced, settings, spline_data=None,
+            corner_indices=corner_indices)
         return np.vstack((ortho_rows, outer_rows[1:]))
 
     @staticmethod
