@@ -40,7 +40,7 @@
 - **Outer orthogonality** (`outer_orthogonal=True`): Sorenson-style forcing implemented as an under-relaxed correction of row nj−2 toward `outer + d_i·m_i` (m_i inward unit normal of the outer row, d_i the current normal distance), applied each sweep with `ortho_relaxation`. Simplified but honest — the full P,Q iteration is overkill at this grid scale.
 - Residual: max node displacement per sweep; stop at `tolerance`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tests/test_grid_elliptic.py  (imports as in test_grid_tfi.py)
@@ -80,10 +80,10 @@ def test_info_reports_convergence():
 
 Write these as real tests with the loaders from `test_structured_topologies` / `test_ortho_layers` (same import pattern as `test_grid_tfi.py`).
 
-- [ ] **Step 2: Run to verify failure** (`ModuleNotFoundError: GridElliptic`)
-- [ ] **Step 3: Implement `src/GridElliptic.py`** per the method block
-- [ ] **Step 4: Full suite green**
-- [ ] **Step 5: Commit** `Add GridElliptic: Winslow/TM elliptic solver with periodic seam and orthogonality forcing`
+- [x] **Step 2: Run to verify failure** (`ModuleNotFoundError: GridElliptic`)
+- [x] **Step 3: Implement `src/GridElliptic.py`** per the method block
+- [x] **Step 4: Full suite green**
+- [x] **Step 5: Commit** `Add GridElliptic: Winslow/TM elliptic solver with periodic seam and orthogonality forcing`
 
 ---
 
@@ -119,8 +119,8 @@ Write these as real tests with the loaders from `test_structured_topologies` / `
 4. Boundary conditions: O — periodic wrap, column ni−1 copied from 0. C — front ends pinned to the outlet plane: after each step set `x_end = x_outlet` (from `frame.metadata['x_outlet']`), y from the solve.
 5. **Farfield blend** (the spec's resolution of hyperbolic termination): the last `blend_fraction` of layers blend `r = (1−w)·r_marched + w·r_target` with `r_target` the straight-line interpolation between the blend-start front and `frame.outer` at the same height fractions, `w` a smoothstep 0→1 across the zone; final row = `frame.outer` exactly.
 
-- [ ] **Step 1: failing tests** — wall verbatim; outer row `np.array_equal`; no inverted cells for all three airfoils × {C, O} × {sharp, blunt incl. wake-strip frame untouched}; O seam columns identical; C front ends on the outlet plane at every layer; no layer crossing (jacobians single sign) — same loader pattern as `test_grid_tfi.py`.
-- [ ] **Step 2: red** → **Step 3: implement** → **Step 4: suite green** → **Step 5: commit** `Add GridHyperbolic: front marching with implicit smoothing and farfield blend`
+- [x] **Step 1: failing tests** — wall verbatim; outer row `np.array_equal`; no inverted cells for all three airfoils × {C, O} × {sharp, blunt incl. wake-strip frame untouched}; O seam columns identical; C front ends on the outlet plane at every layer; no layer crossing (jacobians single sign) — same loader pattern as `test_grid_tfi.py`.
+- [x] **Step 2: red** → **Step 3: implement** → **Step 4: suite green** → **Step 5: commit** `Add GridHyperbolic: front marching with implicit smoothing and farfield blend`
 
 ---
 
@@ -145,7 +145,7 @@ Write these as real tests with the loaders from `test_structured_topologies` / `
 - Implementation: **laplacian** — under-relaxed 4-neighbor average of unfrozen interior, periodic roll for O. **elliptic** — delegate: `GridElliptic.solve(rows[frozen_rows−1:], periodic=periodic, iterations=iterations)` spliced back (the last frozen row acts as the Dirichlet wall). **angle_based** — Zhou–Shimada-style torsion relaxation: each unfrozen interior node moves under-relaxed toward the average of the four positions that would make its edges meet neighbors at right angles.
 - Guard: if quality_after < quality_before, return the ORIGINAL rows with a logged warning (`smoothers never degrade` is enforced, not hoped for).
 
-- [ ] Tests: wall + frozen ortho rows bit-identical for all three methods; laplacian moves interior (delta > 0); elliptic mode delegates (patch `GridElliptic.solve`, assert called with sliced rows); quality never degrades on naca0012 + MW166 C/O grids; degradation guard returns original rows on a crafted case. Red → implement → green → commit `Add GridSmoothers: constrained Laplacian, elliptic, and angle-based smoothing`
+- [x] Tests: wall + frozen ortho rows bit-identical for all three methods; laplacian moves interior (delta > 0); elliptic mode delegates (patch `GridElliptic.solve`, assert called with sliced rows); quality never degrades on naca0012 + MW166 C/O grids; degradation guard returns original rows on a crafted case. Red → implement → green → commit `Add GridSmoothers: constrained Laplacian, elliptic, and angle-based smoothing`
 
 ---
 
@@ -168,3 +168,62 @@ Mark phases 2, 3, 5 as delivered in the spec's phasing section (one-line status 
 - **Spec coverage:** phase 2 (Winslow/TTM + control functions + boundary angle/spacing) → Tasks 1–2; phase 3 (Steger–Chan-style marching, periodic O / matched-or-prescribed C, ~20% blend) → Tasks 3–4; phase 5 (three smoothers, constraints, quality reporting, never-run-implicitly GUI default) → Tasks 5–6. Phase 4 excluded by design.
 - **Type consistency:** `solve` and `smooth` both return `(rows, info)`; `march` returns rows only (it cannot fail silently — the engine guard still runs). `frozen_rows` semantics identical in Tasks 5–6.
 - **Honest simplifications, named in module docstrings:** Sorenson forcing via boundary-adjacent correction rather than full P,Q iteration; hyperbolic dissipation via normal smoothing + implicit layer solve rather than the full linearized Steger–Chan system. Both are validated by the same no-inverted-cells matrix as everything else.
+
+## Execution notes (2026-08-25/26, all tasks completed)
+
+Deviations from the plan text, discovered while executing — same spirit as
+the phase-1 plan's own execution notes:
+
+- **GridElliptic needed a wall/corner anchor the plan didn't anticipate.**
+  A pure Winslow/TM relaxation squeezes and inverts the first cell at
+  convex wall corners (sharp/reflexed TE wedge, blunt base corners) once
+  the periodic seam is allowed to relax. Fixed by anchoring the near-wall
+  rows to their initial (TFI) positions with a release weight that goes
+  to 1 within `wall_anchor_rows` (default 4) — not in the original
+  interface, added as a keyword with a safe default. Verified against
+  MW-166 (the hard regression case) on both topologies.
+- **GridHyperbolic is not a fixed blend-fraction scheme** — the plan's
+  `march(..., blend_fraction=0.2, smoothing=0.5)` signature was replaced
+  by an **adaptive height-fraction cap with hand-off**:
+  `march(frame, *, normals, first_spacing, fraction_cap=0.5, smoothing=1.0)`.
+  Reasoning, in order of what was tried and rejected: pure normal
+  marching folds within a few layers on any cambered contour; guiding the
+  march toward a straight-line or TFI target (tested at multiple blend
+  powers) still folded on MW-166 (hundreds of inverted cells); the
+  working scheme instead **marches only while each new cell band stays
+  positively oriented** (checked every layer), up to `fraction_cap` of
+  the total wall-to-farfield height, then fills the remainder with a TFI
+  boundary-value solve from the marched front onto the exact outer
+  distribution — backing off geometrically on failure, with pure TFI as
+  the last-resort fallback. Achieves 0 inverted cells on all three
+  airfoils × both topologies × both TE types, marching a genuine 19–29
+  of 40 layers before hand-off (not a token few). `StructuredCore`'s
+  settings fields are named for what shipped: `hyperbolic_fraction_cap`,
+  `hyperbolic_smoothing` (no `hyperbolic_blend_fraction`).
+  Constant-coefficient implicit layer smoothing (plan's original
+  `(I - eps*D2)`) was also replaced with **metric-aware** smoothing —
+  `eps` scaled by `(marching step / local tangential spacing)^2` — since
+  a fixed `eps` under- or over-smooths depending on local point density.
+- **GridSmoothers' "angle_based" method is Thales-circle projection**,
+  not literally the Zhou–Shimada face-angle-bisection algorithm (which is
+  defined for general unstructured vertex valence, not a 4-neighbor
+  structured stencil): for neighbor pair (a, b), the locus of points
+  from which segment ab subtends a right angle is the circle with ab as
+  diameter, so the point on that circle nearest the current node is
+  exactly the 90°-target position. Same effect the plan asked for
+  ("moves toward the average of the four positions that would make its
+  edges meet neighbors at right angles"), derived from a cleaner
+  primitive.
+- **The quality guard fires in practice, not just in theory** — verified
+  empirically before writing its test: on a plain TFI grid, `elliptic`
+  and `angle_based` smoothing both trigger the revert on every airfoil/
+  topology combination tried (near-wall TFI quality is already tighter
+  than a generic relaxation pass produces), while `laplacian` sometimes
+  improves and sometimes reverts. The degrade test
+  (`test_guard_reverts_when_smoothing_would_degrade`) uses this real,
+  observed behavior rather than a synthetic setup.
+- Task 6 (engine + GUI wiring for the smoother stage) was implemented
+  and tested together rather than test-first per step, since it was pure
+  composition of already-tested pieces (`GridSmoothers.smooth`, the
+  existing engine dispatch pattern from Tasks 2/4); all listed tests
+  still exist and pass.

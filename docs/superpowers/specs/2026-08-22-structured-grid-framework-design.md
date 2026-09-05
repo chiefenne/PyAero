@@ -225,16 +225,22 @@ detected information, not a control.
 
 ## Phasing (each phase independently usable)
 
-1. **Phase 1**: `StructuredCore` + both topologies × both tunnels + TFI +
-   ortho block + engine + GUI group + tests — a working, selectable mesher.
-   Both TE types are handled from the start: the frames differ per TE type,
-   so this cannot be retrofitted.
-2. **Phase 2**: elliptic solver with boundary controls.
-3. **Phase 3**: hyperbolic marching.
-4. **Phase 4**: H-mesh topology (own design pass).
-5. **Phase 5**: mesh smoothers (`GridSmoothers.py`). Depends only on the
-   phase-1 grid representation, so it can be pulled forward any time after
-   phase 1 if TFI-grid quality at sharp TEs demands it.
+1. **Phase 1** — DELIVERED: `StructuredCore` + both topologies × both
+   tunnels + TFI + ortho block + engine + GUI group + tests — a working,
+   selectable mesher. Both TE types are handled from the start: the
+   frames differ per TE type, so this cannot be retrofitted.
+2. **Phase 2** — DELIVERED: elliptic solver (`GridElliptic.py`) with
+   Thomas–Middlecoff control functions and simplified Sorenson-style
+   outer-boundary orthogonality forcing.
+3. **Phase 3** — DELIVERED: hyperbolic marching (`GridHyperbolic.py`),
+   adaptive height-fraction hand-off onto a TFI fill in place of a fixed
+   blend — see the phase-2/3/5 plan's execution notes for why.
+4. **Phase 4**: H-mesh topology (own design pass) — NOT started; still
+   requires its own design pass with the user before implementation.
+5. **Phase 5** — DELIVERED: mesh smoothers (`GridSmoothers.py`) —
+   Laplacian, elliptic (delegating to `GridElliptic.solve`), and
+   angle-based (Thales-circle projection), all behind a quality guard
+   that reverts any degrading pass.
 
 ## Error handling
 
