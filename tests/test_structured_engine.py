@@ -210,6 +210,73 @@ class StructuredHyperbolicEngineTests(unittest.TestCase):
                 self.assertTrue(found)
 
 
+class StructuredSmootherEngineTests(unittest.TestCase):
+    def test_smoother_applied_with_correct_frozen_rows_main_frame(self):
+        import GridSmoothers
+        engine = StructuredEngine()
+        settings = core.StructuredMeshSettings(
+            topology='c', smoother='laplacian', smoother_iterations=3,
+            ortho_layers=6, normal_divisions=40, wake_points=40)
+        spline_data = _spline_data_for(_sharp_contour())
+        with mock.patch.object(GridSmoothers, 'smooth',
+                              wraps=GridSmoothers.smooth) as spy:
+            engine.build_blocks(spline_data=spline_data, settings=settings)
+        # first call is the main block; frozen_rows must protect the wall
+        # plus every ortho layer
+        _args, kwargs = spy.call_args_list[0]
+        self.assertEqual(kwargs['frozen_rows'], 1 + settings.ortho_layers)
+        self.assertEqual(kwargs['method'], 'laplacian')
+
+    def test_smoother_applied_with_frozen_rows_one_on_wake_strip(self):
+        import GridSmoothers
+        engine = StructuredEngine()
+        settings = core.StructuredMeshSettings(
+            topology='c', smoother='laplacian', smoother_iterations=3,
+            ortho_layers=6, normal_divisions=40, wake_points=40)
+        spline_data = _spline_data_for(_blunt_contour())
+        with mock.patch.object(GridSmoothers, 'smooth',
+                              wraps=GridSmoothers.smooth) as spy:
+            named = engine.build_blocks(spline_data=spline_data,
+                                        settings=settings)
+        names = [name for name, _block in named]
+        self.assertIn('block_structured_wake_strip', names)
+        strip_index = names.index('block_structured_wake_strip')
+        _args, kwargs = spy.call_args_list[strip_index]
+        self.assertEqual(kwargs['frozen_rows'], 1)
+
+    def test_smoother_none_skips_call(self):
+        import GridSmoothers
+        engine = StructuredEngine()
+        settings = core.StructuredMeshSettings(
+            topology='c', smoother='none', normal_divisions=30,
+            wake_points=30)
+        spline_data = _spline_data_for(_sharp_contour())
+        with mock.patch.object(GridSmoothers, 'smooth') as spy:
+            engine.build_blocks(spline_data=spline_data, settings=settings)
+        spy.assert_not_called()
+
+    def test_wall_verbatim_end_to_end_with_smoothing_on(self):
+        engine = StructuredEngine()
+        contour = _load_dat(MW166)
+        spline_data = _spline_data_for(contour)
+        prepared = core.contour_array(spline_data)
+        for method in ('laplacian', 'elliptic', 'angle_based'):
+            for topology in ('c', 'o'):
+                with self.subTest(method=method, topology=topology):
+                    settings = core.StructuredMeshSettings(
+                        topology=topology, smoother=method,
+                        smoother_iterations=8, normal_divisions=30,
+                        wake_points=30)
+                    named = engine.build_blocks(
+                        spline_data=spline_data, settings=settings)
+                    wall = np.asarray(named[0][1].getULines()[0])
+                    found = any(
+                        np.allclose(wall[s:s + len(prepared)], prepared,
+                                    atol=1e-12)
+                        for s in range(len(wall) - len(prepared) + 1))
+                    self.assertTrue(found)
+
+
 class StructuredDispatchTests(unittest.TestCase):
     def test_makemesh_dispatches_structured(self):
         import Meshing

@@ -7,10 +7,13 @@ and the wake strip behind the base.
 """
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 
 import GridElliptic
 import GridHyperbolic
+import GridSmoothers
 import GridTFI
 import OrthoLayers
 from BlockMesh import BlockMesh
@@ -23,6 +26,8 @@ from StructuredTopologies import build_frames, side_segment
 
 MAIN_BLOCK_NAME = 'block_structured'
 WAKE_STRIP_BLOCK_NAME = 'block_structured_wake_strip'
+
+logger = logging.getLogger(__name__)
 
 
 class StructuredEngine:
@@ -37,12 +42,32 @@ class StructuredEngine:
             if frame.kind == 'wake_strip':
                 rows = GridTFI.fill(frame, 'standard')
                 name = WAKE_STRIP_BLOCK_NAME
+                frozen_rows = 1
             else:
                 rows = self._fill_main_frame(frame, spline_data, settings)
                 name = MAIN_BLOCK_NAME
+                frozen_rows = 1 + settings.ortho_layers
+            rows = self._apply_smoother(rows, frame, settings, frozen_rows,
+                                        name)
             self._reject_inverted(rows, name)
             named_blocks.append((name, self._emit_block(name, rows)))
         return named_blocks
+
+    @staticmethod
+    def _apply_smoother(rows, frame, settings: StructuredMeshSettings,
+                        frozen_rows: int, name: str) -> np.ndarray:
+        if settings.smoother == 'none':
+            return rows
+        rows, info = GridSmoothers.smooth(
+            rows, method=settings.smoother,
+            iterations=settings.smoother_iterations,
+            periodic=frame.periodic, frozen_rows=frozen_rows,
+        )
+        logger.info(
+            'Structured block %r: %s smoother quality %.3e -> %.3e',
+            name, settings.smoother, info['quality_before'],
+            info['quality_after'])
+        return rows
 
     def _volume_fill(self, frame, settings: StructuredMeshSettings, *,
                      spline_data=None, corner_indices=None) -> np.ndarray:

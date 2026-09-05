@@ -28,6 +28,8 @@ class StructuredMeshSettings:
     elliptic_relaxation: float = 0.8
     hyperbolic_fraction_cap: float = 0.5
     hyperbolic_smoothing: float = 1.0
+    smoother: str = 'none'   # 'none' | 'laplacian' | 'elliptic' | 'angle_based'
+    smoother_iterations: int = 10
     normal_divisions: int = 60         # total wall->outer cells (incl. ortho)
     first_layer_thickness: float = 0.002
     wake_points: int = 60              # nodes along each wake cut (C-mesh)

@@ -222,6 +222,23 @@ def _build_structured_group(toolbox):
     form.addRow(make_page_label('Outer boundary angle'),
                 toolbox.structured_outer_angle)
 
+    toolbox.structured_smoother = QtWidgets.QComboBox()
+    toolbox.structured_smoother.addItem('None', userData='none')
+    toolbox.structured_smoother.addItem('Laplacian', userData='laplacian')
+    toolbox.structured_smoother.addItem('Elliptic', userData='elliptic')
+    toolbox.structured_smoother.addItem('Angle-based',
+                                        userData='angle_based')
+    toolbox.structured_smoother.setToolTip(
+        'Optional post-smoothing pass; never runs implicitly and never '
+        'lowers mesh quality (a degrading pass is reverted).')
+    form.addRow(make_page_label('Smoother'), toolbox.structured_smoother)
+
+    toolbox.structured_smoother_iterations = QtWidgets.QSpinBox()
+    toolbox.structured_smoother_iterations.setRange(1, 500)
+    toolbox.structured_smoother_iterations.setValue(10)
+    form.addRow(make_page_label('Smoother iterations'),
+                toolbox.structured_smoother_iterations)
+
     layout.addLayout(form)
 
     group = QtWidgets.QGroupBox('Structured Grid')
@@ -243,6 +260,9 @@ def structured_settings_from_toolbox(toolbox):
         elliptic_iterations=toolbox.structured_elliptic_iterations.value(),
         hyperbolic_fraction_cap=(
             toolbox.structured_hyperbolic_fraction_cap.value()),
+        smoother=toolbox.structured_smoother.currentData(),
+        smoother_iterations=(
+            toolbox.structured_smoother_iterations.value()),
         normal_divisions=toolbox.structured_normal_divisions.value(),
         first_layer_thickness=toolbox.structured_first_layer.value(),
         wake_points=toolbox.structured_wake_points.value(),

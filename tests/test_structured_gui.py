@@ -86,3 +86,21 @@ def test_structured_hyperbolic_defaults():
     settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
     assert abs(settings.hyperbolic_fraction_cap - 0.5) < 1e-9
     assert abs(settings.hyperbolic_smoothing - 1.0) < 1e-9
+
+
+def test_structured_smoother_defaults_to_none():
+    toolbox = _toolbox_with_group()
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.smoother == 'none'
+    assert settings.smoother_iterations == 10
+
+
+def test_structured_smoother_selection_roundtrip():
+    toolbox = _toolbox_with_group()
+    index = toolbox.structured_smoother.findData('angle_based')
+    assert index >= 0
+    toolbox.structured_smoother.setCurrentIndex(index)
+    toolbox.structured_smoother_iterations.setValue(25)
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.smoother == 'angle_based'
+    assert settings.smoother_iterations == 25
