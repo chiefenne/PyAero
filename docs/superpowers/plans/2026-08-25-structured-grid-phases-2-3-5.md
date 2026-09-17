@@ -227,3 +227,73 @@ the phase-1 plan's own execution notes:
   composition of already-tested pieces (`GridSmoothers.smooth`, the
   existing engine dispatch pattern from Tasks 2/4); all listed tests
   still exist and pass.
+
+## Follow-up: mesh-menu polish and an adjacent TE-strictness fix (2026-09-17)
+
+Prompted by an audit of sharp/blunt trailing-edge handling across all
+meshing engines (not just Structured). Findings and changes, for the
+record — none of this reopens phases 1/2/3/5 above, which stand as
+delivered:
+
+- **The Structured engine's own TE handling was already strict and
+  correct** (this plan's phase 1 groundwork, confirmed unchanged):
+  `StructuredCore.detect_te_type` drives frame construction, seam
+  curvature, ortho-layer corner blending, elliptic wall-anchoring, and
+  hyperbolic's metric-aware smoothing consistently for both TE types.
+- **The Metric-based engine was not strict**: it silently bridged an
+  open (blunt) contour with a straight synthetic segment and always
+  reported `te_geometry: 'sharp'` in its layout metadata regardless of
+  the actual input, contradicting its own documented sharp-TE-only
+  scope. Fixed in `QuadLayout._prepare_boundary_loop` /
+  `_boundary_loops_from_input` (new `require_closed` parameter, `False`
+  by default so the `multi_element_oc` hybrid layout keeps its
+  intentional auto-closing behavior) and wired to `True` only for
+  `generate_metric_c_grid`, which now raises a clear `ValueError`
+  instead of mismeshing. Test:
+  `test_metric_c_grid_rejects_blunt_trailing_edge` in
+  `tests/test_quad_pipeline.py`.
+- **Structured Grid menu restructured for algorithm-first selection**
+  (the GUI section above is updated in place): Algorithm combo reduced
+  to the three algorithm names; TFI variant / Elliptic
+  iterations+relaxation / Hyperbolic march-height-fraction now show only
+  for their own algorithm via `QFormLayout.setRowVisible`; outer
+  clustering ratio and smoother iterations likewise gated on their
+  parent setting. `elliptic_relaxation` — present in
+  `StructuredMeshSettings` and consumed by `GridElliptic.solve` since
+  Task 1, but with no GUI control — now has one (`structured_elliptic_relaxation`,
+  default 0.8, matching the dataclass default). While auditing why
+  `angle_mode='orthogonal'` seemed to have no effect for some
+  combinations, found it's by design, not a bug (see the spec's
+  "Outer-boundary point and tangent control" section, updated in place):
+  only Elliptic and Hermite TFI implement it. Chose to make the GUI
+  honest about this (row disabled + explanatory tooltip outside those
+  two combinations) rather than changing Standard TFI's or Hyperbolic's
+  numerics to accept a setting neither was designed around — the lower-
+  risk fix, and consistent with "don't touch validated algorithm math
+  for a menu request." Tests: `test_algorithm_specific_rows_follow_algorithm_choice`,
+  `test_outer_ratio_row_only_visible_when_clustered`,
+  `test_smoother_iterations_row_only_visible_when_smoother_active`,
+  `test_outer_angle_enabled_only_where_it_takes_effect`, plus updated
+  roundtrip tests, all in `tests/test_structured_gui.py`.
+- **Metric-based menu tightened to admit it has no real choice yet**:
+  "Layout family" / "Singularity model" combos (one item each) are now
+  disabled with a tooltip, and the intro text says plainly that this is
+  a fixed pipeline. Test: `tests/test_metric_group_gui.py`.
+- **Unused menu-layer code deleted** from `src/ToolboxPagesMeshing.py`
+  and `src/ToolBox.py`: the orphaned `_build_hybrid_group`,
+  `_build_hybrid_staged_group`, `_build_experimental_c_group`,
+  `_build_experimental_o_group`, `_build_smoothing_group`,
+  `_build_trailing_edge_mesh_form` builders (never called — the mesh
+  engine selector only ever offered `metric_based`/`structured`), the
+  dead `mesh_engine_changed` branches keyed on `'standard'`/`'hybrid'`/
+  `'hybrid_staged'`/`'experimental_c'`/`'experimental_o'` (unreachable
+  since the selector can't produce those values), and
+  `hybrid_controls_changed`/`hybrid_staged_controls_changed`/
+  `_hybridStagedStatusText` (every widget they touched was `None`).
+  Scoped deliberately to the GUI layer only — the backend
+  `hybrid`/`hybrid_staged`/`experimental_c`/`experimental_o` engines in
+  `Meshing.py`/`QuadPipeline.py`/`ExperimentalCGrid.py`/
+  `ExperimentalOGrid.py` are untouched and still exercised by
+  `tests/test_quad_pipeline.py` and `tests/test_experimental_c_grid.py`;
+  re-exposing them as selectable engines again, or removing them
+  outright, is a separate decision this pass didn't make.

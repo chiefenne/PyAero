@@ -40,7 +40,9 @@ def test_structured_group_selection_roundtrip():
     toolbox = _toolbox_with_group()
     toolbox.structured_topology.setCurrentIndex(1)      # O-grid
     toolbox.structured_tunnel_shape.setCurrentIndex(1)  # circular
-    toolbox.structured_algorithm.setCurrentIndex(1)     # TFI Hermite
+    index = toolbox.structured_algorithm.findData('tfi')
+    toolbox.structured_algorithm.setCurrentIndex(index)
+    toolbox.structured_tfi_variant.setCurrentIndex(1)   # Hermite
     toolbox.structured_ortho_layers.setValue(8)
     settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
     assert settings.topology == 'o'
@@ -59,19 +61,27 @@ def test_structured_algorithm_defaults_to_tfi():
 
 def test_structured_elliptic_selection():
     toolbox = _toolbox_with_group()
-    index = toolbox.structured_algorithm.findData('elliptic:standard')
+    index = toolbox.structured_algorithm.findData('elliptic')
     assert index >= 0
     toolbox.structured_algorithm.setCurrentIndex(index)
     toolbox.structured_elliptic_iterations.setValue(80)
+    toolbox.structured_elliptic_relaxation.setValue(0.6)
     settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
     assert settings.algorithm == 'elliptic'
     assert settings.tfi_variant == 'standard'
     assert settings.elliptic_iterations == 80
+    assert abs(settings.elliptic_relaxation - 0.6) < 1e-9
+
+
+def test_structured_elliptic_relaxation_default():
+    toolbox = _toolbox_with_group()
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert abs(settings.elliptic_relaxation - 0.8) < 1e-9
 
 
 def test_structured_hyperbolic_selection():
     toolbox = _toolbox_with_group()
-    index = toolbox.structured_algorithm.findData('hyperbolic:standard')
+    index = toolbox.structured_algorithm.findData('hyperbolic')
     assert index >= 0
     toolbox.structured_algorithm.setCurrentIndex(index)
     toolbox.structured_hyperbolic_fraction_cap.setValue(0.35)
@@ -104,3 +114,68 @@ def test_structured_smoother_selection_roundtrip():
     settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
     assert settings.smoother == 'angle_based'
     assert settings.smoother_iterations == 25
+
+
+def _row_visible(toolbox, widget):
+    return toolbox.structured_form.isRowVisible(widget)
+
+
+def test_algorithm_specific_rows_follow_algorithm_choice():
+    toolbox = _toolbox_with_group()
+    form = toolbox.structured_form
+
+    # Default algorithm is TFI: only the TFI variant row shows.
+    assert _row_visible(toolbox, toolbox.structured_tfi_variant)
+    assert not _row_visible(toolbox, toolbox.structured_elliptic_iterations)
+    assert not _row_visible(toolbox, toolbox.structured_elliptic_relaxation)
+    assert not _row_visible(toolbox, toolbox.structured_hyperbolic_fraction_cap)
+
+    toolbox.structured_algorithm.setCurrentIndex(
+        toolbox.structured_algorithm.findData('elliptic'))
+    assert not _row_visible(toolbox, toolbox.structured_tfi_variant)
+    assert _row_visible(toolbox, toolbox.structured_elliptic_iterations)
+    assert _row_visible(toolbox, toolbox.structured_elliptic_relaxation)
+    assert not _row_visible(toolbox, toolbox.structured_hyperbolic_fraction_cap)
+
+    toolbox.structured_algorithm.setCurrentIndex(
+        toolbox.structured_algorithm.findData('hyperbolic'))
+    assert not _row_visible(toolbox, toolbox.structured_tfi_variant)
+    assert not _row_visible(toolbox, toolbox.structured_elliptic_iterations)
+    assert not _row_visible(toolbox, toolbox.structured_elliptic_relaxation)
+    assert _row_visible(toolbox, toolbox.structured_hyperbolic_fraction_cap)
+    assert form is toolbox.structured_form
+
+
+def test_outer_ratio_row_only_visible_when_clustered():
+    toolbox = _toolbox_with_group()
+    assert not _row_visible(toolbox, toolbox.structured_outer_ratio)
+    toolbox.structured_outer_distribution.setCurrentIndex(
+        toolbox.structured_outer_distribution.findData('clustered'))
+    assert _row_visible(toolbox, toolbox.structured_outer_ratio)
+
+
+def test_smoother_iterations_row_only_visible_when_smoother_active():
+    toolbox = _toolbox_with_group()
+    assert not _row_visible(toolbox, toolbox.structured_smoother_iterations)
+    toolbox.structured_smoother.setCurrentIndex(
+        toolbox.structured_smoother.findData('laplacian'))
+    assert _row_visible(toolbox, toolbox.structured_smoother_iterations)
+
+
+def test_outer_angle_enabled_only_where_it_takes_effect():
+    toolbox = _toolbox_with_group()
+
+    # Default: TFI + Standard variant -> angle_mode is ignored by the solver.
+    assert not toolbox.structured_outer_angle.isEnabled()
+
+    toolbox.structured_tfi_variant.setCurrentIndex(
+        toolbox.structured_tfi_variant.findData('hermite'))
+    assert toolbox.structured_outer_angle.isEnabled()
+
+    toolbox.structured_algorithm.setCurrentIndex(
+        toolbox.structured_algorithm.findData('elliptic'))
+    assert toolbox.structured_outer_angle.isEnabled()
+
+    toolbox.structured_algorithm.setCurrentIndex(
+        toolbox.structured_algorithm.findData('hyperbolic'))
+    assert not toolbox.structured_outer_angle.isEnabled()

@@ -662,8 +662,6 @@ class Toolbox(QtWidgets.QWidget):
                 self.applySplineFillPreference(airfoil)
 
         self._updateGeometryActionButtons(airfoil)
-        if hasattr(self, 'hybrid_staged_controls_changed'):
-            self.hybrid_staged_controls_changed()
 
         if not hasattr(self, 'tb1'):
             return
@@ -1122,32 +1120,13 @@ class Toolbox(QtWidgets.QWidget):
 
         engine = selector.currentData()
         self.mesh_engine = engine or 'metric_based'
-        if self.mesh_engine == 'experimental':
-            self.mesh_engine = 'experimental_c'
-        is_hybrid_staged = self.mesh_engine == 'hybrid_staged'
 
         airfoil_group = getattr(self, 'mesh_airfoil_group', None)
         if airfoil_group is not None:
-            show_airfoil = self.mesh_engine in (
-                'standard',
-                'hybrid',
-                'hybrid_staged',
-                'metric_based',
-            )
+            # the structured engine owns its own airfoil-side settings
+            show_airfoil = self.mesh_engine != 'structured'
             airfoil_group.setVisible(show_airfoil)
             airfoil_group.setEnabled(show_airfoil)
-
-        te_group = getattr(self, 'mesh_te_group', None)
-        if te_group is not None:
-            show_te = self.mesh_engine in ('standard', 'hybrid')
-            te_group.setVisible(show_te)
-            te_group.setEnabled(show_te)
-
-        smoothing_group = getattr(self, 'mesh_smoothing_group', None)
-        if smoothing_group is not None:
-            show_smoothing = self.mesh_engine in ('standard', 'hybrid')
-            smoothing_group.setVisible(show_smoothing)
-            smoothing_group.setEnabled(show_smoothing)
 
         tunnel_group = getattr(self, 'mesh_tunnel_group', None)
         if tunnel_group is not None:
@@ -1155,11 +1134,6 @@ class Toolbox(QtWidgets.QWidget):
             show_tunnel = self.mesh_engine != 'structured'
             tunnel_group.setVisible(show_tunnel)
             tunnel_group.setEnabled(show_tunnel)
-
-        wake_group = getattr(self, 'mesh_wake_group', None)
-        if wake_group is not None:
-            wake_group.setVisible(True)
-            wake_group.setEnabled(True)
 
         for engine_name, engine_group in getattr(
                 self,
@@ -1169,123 +1143,6 @@ class Toolbox(QtWidgets.QWidget):
             is_active = engine_name == self.mesh_engine
             engine_group.setVisible(is_active)
             engine_group.setEnabled(is_active)
-
-        wake_group = getattr(self, 'mesh_wake_group', None)
-        if wake_group is not None:
-            farfield_selector = getattr(
-                self,
-                'experimental_o_farfield_shape',
-                None,
-            )
-            farfield_shape = (
-                farfield_selector.currentData()
-                if farfield_selector is not None else 'wind_tunnel'
-            )
-            wake_group.setEnabled(
-                not (
-                    self.mesh_engine == 'experimental_o' and
-                    farfield_shape == 'circle'
-                )
-            )
-        create_mesh_panel = getattr(self, 'createMeshActionPanel', None)
-        if create_mesh_panel is not None:
-            create_mesh_panel.setVisible(not is_hybrid_staged)
-        self.hybrid_controls_changed()
-        self.hybrid_staged_controls_changed()
-
-    def hybrid_controls_changed(self, _index=None):
-        stage2_enabled = bool(
-            getattr(self, 'hybrid_stage2_enabled', None) and
-            self.hybrid_stage2_enabled.isChecked()
-        )
-        stage1_enabled = bool(
-            getattr(self, 'hybrid_stage1_enabled', None) and
-            self.hybrid_stage1_enabled.isChecked()
-        )
-
-        for control_name in (
-                'hybrid_stage2_sweeps',
-                'hybrid_redistribute_u',
-                'hybrid_redistribute_v'):
-            control = getattr(self, control_name, None)
-            if control is not None:
-                control.setEnabled(stage2_enabled)
-
-        stage1_algorithm = getattr(self, 'hybrid_stage1_algorithm', None)
-        algorithm_key = (
-            stage1_algorithm.currentData()
-            if stage1_algorithm is not None else 'angle_based'
-        )
-        stage1_controls_enabled = stage1_enabled and algorithm_key != 'none'
-
-        for control_name in (
-                'hybrid_stage1_algorithm',
-                'hybrid_stage1_iterations',
-                'hybrid_stage1_tolerance'):
-            control = getattr(self, control_name, None)
-            if control is not None:
-                control.setEnabled(stage1_enabled)
-
-        relaxation = getattr(self, 'hybrid_stage1_relaxation', None)
-        if relaxation is not None:
-            relaxation.setEnabled(stage1_controls_enabled and algorithm_key == 'elliptic')
-
-    def hybrid_staged_controls_changed(self, _index=None):
-        engine_active = getattr(self, 'mesh_engine', 'standard') == 'hybrid_staged'
-        airfoil = self._active_airfoil()
-        airfoil_ready = airfoil is not None and airfoil.has_spline
-        wind_tunnel = getattr(self, 'wind_tunnel', None)
-        stage_state = getattr(wind_tunnel, 'hybrid_stage_state', {}) or {}
-        stage4_ready = bool(
-            wind_tunnel is not None and
-            getattr(wind_tunnel, 'mesh_engine', None) == 'hybrid_staged' and
-            stage_state.get('stage4', False)
-        )
-
-        for control_name in (
-                'hybrid_staged_stage2_sweeps',
-                'hybrid_staged_redistribute_u',
-                'hybrid_staged_redistribute_v'):
-            control = getattr(self, control_name, None)
-            if control is not None:
-                control.setEnabled(engine_active and stage4_ready)
-
-        algorithm = getattr(self, 'hybrid_staged_stage1_algorithm', None)
-        algorithm_key = (
-            algorithm.currentData()
-            if algorithm is not None else 'angle_based'
-        )
-        for control_name in (
-                'hybrid_staged_stage1_algorithm',
-                'hybrid_staged_stage1_iterations',
-                'hybrid_staged_stage1_tolerance'):
-            control = getattr(self, control_name, None)
-            if control is not None:
-                control.setEnabled(engine_active and stage4_ready)
-
-        relaxation = getattr(self, 'hybrid_staged_stage1_relaxation', None)
-        if relaxation is not None:
-            relaxation.setEnabled(
-                engine_active and
-                stage4_ready and
-                algorithm_key == 'elliptic'
-            )
-
-        stage4_button = getattr(self, 'hybridStagedStage4Button', None)
-        if stage4_button is not None:
-            stage4_button.setEnabled(engine_active and airfoil_ready)
-
-        stage2_button = getattr(self, 'hybridStagedStage2Button', None)
-        if stage2_button is not None:
-            stage2_button.setEnabled(engine_active and stage4_ready)
-
-        stage1_button = getattr(self, 'hybridStagedStage1Button', None)
-        if stage1_button is not None:
-            stage1_button.setEnabled(engine_active and stage4_ready)
-
-        status = getattr(self, 'hybrid_staged_status_label', None)
-        if status is not None:
-            status.setText(self._hybridStagedStatusText())
 
     def _active_airfoil(self):
         return getattr(self.mw, 'airfoil', None)
@@ -1409,41 +1266,6 @@ class Toolbox(QtWidgets.QWidget):
         if normalized != text:
             widget.setText(normalized)
         return value
-
-    def _hybridStagedStatusText(self):
-        airfoil = self._active_airfoil()
-        if airfoil is None:
-            return 'Load an airfoil and prepare its contour before running Stage 4.'
-        if not airfoil.has_spline:
-            return 'Prepare the contour first. Stage 4 uses the prepared spline geometry.'
-
-        wind_tunnel = getattr(self, 'wind_tunnel', None)
-        if wind_tunnel is None or getattr(wind_tunnel, 'mesh_engine', None) != 'hybrid_staged':
-            return 'Stage 4 has not been run yet. Run Stage 4 to build the layout-driven mesh.'
-
-        stage_state = getattr(wind_tunnel, 'hybrid_stage_state', {}) or {}
-        if not stage_state.get('stage4', False):
-            return 'Stage 4 has not been run yet. Run Stage 4 to build the layout-driven mesh.'
-
-        layout_plan = getattr(wind_tunnel, 'layout_plan', None)
-        stage4_metadata = getattr(wind_tunnel, 'pipeline_metadata', {}).get('stage4', {})
-        block_count = len(getattr(wind_tunnel, 'blocks', []) or [])
-        element_count = int(stage4_metadata.get('element_count', 0))
-        singularity_count = int(stage4_metadata.get('singularity_count', 0))
-        if layout_plan is not None:
-            element_count = max(element_count, len(getattr(layout_plan, 'boundary_loops', [])))
-            singularity_count = max(
-                singularity_count,
-                len(getattr(layout_plan, 'singularities', [])),
-            )
-
-        stage2_text = 'applied' if stage_state.get('stage2', False) else 'not applied'
-        stage1_text = 'applied' if stage_state.get('stage1', False) else 'not applied'
-        return (
-            f'Stage 4 ready: {block_count} blocks across {element_count} element loops, '
-            f'{singularity_count} singularities. Stage 2 is {stage2_text}. '
-            f'Stage 1 is {stage1_text}. Run Stage 4 again any time to restart from the geometry.'
-        )
 
     def selectedSplineMethod(self):
         method_selector = getattr(self, 'spline_method', None)

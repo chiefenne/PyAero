@@ -260,12 +260,21 @@ def _sort_loops_by_streamwise_position(boundary_loops: Sequence[np.ndarray]
 
 
 def _prepare_boundary_loop(loop, *, surface_points: int | None, minimum_points: int,
-                           trailing_edge_divisions: int) -> np.ndarray:
+                           trailing_edge_divisions: int,
+                           require_closed: bool = False) -> np.ndarray:
     points = _as_loop_points(loop)
     if len(points) < 3:
         raise ValueError('Each boundary loop requires at least three points.')
 
-    if np.allclose(points[0], points[-1], atol=1.0e-10):
+    is_closed = np.allclose(points[0], points[-1], atol=1.0e-10)
+    if not is_closed and require_closed:
+        raise ValueError(
+            'This layout requires a sharp (closed) trailing edge; the '
+            'contour has an open TE gap. Use the Structured engine for '
+            'blunt trailing edges.'
+        )
+
+    if is_closed:
         closed = np.array(points, copy=True, dtype=float)
         closed[-1] = closed[0]
     else:
@@ -527,7 +536,8 @@ class QuadLayoutGenerator:
     @classmethod
     def _boundary_loops_from_input(cls, boundary_points=None, *, boundary_loops=None,
                                    metadata=None, surface_points: int | Sequence[int] | None,
-                                   trailing_edge_divisions: int) -> list[np.ndarray]:
+                                   trailing_edge_divisions: int,
+                                   require_closed: bool = False) -> list[np.ndarray]:
         metadata = dict(metadata or {})
         loop_inputs = boundary_loops
         if loop_inputs is None:
@@ -551,6 +561,7 @@ class QuadLayoutGenerator:
                 surface_points=target_points,
                 minimum_points=MINIMUM_LOOP_POINTS,
                 trailing_edge_divisions=trailing_edge_divisions,
+                require_closed=require_closed,
             )
             for loop, target_points in zip(loop_inputs, surface_targets)
         ]
@@ -965,6 +976,7 @@ class QuadLayoutGenerator:
             metadata=metadata,
             surface_points=surface_points,
             trailing_edge_divisions=trailing_edge_divisions,
+            require_closed=True,
         )
         if len(boundary_loops) != 1:
             raise ValueError(

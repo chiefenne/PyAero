@@ -379,6 +379,24 @@ class HybridQuadPipelineTests(unittest.TestCase):
             float(np.min(plan.boundary_loops[0][:-1, 0])) - 3.0,
         )
 
+    def test_metric_c_grid_rejects_blunt_trailing_edge(self):
+        blunt = (
+            np.array([1.0, 0.7, 0.2, 0.0, 0.2, 0.7, 1.0], dtype=float),
+            np.array([0.03, 0.08, 0.10, 0.0, -0.10, -0.08, -0.03], dtype=float),
+        )
+
+        with self.assertRaises(ValueError):
+            QuadLayout.QuadLayoutGenerator.generate_metric_c_grid(
+                blunt,
+                tunnel_height=3.5,
+                wake_length=6.0,
+                surface_points=len(blunt[0]),
+                normal_divisions=12,
+                first_layer_thickness=0.004,
+                connector_layers=40,
+                trailing_edge_divisions=3,
+            )
+
     def test_metric_pipeline_stage4_builds_c_grid_block(self):
         pipeline = QuadPipeline.HybridQuadPipeline()
         settings = QuadPipeline.HybridQuadPipelineSettings(

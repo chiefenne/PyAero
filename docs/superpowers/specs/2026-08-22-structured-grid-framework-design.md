@@ -164,11 +164,24 @@ at the boundary (free, or orthogonal). Honored per algorithm:
 - **Elliptic**: Steger–Sorenson-style control functions — source terms P, Q
   iteratively adjusted to meet prescribed angle and first-cell spacing at the
   tunnel boundary.
-- **Hyperbolic**: marches freely from the wall (its strength) and blends its
-  final layers (fraction adjustable, default ~20%) onto the exact prescribed
-  tunnel-boundary distribution. This is the standard resolution of the fact
-  that hyperbolic marching does not naturally terminate on a prescribed
-  boundary — the one real design tension in the matrix.
+- **Hyperbolic**: marches freely from the wall (its strength); the remainder
+  is filled onto the exact prescribed tunnel-boundary distribution by the
+  same algebraic hand-off the ortho block uses (see phase-3 execution notes
+  for why this replaced the originally planned fixed-fraction blend). That
+  hand-off always uses the Boolean-sum TFI variant, so — like Standard TFI
+  below — it does **not** honor `angle_mode='orthogonal'`; the GUI disables
+  the outer-boundary-angle control for Hyperbolic rather than accepting a
+  setting it cannot apply.
+
+Only two of the four algorithm/variant combinations actually implement
+`angle_mode='orthogonal'`: **Elliptic** (Sorenson-style forcing) and
+**Hermite TFI** (its boundary-derivative terms give it a tangent to bend
+toward). **Standard TFI** is a plain Boolean-sum Coons patch with no
+tangent terms to steer, and **Hyperbolic**'s algebraic hand-off reuses
+Standard TFI — both ignore the setting by construction, not by omission.
+The GUI reflects this directly (row enabled only for those two
+combinations, tooltipped otherwise) instead of silently accepting a
+control that would have no effect.
 
 ### Algorithms
 
@@ -217,11 +230,21 @@ One new "Structured" entry in the existing engine selector
 ([src/ToolboxPagesMeshing.py](../../../src/ToolboxPagesMeshing.py)), with a
 settings group: topology (O/C), tunnel shape (legacy/circular + parameters),
 algorithm (TFI/elliptic/hyperbolic), ortho-block controls (layers, first
-height, growth), outer-boundary controls (distribution, angle), plus
-algorithm-specific sub-groups following the existing
-`mesh_engine_specific_groups` pattern. Phase 5 adds a smoother sub-group
-(selector, default none, plus iteration count). TE type is shown as
-detected information, not a control.
+height, growth), outer-boundary controls (distribution, angle), plus a
+smoother sub-group (selector, default none, plus iteration count, phase 5).
+TE type is shown as detected information, not a control.
+
+DELIVERED (2026-09-17 menu pass, after phase 5): the Algorithm combo carries
+only the three algorithm names; algorithm-specific rows (TFI variant;
+Elliptic iterations + relaxation; Hyperbolic march-height fraction) show and
+hide via `QFormLayout.setRowVisible` as the selection changes, instead of
+all sixteen rows sitting flatly visible regardless of algorithm. Two more
+rows follow the same pattern: outer clustering ratio only when the outer
+distribution is "Clustered", smoother iterations only when a smoother is
+selected. The Metric-based engine's "Layout family" / "Singularity model"
+combos — each with exactly one item, since that engine is a fixed pipeline
+with no algorithm choice yet — are disabled rather than left interactable,
+so the menu doesn't imply a choice that isn't there.
 
 ## Phasing (each phase independently usable)
 
