@@ -148,44 +148,6 @@ class WorkflowService:
             return None
         return wind_tunnel
 
-    def generate_hybrid_stage4(self, settings):
-        airfoil = self.require_airfoil(require_spline=True)
-
-        wind_tunnel = Meshing.Windtunnel()
-        completed = wind_tunnel.makeHybridStage4Mesh(
-            settings=settings,
-            airfoil=airfoil,
-        )
-        if not completed:
-            return None
-        return wind_tunnel
-
-    def apply_hybrid_stage2(self, wind_tunnel, settings):
-        if wind_tunnel is None:
-            raise ValueError('Please run Stage 4 first.')
-
-        airfoil = self.require_airfoil(require_spline=True)
-        completed = wind_tunnel.applyHybridStage2(
-            settings=settings,
-            airfoil=airfoil,
-        )
-        if not completed:
-            return None
-        return wind_tunnel
-
-    def apply_hybrid_stage1(self, wind_tunnel, settings):
-        if wind_tunnel is None:
-            raise ValueError('Please run Stage 4 first.')
-
-        airfoil = self.require_airfoil(require_spline=True)
-        completed = wind_tunnel.applyHybridStage1(
-            settings=settings,
-            airfoil=airfoil,
-        )
-        if not completed:
-            return None
-        return wind_tunnel
-
     def export_mesh(self, wind_tunnel, filename: str,
                     settings: MeshExportSettings):
         if wind_tunnel is None:
@@ -341,45 +303,6 @@ class ToolboxWorkflowController:
         self.toolbox.box_meshexport.setEnabled(True)
         self.toolbox.refreshWorkflowState()
         return wind_tunnel
-
-    def generate_hybrid_stage4(self, settings):
-        try:
-            wind_tunnel = self.service.generate_hybrid_stage4(settings)
-        except ValueError as error:
-            self._show_message(str(error))
-            return None
-        if wind_tunnel is None:
-            return None
-
-        self.toolbox.box_meshexport.setEnabled(True)
-        self.toolbox.refreshWorkflowState()
-        return wind_tunnel
-
-    def apply_hybrid_stage2(self, wind_tunnel, settings):
-        try:
-            updated = self.service.apply_hybrid_stage2(wind_tunnel, settings)
-        except ValueError as error:
-            self._show_message(str(error))
-            return None
-        if updated is None:
-            return None
-
-        self.toolbox.box_meshexport.setEnabled(True)
-        self.toolbox.refreshWorkflowState()
-        return updated
-
-    def apply_hybrid_stage1(self, wind_tunnel, settings):
-        try:
-            updated = self.service.apply_hybrid_stage1(wind_tunnel, settings)
-        except ValueError as error:
-            self._show_message(str(error))
-            return None
-        if updated is None:
-            return None
-
-        self.toolbox.box_meshexport.setEnabled(True)
-        self.toolbox.refreshWorkflowState()
-        return updated
 
     def prepare_contour_analysis(self):
         airfoil = self._require_airfoil(require_spline=True)

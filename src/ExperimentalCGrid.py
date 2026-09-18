@@ -57,16 +57,13 @@ class ExperimentalCGridSettings:
 
 
 class ExperimentalCGridGenerator:
-    """Experimental C-grid generator with sharp- and finite-TE paths."""
-
-    cut_interface_scale = 0.15
+    """Experimental C-grid generator for the sharp-TE metric-based mesher."""
 
     def build_block(self, contour, *, radius: float, wake_length: float,
                     settings: ExperimentalCGridSettings) -> BlockMesh:
         contour_points = self._prepare_contour(
             contour,
             settings.surface_points,
-            closed=True,
         )
         reference_te_x = self._reference_trailing_edge_x(contour_points)
         te_spacing = self._trailing_edge_spacing(contour_points)
@@ -103,120 +100,15 @@ class ExperimentalCGridGenerator:
         x_grid, y_grid = self._refine_outer_grid(x_grid, y_grid, settings)
         return self._arrays_to_block(x_grid, y_grid, settings.name)
 
-    def build_blunt_blocks(self, contour, *, radius: float, wake_length: float,
-                           settings: ExperimentalCGridSettings,
-                           trailing_edge_settings) -> list[BlockMesh]:
-        contour_points = self._prepare_contour(
-            contour,
-            settings.surface_points,
-            closed=False,
-        )
-        reference_te_x = self._reference_trailing_edge_x(contour_points)
-        te_spacing = self._trailing_edge_spacing(contour_points)
-
-        te_block = self._build_trailing_edge_patch(
-            contour_points,
-            trailing_edge_settings,
-            name=f'{settings.name}_te_patch',
-        )
-        upper_side, lower_side = self._extract_patch_side_lines(
-            te_block,
-            contour_points,
-        )
-        downstream_face = self._extract_downstream_face(
-            te_block,
-            upper_side[-1],
-            lower_side[-1],
-        )
-        cut_line = self._build_cut_line(
-            downstream_face,
-            reference_te_x=reference_te_x,
-            wake_length=float(wake_length),
-            first_layer=settings.first_layer_thickness,
-        )
-
-        upper_wake, lower_wake = self._build_wake_branches(
-            start_point=downstream_face[0],
-            end_point=downstream_face[-1],
-            reference_te_x=reference_te_x,
-            wake_length=float(wake_length),
-            point_count=settings.wake_points,
-            first_spacing=te_spacing,
-            cut_line=cut_line,
-        )
-
-        surface_path = self._compose_segments(
-            upper_side[::-1],
-            contour_points,
-            lower_side,
-        )
-        inner_boundary = self._compose_inner_boundary(
-            surface_path,
-            upper_wake,
-            lower_wake,
-        )
-        outer_boundary = self._build_outer_boundary(
-            reference_te_x=reference_te_x,
-            radius=float(radius),
-            wake_length=float(wake_length),
-            upper_points=len(upper_wake),
-            middle_points=len(surface_path),
-            lower_points=len(lower_wake),
-            te_spacing=te_spacing,
-            wake_length_ratio=settings.farfield_wake_length_ratio,
-            wake_start_ratio=settings.farfield_wake_start_ratio,
-        )
-
-        left_boundary = BlockMesh.makeLine(
-            cut_line[0],
-            outer_boundary[0],
-            divisions=settings.normal_divisions,
-            ratio=1.0,
-        )
-        right_boundary = BlockMesh.makeLine(
-            cut_line[-1],
-            outer_boundary[-1],
-            divisions=settings.normal_divisions,
-            ratio=1.0,
-        )
-        x_outer, y_outer = self._build_transfinite_grid(
-            inner_boundary,
-            outer_boundary,
-            left_boundary,
-            right_boundary,
-        )
-        x_outer, y_outer = self._refine_outer_grid(x_outer, y_outer, settings)
-
-        wake_bridge = self._build_wake_bridge_block(
-            downstream_face,
-            cut_line,
-            upper_wake,
-            lower_wake,
-            name=f'{settings.name}_wake_bridge',
-            settings=settings,
-        )
-
-        return [
-            te_block,
-            wake_bridge,
-            self._arrays_to_block(x_outer, y_outer, settings.name),
-        ]
-
     @staticmethod
-    def _prepare_contour(contour, surface_points: int, *,
-                         closed: bool | None = None) -> np.ndarray:
+    def _prepare_contour(contour, surface_points: int) -> np.ndarray:
         points = np.column_stack(contour).astype(float, copy=False)
         if points.ndim != 2 or points.shape[1] != 2 or len(points) < 4:
             raise ValueError('Experimental C-grid requires a valid 2D contour.')
 
-        is_closed = np.allclose(points[0], points[-1], atol=1.0e-8)
-        if closed is True and not is_closed:
+        if not np.allclose(points[0], points[-1], atol=1.0e-8):
             raise ValueError(
                 'Experimental C-grid currently requires a sharp trailing edge.'
-            )
-        if closed is False and is_closed:
-            raise ValueError(
-                'Finite trailing-edge experimental meshing requires an open contour.'
             )
 
         if surface_points > 0 and surface_points != len(points):
@@ -224,8 +116,7 @@ class ExperimentalCGridGenerator:
                 points,
                 surface_points,
             )
-            if is_closed:
-                points[-1] = points[0]
+            points[-1] = points[0]
 
         return points
 
@@ -389,16 +280,10 @@ class ExperimentalCGridGenerator:
     def _build_wake_branches(cls, start_point: np.ndarray, end_point: np.ndarray,
                              reference_te_x: float, wake_length: float,
                              point_count: int, first_spacing: float,
-                             cut_line: np.ndarray | None = None,
                              ) -> tuple[np.ndarray, np.ndarray]:
-        if cut_line is None:
-            cut_x = float(reference_te_x) + max(0.0, float(wake_length))
-            cut_upper = np.array((cut_x, 0.0), dtype=float)
-            cut_lower = np.array((cut_x, 0.0), dtype=float)
-        else:
-            cut_points = np.asarray(cut_line, dtype=float)
-            cut_upper = np.array(cut_points[0], copy=True, dtype=float)
-            cut_lower = np.array(cut_points[-1], copy=True, dtype=float)
+        cut_x = float(reference_te_x) + max(0.0, float(wake_length))
+        cut_upper = np.array((cut_x, 0.0), dtype=float)
+        cut_lower = np.array((cut_x, 0.0), dtype=float)
 
         upper = cls._build_wake_branch(
             np.asarray(start_point, dtype=float),
@@ -516,22 +401,6 @@ class ExperimentalCGridGenerator:
 
         return x_grid, y_grid
 
-    @classmethod
-    def _build_transfinite_grid(cls, inner_boundary: np.ndarray,
-                                outer_boundary: np.ndarray,
-                                left_boundary, right_boundary
-                                ) -> tuple[np.ndarray, np.ndarray]:
-        seed = BlockMesh(name='experimental_c_grid_seed')
-        seed.transfinite(
-            boundary=[
-                inner_boundary.tolist(),
-                np.asarray(outer_boundary, dtype=float).tolist(),
-                np.asarray(left_boundary, dtype=float).tolist(),
-                np.asarray(right_boundary, dtype=float).tolist(),
-            ]
-        )
-        return cls._ulines_to_grid(seed.getULines())
-
     @staticmethod
     def _smooth_grid(x_grid: np.ndarray, y_grid: np.ndarray, *,
                      iterations: int, tolerance: float,
@@ -601,130 +470,6 @@ class ExperimentalCGridGenerator:
             first_layer=settings.first_layer_thickness,
         )
         return x_grid, y_grid
-
-    @classmethod
-    def _build_trailing_edge_patch(cls, contour_points: np.ndarray,
-                                   trailing_edge_settings, *,
-                                   name: str) -> BlockMesh:
-        upper_te = np.asarray(contour_points[0], dtype=float)
-        lower_te = np.asarray(contour_points[-1], dtype=float)
-        count = max(2, int(trailing_edge_settings.trailing_edge_divisions) + 1)
-
-        line = cls._sample_segment_count(lower_te, upper_te, count)
-        tangents = np.diff(line, axis=0)
-        average_tangent = np.mean(tangents, axis=0)
-        normal = np.array((average_tangent[1], -average_tangent[0]), dtype=float)
-        if normal[0] < 0.0:
-            line = line[::-1]
-
-        block = BlockMesh(name=name)
-        block.addLine(line.tolist())
-        block.extrudeLine_cell_thickness(
-            line.tolist(),
-            cell_thickness=trailing_edge_settings.thickness,
-            growth=trailing_edge_settings.growth,
-            divisions=trailing_edge_settings.divisions,
-            direction=4,
-        )
-        block.distribute(direction='u', number=-1)
-        block.transfinite()
-        return block
-
-    @staticmethod
-    def _orient_line_to_start(line: np.ndarray, start_point: np.ndarray) -> np.ndarray:
-        line = np.asarray(line, dtype=float)
-        start_point = np.asarray(start_point, dtype=float)
-        if np.linalg.norm(line[0] - start_point) <= np.linalg.norm(line[-1] - start_point):
-            return line
-        return line[::-1]
-
-    @classmethod
-    def _extract_patch_side_lines(cls, te_block: BlockMesh,
-                                  contour_points: np.ndarray
-                                  ) -> tuple[np.ndarray, np.ndarray]:
-        vlines = [
-            np.asarray(vline, dtype=float)
-            for vline in te_block.getVLines()
-        ]
-        upper_side = max(vlines, key=lambda line: float(np.mean(line[:, 1])))
-        lower_side = min(vlines, key=lambda line: float(np.mean(line[:, 1])))
-        upper_side = cls._orient_line_to_start(upper_side, contour_points[0])
-        lower_side = cls._orient_line_to_start(lower_side, contour_points[-1])
-        return upper_side, lower_side
-
-    @classmethod
-    def _extract_downstream_face(cls, te_block: BlockMesh,
-                                 downstream_upper: np.ndarray,
-                                 downstream_lower: np.ndarray) -> np.ndarray:
-        downstream_face = np.asarray(te_block.getULines()[-1], dtype=float)
-        downstream_face = cls._orient_line_to_start(
-            downstream_face,
-            downstream_upper,
-        )
-        if np.linalg.norm(downstream_face[-1] - downstream_lower) > \
-                np.linalg.norm(downstream_face[0] - downstream_lower):
-            downstream_face = downstream_face[::-1]
-        return downstream_face
-
-    @classmethod
-    def _build_cut_line(cls, downstream_face: np.ndarray, *,
-                        reference_te_x: float, wake_length: float,
-                        first_layer: float) -> np.ndarray:
-        cut_x = float(reference_te_x) + max(0.0, float(wake_length))
-        center_y = 0.5 * float(downstream_face[0, 1] + downstream_face[-1, 1])
-        offsets = downstream_face[:, 1] - center_y
-        offset_extent = float(np.max(np.abs(offsets)))
-        if offset_extent <= 1.0e-12:
-            target_half_height = max(1.0e-6, float(first_layer))
-            cut_y = np.linspace(
-                center_y + target_half_height,
-                center_y - target_half_height,
-                len(downstream_face),
-            )
-        else:
-            target_half_height = max(
-                float(first_layer),
-                cls.cut_interface_scale * offset_extent,
-            )
-            scale = min(1.0, target_half_height / offset_extent)
-            cut_y = center_y + scale * offsets
-
-        return np.column_stack((
-            np.full(len(downstream_face), cut_x, dtype=float),
-            cut_y,
-        ))
-
-    @classmethod
-    def _build_wake_bridge_block(cls, downstream_face: np.ndarray,
-                                 cut_line: np.ndarray,
-                                 upper_wake: np.ndarray,
-                                 lower_wake: np.ndarray, *,
-                                 name: str,
-                                 settings: ExperimentalCGridSettings
-                                 ) -> BlockMesh:
-        block = BlockMesh(name=name)
-        block.transfinite(
-            boundary=[
-                downstream_face.tolist(),
-                cut_line.tolist(),
-                upper_wake.tolist(),
-                lower_wake.tolist(),
-            ]
-        )
-
-        bridge_iterations = settings.local_te_smoothing_iterations
-        if bridge_iterations > 0:
-            x_grid, y_grid = cls._ulines_to_grid(block.getULines())
-            x_grid, y_grid = cls._smooth_grid(
-                x_grid,
-                y_grid,
-                iterations=bridge_iterations,
-                tolerance=settings.smoothing_tolerance,
-                relaxation=settings.relaxation,
-                boundary_condition=None,
-            )
-            block.setUlines(cls._grid_to_ulines(x_grid, y_grid))
-        return block
 
     @staticmethod
     def _ulines_to_grid(ulines) -> tuple[np.ndarray, np.ndarray]:

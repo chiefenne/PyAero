@@ -16,7 +16,6 @@ from ExperimentalCGrid import (
     ExperimentalCGridSettings,
 )
 import Mesh
-import MeshBuilders
 
 
 class ExperimentalCGridTests(unittest.TestCase):
@@ -92,37 +91,6 @@ class ExperimentalCGridTests(unittest.TestCase):
     def test_local_te_smoothing_iterations_are_not_capped(self):
         settings = ExperimentalCGridSettings(local_te_smoothing_iterations=25)
         self.assertEqual(settings.local_te_smoothing_iterations, 25)
-
-    def test_build_blunt_blocks_creates_connected_mesh(self):
-        trailing_edge_settings = MeshBuilders.TrailingEdgeBlockSettings(
-            name='block_experimental_te',
-            trailing_edge_divisions=3,
-            thickness=0.03,
-            divisions=8,
-            growth=1.05,
-        )
-
-        blocks = self.generator.build_blunt_blocks(
-            self.blunt_contour,
-            radius=3.5,
-            wake_length=7.0,
-            settings=self.settings,
-            trailing_edge_settings=trailing_edge_settings,
-        )
-
-        self.assertEqual(len(blocks), 3)
-
-        connector = Connect.Connect()
-        vertices, connectivity = connector.connectAllBlocks(blocks)
-        self.assertGreater(len(vertices), 0)
-        self.assertGreater(len(connectivity), 0)
-        self.assertGreater(self._minimum_cell_area(vertices, connectivity), 1.0e-10)
-
-        topology = Mesh.MeshTopology.from_mesh(vertices, connectivity)
-        self.assertGreater(len(topology.boundary_tags['airfoil']), 0)
-        self.assertGreater(len(topology.boundary_tags['inlet']), 0)
-        self.assertGreater(len(topology.boundary_tags['outlet']), 0)
-
 
 if __name__ == '__main__':
     unittest.main()

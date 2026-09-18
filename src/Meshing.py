@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -13,14 +13,6 @@ import MeshGraphics
 import MeshBuilders
 import Connect
 from Elliptic import BoundaryGuide, SlidingBoundary, EllipticSolver
-from ExperimentalCGrid import (
-    ExperimentalCGridGenerator,
-    ExperimentalCGridSettings,
-)
-from ExperimentalOGrid import (
-    ExperimentalOGridGenerator,
-    ExperimentalOGridSettings,
-)
 from QuadPipeline import (
     HybridQuadPipeline,
     HybridQuadPipelineSettings,
@@ -60,18 +52,6 @@ class WindtunnelMeshSettings:
     engine: str = 'metric_based'
     metric_based: HybridQuadPipelineSettings = field(
         default_factory=_default_metric_pipeline_settings
-    )
-    hybrid: HybridQuadPipelineSettings = field(
-        default_factory=HybridQuadPipelineSettings
-    )
-    hybrid_staged: HybridQuadPipelineSettings = field(
-        default_factory=HybridQuadPipelineSettings
-    )
-    experimental: ExperimentalCGridSettings = field(
-        default_factory=ExperimentalCGridSettings
-    )
-    experimental_o: ExperimentalOGridSettings = field(
-        default_factory=ExperimentalOGridSettings
     )
     structured: StructuredMeshSettings = field(
         default_factory=StructuredMeshSettings
@@ -123,8 +103,6 @@ class Windtunnel:
         self.block_tunnel_wake = None
         self.tunnel_height = None
         self._block_builder = None
-        self._experimental_c_grid_generator = None
-        self._experimental_o_grid_generator = None
         self._structured_engine = None
         self._hybrid_pipeline = None
         self._scene_renderer = None
@@ -135,12 +113,6 @@ class Windtunnel:
         self.quality_report = None
         self.layout_plan = None
         self.pipeline_metadata = {}
-        self.hybrid_pipeline_settings = None
-        self.hybrid_stage_state = {
-            'stage4': False,
-            'stage2': False,
-            'stage1': False,
-        }
         self.boundary_definitions = MeshModel.BoundaryDefinitions()
         self.mesh_engine = 'metric_based'
 
@@ -154,16 +126,6 @@ class Windtunnel:
                 create_smoother=SmootherFactory.create_smoother,
             )
         return self._block_builder
-
-    def getExperimentalCGridGenerator(self):
-        if self._experimental_c_grid_generator is None:
-            self._experimental_c_grid_generator = ExperimentalCGridGenerator()
-        return self._experimental_c_grid_generator
-
-    def getExperimentalOGridGenerator(self):
-        if self._experimental_o_grid_generator is None:
-            self._experimental_o_grid_generator = ExperimentalOGridGenerator()
-        return self._experimental_o_grid_generator
 
     def getStructuredEngine(self):
         if self._structured_engine is None:
@@ -186,14 +148,6 @@ class Windtunnel:
         if self._scene_renderer is None:
             self._scene_renderer = MeshGraphics.MeshSceneRenderer(self.mw)
         return self._scene_renderer
-
-    def _resetHybridPipelineState(self):
-        self.hybrid_pipeline_settings = None
-        self.hybrid_stage_state = {
-            'stage4': False,
-            'stage2': False,
-            'stage1': False,
-        }
 
     def _createProgressDialog(self, label_text='Meshing in progress',
                               window_title='Generating the CFD mesh'):
@@ -608,34 +562,6 @@ class Windtunnel:
         if self.pipeline_metadata:
             metadata['quad_pipeline'] = dict(self.pipeline_metadata)
 
-    def _hybridStageRequirement(self, airfoil=None):
-        airfoil = airfoil or getattr(self.mw, 'airfoil', None)
-        if airfoil is None:
-            raise ValueError('No airfoil loaded.')
-        if not airfoil.has_spline:
-            raise ValueError('The contour needs to be prepared first.')
-        if self.layout_plan is None or not self.blocks:
-            raise ValueError('Please run Stage 4 first.')
-        if self.mesh_engine != 'hybrid_staged':
-            raise ValueError('Please run Stage 4 with the staged hybrid engine first.')
-        return airfoil
-
-    def _finalizeHybridPipelineStep(self, airfoil, progdialog, settings, *,
-                                    stage2_metadata=None,
-                                    stage1_metadata=None):
-        self.pipeline_metadata = self.getHybridPipeline().build_metadata(
-            self.layout_plan,
-            settings,
-            engine='hybrid_staged',
-            stage2_metadata=stage2_metadata,
-            stage1_metadata=stage1_metadata,
-        )
-        if not self._finalizeMeshGeneration(airfoil, progdialog):
-            return False
-        self.MeshQuality(crit='k2inf')
-        self._publishPipelineMetadata()
-        return True
-
     def _buildStandardBlocks(self, settings: WindtunnelMeshSettings, contour,
                              progdialog):
         self.AirfoilMesh(
@@ -697,33 +623,6 @@ class Windtunnel:
 
         return True
 
-    def _makeHybridMesh(self, settings: WindtunnelMeshSettings, airfoil,
-                        progdialog):
-        contour = airfoil.spline_data.coordinates
-        result = self.getHybridPipeline().run(
-            contour=contour,
-            settings=settings.hybrid,
-            airfoil_settings=settings.airfoil,
-            tunnel_settings=settings.tunnel,
-            wake_settings=settings.wake,
-            trailing_edge_settings=settings.trailing_edge,
-            contour_metadata=getattr(airfoil.spline_data, 'metadata', None),
-        )
-        self.blocks = result.blocks
-        self.layout_plan = result.layout_plan
-        self.pipeline_metadata = result.metadata
-        progdialog.setValue(70)
-
-        if progdialog.wasCanceled():
-            return False
-
-        if not self._finalizeMeshGeneration(airfoil, progdialog):
-            return False
-
-        self.MeshQuality(crit='k2inf')
-        self._publishPipelineMetadata()
-        return True
-
     def _makeMetricMesh(self, settings: WindtunnelMeshSettings, airfoil,
                         progdialog):
         contour = airfoil.spline_data.coordinates
@@ -741,12 +640,6 @@ class Windtunnel:
         self.blocks = result.blocks
         self.layout_plan = result.layout_plan
         self.pipeline_metadata = result.metadata
-        self.hybrid_pipeline_settings = metric_settings
-        self.hybrid_stage_state = {
-            'stage4': True,
-            'stage2': False,
-            'stage1': False,
-        }
         progdialog.setValue(70)
 
         if progdialog.wasCanceled():
@@ -758,95 +651,6 @@ class Windtunnel:
         self.MeshQuality(crit='k2inf')
         self._publishPipelineMetadata()
         return True
-
-    def _makeHybridStage4Mesh(self, settings: WindtunnelMeshSettings, airfoil,
-                              progdialog):
-        contour = airfoil.spline_data.coordinates
-        staged_settings = settings.hybrid_staged
-        result = self.getHybridPipeline().run_stage4(
-            contour=contour,
-            settings=staged_settings,
-            airfoil_settings=settings.airfoil,
-            tunnel_settings=settings.tunnel,
-            wake_settings=settings.wake,
-            trailing_edge_settings=settings.trailing_edge,
-            contour_metadata=getattr(airfoil.spline_data, 'metadata', None),
-            engine='hybrid_staged',
-        )
-        self.blocks = result.blocks
-        self.layout_plan = result.layout_plan
-        self.pipeline_metadata = result.metadata
-        self.hybrid_pipeline_settings = staged_settings
-        self.hybrid_stage_state = {
-            'stage4': True,
-            'stage2': False,
-            'stage1': False,
-        }
-        progdialog.setValue(70)
-
-        if progdialog.wasCanceled():
-            return False
-
-        if not self._finalizeMeshGeneration(airfoil, progdialog):
-            return False
-
-        self.MeshQuality(crit='k2inf')
-        self._publishPipelineMetadata()
-        return True
-
-    def _makeExperimentalMesh(self, settings: WindtunnelMeshSettings,
-                              airfoil, progdialog):
-        if self.mesh_engine == 'experimental_o':
-            generator = self.getExperimentalOGridGenerator()
-            blocks = generator.build_blocks(
-                contour=airfoil.spline_data.coordinates,
-                radius=settings.tunnel.tunnel_height,
-                wake_length=settings.wake.tunnel_wake,
-                settings=settings.experimental_o,
-                trailing_edge_settings=settings.trailing_edge,
-            )
-            for attribute_name, block in zip(
-                    (
-                        'block_experimental_o_grid_top',
-                        'block_experimental_o_grid_left',
-                        'block_experimental_o_grid_bottom',
-                        'block_experimental_o_grid_right',
-                    ),
-                    blocks):
-                self.registerBlock(attribute_name, block)
-        else:
-            generator = self.getExperimentalCGridGenerator()
-            if getattr(airfoil, 'has_TE', False):
-                blocks = generator.build_blunt_blocks(
-                    contour=airfoil.spline_data.coordinates,
-                    radius=settings.tunnel.tunnel_height,
-                    wake_length=settings.wake.tunnel_wake,
-                    settings=settings.experimental,
-                    trailing_edge_settings=settings.trailing_edge,
-                )
-                for attribute_name, block in zip(
-                        (
-                            'block_experimental_te_patch',
-                            'block_experimental_wake_bridge',
-                            'block_experimental_c_grid',
-                        ),
-                        blocks):
-                    self.registerBlock(attribute_name, block)
-            else:
-                block = generator.build_block(
-                    contour=airfoil.spline_data.coordinates,
-                    radius=settings.tunnel.tunnel_height,
-                    wake_length=settings.wake.tunnel_wake,
-                    settings=settings.experimental,
-                )
-                self.registerBlock('block_experimental_c_grid', block)
-        self.tunnel_height = settings.tunnel.tunnel_height
-
-        progdialog.setValue(70)
-        if progdialog.wasCanceled():
-            return False
-
-        return self._finalizeMeshGeneration(airfoil, progdialog)
 
     def _makeStructuredMesh(self, settings: WindtunnelMeshSettings,
                             airfoil, progdialog):
@@ -884,12 +688,9 @@ class Windtunnel:
         self.tunnel_height = None
         self.layout_plan = None
         self.pipeline_metadata = {}
-        self._resetHybridPipelineState()
         self.quality = None
         self.quality_report = None
         self.mesh_engine = str(settings.engine).strip().lower() or 'metric_based'
-        if self.mesh_engine == 'experimental':
-            self.mesh_engine = 'experimental_c'
 
         contour = airfoil.spline_data.coordinates
 
@@ -905,114 +706,16 @@ class Windtunnel:
         progdialog.setValue(10)
         # progdialog.setLabelText('making blocks')
 
-        if self.mesh_engine in ('experimental_c', 'experimental_o'):
-            return self._makeExperimentalMesh(settings, airfoil, progdialog)
         if self.mesh_engine == 'structured':
             return self._makeStructuredMesh(settings, airfoil, progdialog)
         if self.mesh_engine == 'metric_based':
             return self._makeMetricMesh(settings, airfoil, progdialog)
-        if self.mesh_engine == 'hybrid':
-            return self._makeHybridMesh(settings, airfoil, progdialog)
-        if self.mesh_engine == 'hybrid_staged':
-            return self._makeHybridStage4Mesh(settings, airfoil, progdialog)
 
         if not self._buildStandardBlocks(settings, contour, progdialog):
             return False
 
         return self._finalizeMeshGeneration(airfoil, progdialog)
 
-    def makeHybridStage4Mesh(self, settings: WindtunnelMeshSettings,
-                             airfoil=None):
-        return self.makeMesh(
-            replace(settings, engine='hybrid_staged'),
-            airfoil=airfoil,
-        )
-
-    def applyHybridStage2(self, settings: WindtunnelMeshSettings, airfoil=None):
-        airfoil = self._hybridStageRequirement(airfoil=airfoil)
-        staged_settings = settings.hybrid_staged
-        self.hybrid_pipeline_settings = staged_settings
-        self.mesh_engine = 'hybrid_staged'
-
-        progdialog = self._createProgressDialog(
-            label_text='Applying Stage 2 redistribution',
-            window_title='Applying Hybrid Stage 2',
-        )
-        progdialog.setValue(20)
-
-        pipeline = self.getHybridPipeline()
-        stage2_metadata = pipeline.apply_stage2(
-            self.blocks,
-            staged_settings.stage2,
-            protect_near_wall=staged_settings.protect_near_wall,
-        )
-        stage1_metadata = pipeline.default_stage1_metadata(
-            staged_settings.stage1,
-            protect_near_wall=staged_settings.protect_near_wall,
-        )
-        self.hybrid_stage_state = {
-            'stage4': True,
-            'stage2': bool(stage2_metadata.get('applied', False)),
-            'stage1': False,
-        }
-
-        progdialog.setValue(70)
-        if progdialog.wasCanceled():
-            return False
-
-        return self._finalizeHybridPipelineStep(
-            airfoil,
-            progdialog,
-            staged_settings,
-            stage2_metadata=stage2_metadata,
-            stage1_metadata=stage1_metadata,
-        )
-
-    def applyHybridStage1(self, settings: WindtunnelMeshSettings, airfoil=None):
-        airfoil = self._hybridStageRequirement(airfoil=airfoil)
-        staged_settings = settings.hybrid_staged
-        self.hybrid_pipeline_settings = staged_settings
-        self.mesh_engine = 'hybrid_staged'
-
-        progdialog = self._createProgressDialog(
-            label_text='Applying Stage 1 cleanup',
-            window_title='Applying Hybrid Stage 1',
-        )
-        progdialog.setValue(20)
-
-        pipeline = self.getHybridPipeline()
-        existing_stage2_metadata = dict(
-            self.pipeline_metadata.get(
-                'stage2',
-                pipeline.default_stage2_metadata(
-                    staged_settings.stage2,
-                    protect_near_wall=staged_settings.protect_near_wall,
-                ),
-            )
-        )
-        stage1_metadata = pipeline.apply_stage1(
-            self.blocks,
-            staged_settings.stage1,
-            protect_near_wall=staged_settings.protect_near_wall,
-        )
-        self.hybrid_stage_state = {
-            'stage4': True,
-            'stage2': bool(existing_stage2_metadata.get('applied', False)),
-            'stage1': bool(stage1_metadata.get('applied', False)),
-        }
-
-        progdialog.setValue(70)
-        if progdialog.wasCanceled():
-            return False
-
-        return self._finalizeHybridPipelineStep(
-            airfoil,
-            progdialog,
-            staged_settings,
-            stage2_metadata=existing_stage2_metadata,
-            stage1_metadata=stage1_metadata,
-        )
-    
     def makeLCV(self):
         """Make cell to vertex connectivity for the mesh
            LCV is identical to connectivity

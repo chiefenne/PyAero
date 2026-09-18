@@ -755,16 +755,6 @@ class Toolbox(QtWidgets.QWidget):
             layout_plan = getattr(wind_tunnel, 'layout_plan', None)
             singularity_count = len(getattr(layout_plan, 'singularities', []))
             return f'{summary} (Metric based, {singularity_count} singularities)'
-        if wind_tunnel is None or getattr(wind_tunnel, 'mesh_engine', None) != 'hybrid_staged':
-            return summary
-
-        stage_state = getattr(wind_tunnel, 'hybrid_stage_state', {}) or {}
-        if stage_state.get('stage1', False):
-            return f'{summary} (Stage 1 applied)'
-        if stage_state.get('stage2', False):
-            return f'{summary} (Stage 2 applied)'
-        if stage_state.get('stage4', False):
-            return f'{summary} (Stage 4 only)'
         return summary
 
     def _metricTestStatusSummary(self):
@@ -1235,27 +1225,6 @@ class Toolbox(QtWidgets.QWidget):
     def _smootherToleranceValue(self):
         return self._parsedFloatText(self.smoother_tolerance, 1.0e-5)
 
-    def _experimentalToleranceValue(self):
-        return self._parsedFloatText(
-            self.experimental_smoothing_tolerance,
-            1.0e-5,
-        )
-
-    def _experimentalOToleranceValue(self):
-        return self._parsedFloatText(
-            self.experimental_o_smoothing_tolerance,
-            1.0e-5,
-        )
-
-    def _hybridToleranceValue(self):
-        return self._parsedFloatText(self.hybrid_stage1_tolerance, 1.0e-4)
-
-    def _hybridStagedToleranceValue(self):
-        return self._parsedFloatText(
-            self.hybrid_staged_stage1_tolerance,
-            1.0e-4,
-        )
-
     def _parsedFloatText(self, widget, default):
         text = widget.text().strip()
         if not text:
@@ -1368,17 +1337,6 @@ class Toolbox(QtWidgets.QWidget):
             self.protected_guide_smoothing.value()
             if hasattr(self, 'protected_guide_smoothing') else 3
         )
-        if getattr(self, 'mesh_engine', 'standard') == 'hybrid_staged':
-            trailing_edge_divisions = self.hybrid_staged_te_divisions.value()
-            tunnel_smoothing_iterations = 10
-            tunnel_smoothing_tolerance = 1.0e-4
-            tunnel_outer_boundary_slide = 0.0
-            tunnel_elliptic_relaxation = 0.40
-            protected_guide_relaxation = 0.25
-            protected_guide_layers = 5
-            protected_guide_decay = 0.80
-            protected_guide_smoothing = 3
-
         return Meshing.WindtunnelMeshSettings(
             airfoil=MeshBuilders.AirfoilBlockSettings(
                 name='block_airfoil',
@@ -1455,51 +1413,6 @@ class Toolbox(QtWidgets.QWidget):
                     algorithm='none',
                     iterations=0,
                 ),
-            ),
-            hybrid=Meshing.HybridQuadPipelineSettings(
-                layout_strategy='multi_element_oc',
-            ),
-            hybrid_staged=Meshing.HybridQuadPipelineSettings(
-                layout_strategy='multi_element_oc',
-                protect_near_wall=True,
-                stage2=Meshing.HybridStage2Settings(
-                    enabled=True,
-                    sweeps=2,
-                    redistribute_u=True,
-                    redistribute_v=True,
-                ),
-                stage1=Meshing.HybridStage1Settings(
-                    enabled=True,
-                    algorithm='angle_based',
-                    iterations=15,
-                    tolerance=1.0e-4,
-                    relaxation=0.60,
-                ),
-            ),
-            experimental=Meshing.ExperimentalCGridSettings(
-                name='block_experimental_c_grid',
-                surface_points=0,
-                normal_divisions=100,
-                first_layer_thickness=0.004,
-                wake_points=100,
-                farfield_wake_length_ratio=7.0,
-                farfield_wake_start_ratio=10.0,
-                initial_smoothing_iterations=100,
-                final_smoothing_iterations=20,
-                local_te_smoothing_iterations=10,
-                smoothing_tolerance=1.0e-5,
-                relaxation=0.60,
-            ),
-            experimental_o=Meshing.ExperimentalOGridSettings(
-                name='block_experimental_o_grid',
-                surface_points=0,
-                normal_divisions=100,
-                first_layer_thickness=0.004,
-                farfield_shape='wind_tunnel',
-                initial_smoothing_iterations=100,
-                final_smoothing_iterations=20,
-                smoothing_tolerance=1.0e-5,
-                relaxation=0.60,
             ),
             structured=(
                 ToolboxPages.structured_settings_from_toolbox(self)
@@ -1698,32 +1611,6 @@ class Toolbox(QtWidgets.QWidget):
     def generateMesh(self):
         wind_tunnel = self.workflow.generate_mesh(
             self.mesh_generation_settings()
-        )
-        if wind_tunnel is not None:
-            self.wind_tunnel = wind_tunnel
-        self.refreshWorkflowState()
-
-    def generateHybridStage4(self):
-        wind_tunnel = self.workflow.generate_hybrid_stage4(
-            self.mesh_generation_settings()
-        )
-        if wind_tunnel is not None:
-            self.wind_tunnel = wind_tunnel
-        self.refreshWorkflowState()
-
-    def applyHybridStage2(self):
-        wind_tunnel = self.workflow.apply_hybrid_stage2(
-            self.wind_tunnel,
-            self.mesh_generation_settings(),
-        )
-        if wind_tunnel is not None:
-            self.wind_tunnel = wind_tunnel
-        self.refreshWorkflowState()
-
-    def applyHybridStage1(self):
-        wind_tunnel = self.workflow.apply_hybrid_stage1(
-            self.wind_tunnel,
-            self.mesh_generation_settings(),
         )
         if wind_tunnel is not None:
             self.wind_tunnel = wind_tunnel

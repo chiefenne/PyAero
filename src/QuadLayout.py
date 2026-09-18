@@ -6,13 +6,10 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 
 from ExperimentalCGrid import ExperimentalCGridGenerator
-from ExperimentalOGrid import ExperimentalOGridGenerator
 
 
 MINIMUM_LOOP_POINTS = 13
 MINIMUM_SPACING = 1.0e-9
-SPLIT_LE_FRACTION = 0.10
-SPLIT_TE_FRACTION = 0.90
 
 
 def _as_points(points: Sequence[Sequence[float]]) -> np.ndarray:
@@ -175,79 +172,6 @@ def _leading_edge_index(points: np.ndarray) -> int:
     return int(np.argmin(points[:, 0]))
 
 
-def _te_upper_index(points: np.ndarray) -> int:
-    x_values = points[:, 0]
-    xmax = float(np.max(x_values))
-    candidates = np.flatnonzero(np.abs(x_values - xmax) <= 1.0e-8)
-    if not candidates.size:
-        return int(np.argmax(x_values))
-    y_values = points[candidates, 1]
-    return int(candidates[int(np.argmax(y_values))])
-
-
-def _rotate_open_loop(points: Sequence[Sequence[float]]) -> np.ndarray:
-    open_points = _open_loop(points)
-    if len(open_points) < 3:
-        raise ValueError('An element loop requires at least three unique points.')
-    start_index = _te_upper_index(open_points)
-    return np.vstack((open_points[start_index:], open_points[:start_index]))
-
-
-def _centered_normals(points: Sequence[Sequence[float]]) -> np.ndarray:
-    open_points = _open_loop(points)
-    if len(open_points) < 3:
-        raise ValueError('Loop normals require at least three unique points.')
-
-    previous_points = np.roll(open_points, 1, axis=0)
-    next_points = np.roll(open_points, -1, axis=0)
-    tangents = next_points - previous_points
-    lengths = np.linalg.norm(tangents, axis=1)
-    lengths = np.maximum(lengths, MINIMUM_SPACING)
-    unit_tangents = tangents / lengths[:, None]
-    normals = np.column_stack((unit_tangents[:, 1], -unit_tangents[:, 0]))
-    return normals
-
-
-def _offset_loop(points: Sequence[Sequence[float]], distance: float) -> np.ndarray:
-    if distance <= 0.0:
-        return _close_loop(points)
-    open_points = _open_loop(points)
-    normals = _centered_normals(points)
-    offset = open_points + float(distance) * normals
-    return _close_loop(offset)
-
-
-def _layer_offsets(first_layer: float, growth: float, divisions: int) -> np.ndarray:
-    divisions = max(1, int(divisions))
-    thickness = max(float(first_layer), MINIMUM_SPACING)
-    growth = max(float(growth), 1.0)
-
-    offsets = np.zeros(divisions + 1, dtype=float)
-    spacing = thickness
-    for index in range(1, divisions + 1):
-        offsets[index] = offsets[index - 1] + spacing
-        spacing *= growth
-    return offsets
-
-
-def _minimum_loop_gap(boundary_loops: Sequence[np.ndarray]) -> float:
-    if len(boundary_loops) < 2:
-        return float('inf')
-
-    sampled_loops = [
-        _resample_polyline_count(_close_loop(loop), min(200, max(40, len(loop))))[:-1]
-        for loop in boundary_loops
-    ]
-
-    minimum_gap = float('inf')
-    for index, left in enumerate(sampled_loops[:-1]):
-        for right in sampled_loops[index + 1:]:
-            deltas = left[:, None, :] - right[None, :, :]
-            distances = np.linalg.norm(deltas, axis=2)
-            minimum_gap = min(minimum_gap, float(np.min(distances)))
-    return minimum_gap
-
-
 def _sort_loops_by_streamwise_position(boundary_loops: Sequence[np.ndarray]
                                        ) -> list[np.ndarray]:
     return sorted(
@@ -314,41 +238,6 @@ def _first_index_geq(values: np.ndarray, target: float) -> int:
     return len(values) - 1
 
 
-def _segment_split_indices(open_loop: np.ndarray) -> dict[str, int]:
-    leading_index = _leading_edge_index(open_loop)
-    upper = open_loop[:leading_index + 1]
-    lower = open_loop[leading_index:]
-
-    if len(upper) < 2 or len(lower) < 2:
-        raise ValueError('Element loop could not be split into upper and lower surfaces.')
-
-    x_min = float(np.min(open_loop[:, 0]))
-    x_max = float(np.max(open_loop[:, 0]))
-    chord = max(x_max - x_min, MINIMUM_SPACING)
-    x_le_limit = x_min + SPLIT_LE_FRACTION * chord
-    x_te_limit = x_min + SPLIT_TE_FRACTION * chord
-
-    upper_te = _first_index_leq(upper[:, 0], x_te_limit)
-    upper_le = _first_index_leq(upper[:, 0], x_le_limit)
-    if upper_le <= upper_te:
-        upper_te = max(0, min(upper_te, len(upper) - 3))
-        upper_le = min(len(upper) - 2, upper_te + 1)
-
-    lower_le = _first_index_geq(lower[:, 0], x_le_limit)
-    lower_te = _first_index_geq(lower[:, 0], x_te_limit)
-    if lower_te <= lower_le:
-        lower_le = max(0, min(lower_le, len(lower) - 3))
-        lower_te = min(len(lower) - 2, lower_le + 1)
-
-    return {
-        'leading_index': leading_index,
-        'upper_te': upper_te,
-        'upper_le': upper_le,
-        'lower_le': lower_le,
-        'lower_te': lower_te,
-    }
-
-
 def _segment_split_indices_for_stations(open_loop: np.ndarray, *,
                                         leading_station: float,
                                         trailing_station: float
@@ -389,38 +278,6 @@ def _segment_split_indices_for_stations(open_loop: np.ndarray, *,
         'upper_le': upper_le,
         'lower_le': lower_le,
         'lower_te': lower_te,
-    }
-
-
-def _raw_segments_from_indices(open_loop: np.ndarray, indices: dict[str, int], *,
-                               trailing_edge_divisions: int) -> dict[str, np.ndarray]:
-    leading_index = indices['leading_index']
-    upper = open_loop[:leading_index + 1]
-    lower = open_loop[leading_index:]
-
-    closure = _sample_segment_count(
-        lower[-1],
-        upper[0],
-        max(2, int(trailing_edge_divisions) + 1),
-    )
-
-    top = upper[indices['upper_te']:indices['upper_le'] + 1]
-    left = _compose_segments(
-        upper[indices['upper_le']:],
-        lower[:indices['lower_le'] + 1],
-    )
-    bottom = lower[indices['lower_le']:indices['lower_te'] + 1]
-    right = _compose_segments(
-        lower[indices['lower_te']:],
-        closure,
-        upper[:indices['upper_te'] + 1],
-    )
-
-    return {
-        'top': top,
-        'left': left,
-        'bottom': bottom,
-        'right': right,
     }
 
 
@@ -492,9 +349,7 @@ class QuadLayoutPlan:
 
 
 class QuadLayoutGenerator:
-    """Stage 4 layout scaffold for multi-element structured quad meshes."""
-
-    name = 'multi_element_oc'
+    """Stage 4 layout scaffold for the metric-based structured C-grid."""
 
     @staticmethod
     def create_plan(boundary_points: Sequence[Sequence[float]], *,
@@ -542,13 +397,12 @@ class QuadLayoutGenerator:
         loop_inputs = boundary_loops
         if loop_inputs is None:
             loop_inputs = (
-                metadata.get('hybrid_boundary_loops') or
                 metadata.get('boundary_loops') or
                 metadata.get('element_loops')
             )
         if loop_inputs is None:
             if boundary_points is None:
-                raise ValueError('A hybrid layout requires at least one boundary loop.')
+                raise ValueError('This layout requires at least one boundary loop.')
             loop_inputs = [boundary_points]
 
         surface_targets = cls._loop_surface_point_targets(
@@ -566,394 +420,6 @@ class QuadLayoutGenerator:
             for loop, target_points in zip(loop_inputs, surface_targets)
         ]
         return _sort_loops_by_streamwise_position(prepared)
-
-    @classmethod
-    def generate(cls, boundary_points=None, *, boundary_loops=None,
-                 metadata=None, tunnel_height: float,
-                 wake_length: float, surface_points: int | Sequence[int] | None = 0,
-                 normal_divisions: int = 20,
-                 first_layer_thickness: float = 0.004,
-                 layer_growth: float = 1.05,
-                 connector_layers: int = 80,
-                 trailing_edge_divisions: int = 3):
-        boundary_loops = cls._boundary_loops_from_input(
-            boundary_points,
-            boundary_loops=boundary_loops,
-            metadata=metadata,
-            surface_points=surface_points,
-            trailing_edge_divisions=trailing_edge_divisions,
-        )
-
-        layer_offsets = _layer_offsets(
-            first_layer=first_layer_thickness,
-            growth=layer_growth,
-            divisions=normal_divisions,
-        )
-        nominal_ring_thickness = float(layer_offsets[-1])
-        minimum_gap = _minimum_loop_gap(boundary_loops)
-        clearance_limit = float('inf')
-        if np.isfinite(minimum_gap):
-            clearance_limit = 0.35 * minimum_gap
-
-        ring_thickness = min(
-            nominal_ring_thickness,
-            clearance_limit if np.isfinite(clearance_limit) else nominal_ring_thickness,
-            0.45 * max(float(tunnel_height), MINIMUM_SPACING),
-        )
-        ring_thickness = max(float(first_layer_thickness), ring_thickness)
-
-        all_points = np.vstack([loop[:-1] for loop in boundary_loops])
-        x_min = float(np.min(all_points[:, 0]))
-        x_max = float(np.max(all_points[:, 0]))
-        y_min = float(np.min(all_points[:, 1]))
-        y_max = float(np.max(all_points[:, 1]))
-        y_center = 0.5 * (y_min + y_max)
-
-        farfield_left = x_min - float(tunnel_height)
-        farfield_right = x_max + float(wake_length)
-        farfield_top = y_center + float(tunnel_height)
-        farfield_bottom = y_center - float(tunnel_height)
-        outer_boundary = np.array(
-            [
-                (farfield_left, farfield_bottom),
-                (farfield_right, farfield_bottom),
-                (farfield_right, farfield_top),
-                (farfield_left, farfield_top),
-                (farfield_left, farfield_bottom),
-            ],
-            dtype=float,
-        )
-
-        perimeter_spacings = []
-        for loop in boundary_loops:
-            open_loop = _rotate_open_loop(loop)
-            perimeter_spacings.append(
-                _polyline_length(_close_loop(open_loop)) / max(1, len(open_loop))
-            )
-        target_spacing = max(float(np.mean(perimeter_spacings)), MINIMUM_SPACING)
-
-        connector_layers = max(4, int(connector_layers))
-        connector_point_count = connector_layers + 1
-
-        raw_elements = []
-        side_lengths = []
-        for element_index, loop in enumerate(boundary_loops):
-            inner_open = _rotate_open_loop(loop)
-            outer_open = _rotate_open_loop(_offset_loop(loop, ring_thickness))
-            indices = _segment_split_indices(inner_open)
-            inner_raw = _raw_segments_from_indices(
-                inner_open,
-                indices,
-                trailing_edge_divisions=trailing_edge_divisions,
-            )
-            outer_raw = _raw_segments_from_indices(
-                outer_open,
-                indices,
-                trailing_edge_divisions=trailing_edge_divisions,
-            )
-            side_lengths.extend((
-                _polyline_length(inner_raw['left']),
-                _polyline_length(inner_raw['right']),
-            ))
-            raw_elements.append({
-                'index': element_index,
-                'inner_loop': _close_loop(inner_open),
-                'outer_loop': _close_loop(outer_open),
-                'inner_raw': inner_raw,
-                'outer_raw': outer_raw,
-            })
-
-        average_side_length = float(np.mean(side_lengths)) if side_lengths else target_spacing
-        side_point_count = _point_count_from_length(
-            average_side_length,
-            target_spacing,
-            minimum=6,
-            maximum=160,
-        )
-
-        block_specs = []
-        top_chain_segments = []
-        bottom_chain_segments = []
-        element_segments = []
-
-        for element in raw_elements:
-            inner_raw = element['inner_raw']
-            outer_raw = element['outer_raw']
-            element_index = element['index']
-
-            top_count = _point_count_from_length(
-                _polyline_length(inner_raw['top']),
-                target_spacing,
-                minimum=3,
-                maximum=240,
-            )
-            bottom_count = _point_count_from_length(
-                _polyline_length(inner_raw['bottom']),
-                target_spacing,
-                minimum=3,
-                maximum=240,
-            )
-
-            segments = {
-                'top': _resample_polyline_count(inner_raw['top'], top_count),
-                'left': _resample_polyline_count(inner_raw['left'], side_point_count),
-                'bottom': _resample_polyline_count(inner_raw['bottom'], bottom_count),
-                'right': _resample_polyline_count(inner_raw['right'], side_point_count),
-            }
-            outer_segments = {
-                'top': _resample_polyline_count(outer_raw['top'], top_count),
-                'left': _resample_polyline_count(outer_raw['left'], side_point_count),
-                'bottom': _resample_polyline_count(outer_raw['bottom'], bottom_count),
-                'right': _resample_polyline_count(outer_raw['right'], side_point_count),
-            }
-
-            element_segments.append({
-                'inner': segments,
-                'outer': outer_segments,
-                'inner_loop': element['inner_loop'],
-                'outer_loop': element['outer_loop'],
-            })
-
-            for side in ('top', 'left', 'bottom', 'right'):
-                block_specs.append(
-                    QuadBlockSpec(
-                        name=f'block_hybrid_element_{element_index}_{side}',
-                        lower_boundary=segments[side],
-                        upper_boundary=outer_segments[side],
-                        left_boundary=_sample_segment_count(
-                            segments[side][0],
-                            outer_segments[side][0],
-                            connector_point_count,
-                        ),
-                        right_boundary=_sample_segment_count(
-                            segments[side][-1],
-                            outer_segments[side][-1],
-                            connector_point_count,
-                        ),
-                        role='element_ring',
-                        element_index=element_index,
-                        protected=True,
-                        metadata={'side': side},
-                    )
-                )
-
-            top_chain_segments.append(outer_segments['top'][::-1])
-            bottom_chain_segments.append(outer_segments['bottom'])
-
-        bridge_specs = []
-        bridge_top_segments = []
-        bridge_bottom_segments = []
-        for element_index in range(len(element_segments) - 1):
-            left_element = element_segments[element_index]
-            right_element = element_segments[element_index + 1]
-
-            left_boundary = left_element['outer']['right']
-            right_boundary = right_element['outer']['left'][::-1]
-
-            bridge_point_count = max(
-                _point_count_from_length(
-                    np.linalg.norm(right_boundary[0] - left_boundary[0]),
-                    target_spacing,
-                    minimum=2,
-                    maximum=200,
-                ),
-                _point_count_from_length(
-                    np.linalg.norm(right_boundary[-1] - left_boundary[-1]),
-                    target_spacing,
-                    minimum=2,
-                    maximum=200,
-                ),
-            )
-            bottom_bridge = _sample_segment_count(
-                left_boundary[0],
-                right_boundary[0],
-                bridge_point_count,
-            )
-            top_bridge = _sample_segment_count(
-                left_boundary[-1],
-                right_boundary[-1],
-                bridge_point_count,
-            )
-
-            bridge_bottom_segments.append(bottom_bridge)
-            bridge_top_segments.append(top_bridge)
-            bridge_specs.append(
-                QuadBlockSpec(
-                    name=f'block_hybrid_bridge_{element_index}_{element_index + 1}',
-                    lower_boundary=bottom_bridge,
-                    upper_boundary=top_bridge,
-                    left_boundary=left_boundary,
-                    right_boundary=right_boundary,
-                    role='bridge',
-                    metadata={
-                        'left_element': element_index,
-                        'right_element': element_index + 1,
-                    },
-                )
-            )
-
-        composed_top = []
-        composed_bottom = []
-        for index, segment in enumerate(top_chain_segments):
-            composed_top.append(segment)
-            if index < len(bridge_top_segments):
-                composed_top.append(bridge_top_segments[index])
-        for index, segment in enumerate(bottom_chain_segments):
-            composed_bottom.append(segment)
-            if index < len(bridge_bottom_segments):
-                composed_bottom.append(bridge_bottom_segments[index])
-
-        top_chain = _compose_segments(*composed_top)
-        bottom_chain = _compose_segments(*composed_bottom)
-
-        first_element = element_segments[0]
-        last_element = element_segments[-1]
-
-        inlet_right = first_element['outer']['left'][::-1]
-        outlet_left = last_element['outer']['right']
-
-        inlet_point_count = max(
-            _point_count_from_length(
-                np.linalg.norm(inlet_right[0] - np.array((farfield_left, farfield_bottom))),
-                target_spacing,
-                minimum=2,
-                maximum=200,
-            ),
-            _point_count_from_length(
-                np.linalg.norm(inlet_right[-1] - np.array((farfield_left, farfield_top))),
-                target_spacing,
-                minimum=2,
-                maximum=200,
-            ),
-        )
-        inlet_lower = _sample_segment_count(
-            np.array((farfield_left, farfield_bottom), dtype=float),
-            inlet_right[0],
-            inlet_point_count,
-        )
-        inlet_upper = _sample_segment_count(
-            np.array((farfield_left, farfield_top), dtype=float),
-            inlet_right[-1],
-            inlet_point_count,
-        )
-        outlet_point_count = max(
-            _point_count_from_length(
-                np.linalg.norm(outlet_left[0] - np.array((farfield_right, farfield_bottom))),
-                target_spacing,
-                minimum=2,
-                maximum=240,
-            ),
-            _point_count_from_length(
-                np.linalg.norm(outlet_left[-1] - np.array((farfield_right, farfield_top))),
-                target_spacing,
-                minimum=2,
-                maximum=240,
-            ),
-        )
-        outlet_lower = _sample_segment_count(
-            outlet_left[0],
-            np.array((farfield_right, farfield_bottom), dtype=float),
-            outlet_point_count,
-        )
-        outlet_upper = _sample_segment_count(
-            outlet_left[-1],
-            np.array((farfield_right, farfield_top), dtype=float),
-            outlet_point_count,
-        )
-
-        connector_vertical_count = max(inlet_point_count, outlet_point_count)
-        inlet_lower = _resample_polyline_count(
-            inlet_lower,
-            connector_vertical_count,
-        )
-        inlet_upper = _resample_polyline_count(
-            inlet_upper,
-            connector_vertical_count,
-        )
-        outlet_lower = _resample_polyline_count(
-            outlet_lower,
-            connector_vertical_count,
-        )
-        outlet_upper = _resample_polyline_count(
-            outlet_upper,
-            connector_vertical_count,
-        )
-
-        top_upper = _sample_segment_count(
-            np.array((farfield_left, farfield_top), dtype=float),
-            np.array((farfield_right, farfield_top), dtype=float),
-            len(top_chain),
-        )
-        bottom_upper = _sample_segment_count(
-            np.array((farfield_left, farfield_bottom), dtype=float),
-            np.array((farfield_right, farfield_bottom), dtype=float),
-            len(bottom_chain),
-        )
-
-        block_specs.extend(bridge_specs)
-        block_specs.extend((
-            QuadBlockSpec(
-                name='block_hybrid_inlet',
-                lower_boundary=inlet_lower,
-                upper_boundary=inlet_upper,
-                left_boundary=_sample_segment_count(
-                    (farfield_left, farfield_bottom),
-                    (farfield_left, farfield_top),
-                    side_point_count,
-                ),
-                right_boundary=inlet_right,
-                role='inlet_connector',
-            ),
-            QuadBlockSpec(
-                name='block_hybrid_outlet',
-                lower_boundary=outlet_lower,
-                upper_boundary=outlet_upper,
-                left_boundary=outlet_left,
-                right_boundary=_sample_segment_count(
-                    (farfield_right, farfield_bottom),
-                    (farfield_right, farfield_top),
-                    side_point_count,
-                ),
-                role='outlet_connector',
-            ),
-            QuadBlockSpec(
-                name='block_hybrid_top',
-                lower_boundary=top_chain,
-                upper_boundary=top_upper,
-                left_boundary=inlet_upper[::-1],
-                right_boundary=outlet_upper,
-                role='top_connector',
-            ),
-            QuadBlockSpec(
-                name='block_hybrid_bottom',
-                lower_boundary=bottom_chain,
-                upper_boundary=bottom_upper,
-                left_boundary=inlet_lower[::-1],
-                right_boundary=outlet_lower,
-                role='bottom_connector',
-            ),
-        ))
-
-        return QuadLayoutPlan(
-            boundary_points=outer_boundary,
-            boundary_loops=boundary_loops,
-            near_wall_loops=[element['outer_loop'] for element in element_segments],
-            outer_boundary=outer_boundary,
-            block_specs=block_specs,
-            metadata={
-                'strategy': cls.name,
-                'implemented': True,
-                'element_count': len(boundary_loops),
-                'block_count': len(block_specs),
-                'ring_thickness': float(ring_thickness),
-                'connector_layers': int(connector_layers),
-                'normal_divisions': int(normal_divisions),
-                'first_layer_thickness': float(first_layer_thickness),
-                'target_spacing': float(target_spacing),
-                'minimum_inter_element_gap': float(minimum_gap)
-                if np.isfinite(minimum_gap) else None,
-            },
-        )
 
     @classmethod
     def generate_metric_c_grid(

@@ -297,3 +297,69 @@ delivered:
   `tests/test_quad_pipeline.py` and `tests/test_experimental_c_grid.py`;
   re-exposing them as selectable engines again, or removing them
   outright, is a separate decision this pass didn't make.
+
+## Follow-up: backend removal of the four unreachable engines (2026-09-18)
+
+The decision the previous pass deferred: removed outright, not
+re-exposed. `metric_based` and `structured` are unaffected — every
+surviving test (116, was 131) still passes, plus an end-to-end
+`Windtunnel.makeMesh()` smoke run against real NACA0012 data for both
+engines.
+
+- **Not a clean file-level deletion** — dependency tracing (before
+  touching anything) found `metric_based` actually calls into
+  `ExperimentalCGrid.py` internally (`ExperimentalCGridGenerator.build_block`
+  and ~25 supporting helpers, via `QuadPipeline._build_block_from_spec`),
+  and `QuadPipeline.HybridQuadPipelineSettings`/`HybridQuadPipeline` are
+  `metric_based`'s own settings/orchestration classes despite the
+  "Hybrid" name — a pre-existing misnomer, left as-is since renaming it
+  is a separate, broader decision than this cleanup.
+- **`src/ExperimentalOGrid.py`** and **`tests/test_experimental_o_grid.py`**:
+  deleted wholesale — zero callers once `QuadLayoutGenerator.generate()`
+  (the hybrid multi-element layout) was gone.
+- **`src/ExperimentalCGrid.py`**: surgical — removed `build_blunt_blocks`
+  and the 7 helpers that existed only to support it
+  (`_build_transfinite_grid`, `_build_trailing_edge_patch`,
+  `_orient_line_to_start`, `_extract_patch_side_lines`,
+  `_extract_downstream_face`, `_build_cut_line`,
+  `_build_wake_bridge_block`); simplified `_prepare_contour`'s dead
+  `closed=False`/open-contour branch and `_build_wake_branches`' dead
+  `cut_line` parameter, both vestiges of the deleted blunt path.
+  `build_block` and its remaining helpers are unchanged — kept 3 of 4
+  tests in `tests/test_experimental_c_grid.py`.
+- **`src/QuadLayout.py`**: deleted `generate()` (570 lines: the hybrid
+  multi-element O/C layout) and its exclusive helpers/constants;
+  `generate_metric_c_grid` and the generic loop utilities it shares with
+  nothing else now are untouched.
+- **`src/QuadPipeline.py`**: deleted `run`, `apply_stage1`, `apply_stage2`,
+  `_redistribute_block`, `_eligible_blocks` (the whole stage1/stage2
+  cleanup-and-redistribute machinery, `metric_based` never used it —
+  its settings hardcode `stage1.enabled=False`/`stage2.enabled=False`);
+  collapsed `_build_block_from_spec`'s three-branch dispatch
+  (`metric_patch`/`metric_c_grid`/`element_ring`/generic-fallback) down
+  to the one branch `generate_metric_c_grid` ever produces, replacing
+  the `ExperimentalOGridSettings` instance it read two defaults from
+  with two plain locals.
+- **`src/Meshing.py`**: deleted the `hybrid`/`hybrid_staged`/
+  `experimental`/`experimental_o` settings fields, generator caches,
+  `_makeHybridMesh`/`_makeHybridStage4Mesh`/`_makeExperimentalMesh`/
+  `makeHybridStage4Mesh`/`applyHybridStage1`/`applyHybridStage2` and
+  their shared helpers (`_hybridStageRequirement`,
+  `_finalizeHybridPipelineStep`, `_resetHybridPipelineState`); `makeMesh`
+  now dispatches only `structured`/`metric_based` before falling through
+  to the pre-existing legacy `_buildStandardBlocks` path (untouched,
+  out of scope).
+- **`src/ToolBox.py`/`src/ToolboxServices.py`**: deleted the leftover
+  non-GUI wiring the 2026-09-17 pass didn't reach — a dead
+  `hybrid_staged` branch in `_meshStatusText`, four tolerance-value
+  methods reading widgets that are never created, a dead TE-divisions
+  branch in `mesh_generation_settings`, the `hybrid`/`hybrid_staged`/
+  `experimental`/`experimental_o` settings-construction kwargs, and the
+  three unwired `generateHybridStage4`/`applyHybridStage1`/
+  `applyHybridStage2` method pairs in both the GUI class and
+  `ToolboxServices`.
+- **Caught mid-pass**: `rm` is aliased to `rm -i` in this shell, so the
+  first attempt to delete `ExperimentalOGrid.py`/its test silently did
+  nothing (no error, no confirmation prompt reached) — a repo-wide grep
+  sweep before running the suite caught that the files were still on
+  disk; `git rm -f` was used instead.
