@@ -45,6 +45,10 @@ PyAero is an open-source airfoil contour analysis and CFD meshing tool written i
    - Decent smoothing algorithm for the mesh regions outside the orthogonal blocks
    - Advanced aerodynamic analysis (i.e. linking to open source CFD software, e.g. SU2)
 
+## Companion solver: PyAeroFlow
+
+[PyAeroFlow](https://github.com/chiefenne/pyaeroflow) is a 2D finite-volume Navier–Stokes/RANS solver in JAX that reads PyAero's SU2 meshes directly, boundary markers included. The [PyAero-to-PyAeroFlow guide](https://github.com/chiefenne/pyaeroflow/blob/main/docs/pyaero.md) covers mesh settings (y⁺, farfield), the case file and the results.
+
 ## Header image
  - Airfoil SD7003
  - Meshing with PyAero
