@@ -1238,31 +1238,12 @@ class BlockMesh:
             # write boundary tags
             f.write('NMARK= 5\n')
 
-            f.write('MARKER_TAG= airfoil\n')
-            f.write('MARKER_ELEMS= ' + str(num_airfoil_edges) + '\n')
-            for edge in tags['airfoil']:
-                f.write(f'3 {edge[0]} {edge[1]}\n')
+            for tag, edges in tags.items():
+                f.write(f'MARKER_TAG= {wind_tunnel.boundary_tags_names[tag]}\n')
+                f.write(f'MARKER_ELEMS= {str(len(edges))}\n')
+                for edge in edges:
+                    f.write(f'3 {edge[0]} {edge[1]}\n')
 
-            f.write('MARKER_TAG= inlet\n')
-            f.write('MARKER_ELEMS= ' + str(num_inlet_edges) + '\n')
-            for edge in tags['inlet']:
-                f.write(f'3 {edge[0]} {edge[1]}\n')
-
-            f.write('MARKER_TAG= outlet\n')
-            f.write('MARKER_ELEMS= ' + str(num_outlet_edges) + '\n')
-            for edge in tags['outlet']:
-                f.write(f'3 {edge[0]} {edge[1]}\n')
-
-            f.write('MARKER_TAG= top\n')
-            f.write('MARKER_ELEMS= ' + str(num_top_edges) + '\n')
-            for edge in tags['top']:
-                f.write(f'3 {edge[0]} {edge[1]}\n')
-
-            f.write('MARKER_TAG= bottom\n')
-            f.write('MARKER_ELEMS= ' + str(num_bottom_edges) + '\n')
-            for edge in tags['bottom']:
-                f.write(f'3 {edge[0]} {edge[1]}\n')
-            
         basename = os.path.basename(name)
         logger.info('SU2 type mesh saved as {}'.
                     format(os.path.join(OUTPUTDATA, basename)))

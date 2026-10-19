@@ -149,6 +149,14 @@ class MainWindow(QtWidgets.QMainWindow):
             # progress event
             super().keyPressEvent(event)
 
+    def closeEvent(self, event):
+        print("custom close event!")
+        try:
+            self.toolbox.abortSU2()  # FIXME: this doesn't seem to do anything. wrong class's closeEvent?!
+        except Exception as excpt:
+            print(f"Aborting simulation processes failed with {excpt}")
+        self.deleteLater()
+
 
 class CentralWidget(QtWidgets.QWidget):
     """
