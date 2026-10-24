@@ -115,18 +115,24 @@ class StructuredEngine:
                 'Ortho layers must be fewer than total normal divisions.')
 
         contour_slice = frame.metadata.get('contour_slice')
+        block_height = OrthoLayers.layer_heights(
+            settings.ortho_layers, settings.first_layer_thickness,
+            settings.ortho_growth)[-1]
         normals = OrthoLayers.wall_normals(
             frame.wall, corner_indices,
             spline_data=spline_data, contour_slice=contour_slice,
             closed=frame.periodic,
+            blend_length=OrthoLayers.CORNER_BLEND_FACTOR * block_height,
         )
         caps = OrthoLayers.max_offset_heights(
             frame.wall, normals,
             spline_data=spline_data, contour_slice=contour_slice,
+            corner_indices=corner_indices,
         )
         ortho_rows = OrthoLayers.build_layers(
             frame.wall, normals, settings.ortho_layers,
             settings.first_layer_thickness, settings.ortho_growth, caps,
+            closed=frame.periodic,
         )
 
         rim = ortho_rows[-1]

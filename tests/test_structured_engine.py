@@ -305,5 +305,74 @@ class StructuredDispatchTests(unittest.TestCase):
                          settings.structured.tunnel_height)
 
 
+
+class StructuredTeAnchorEngineTests(unittest.TestCase):
+    def test_te_line_ends_at_anchor_for_all_algorithms(self):
+        engine = StructuredEngine()
+        contours = {'sharp': _sharp_contour(), 'blunt': _blunt_contour(),
+                    'naca2315': _load_dat(NACA2315),
+                    'mw166': _load_dat(MW166)}
+        for te_name, contour in contours.items():
+            spline_data = _spline_data_for(contour)
+            for algorithm in ('tfi', 'elliptic', 'hyperbolic'):
+                for mode, value in (('fraction', 0.0), ('fraction', 1.0),
+                                    ('angle', 35.0)):
+                    with self.subTest(te=te_name, algorithm=algorithm,
+                                      mode=mode, value=value):
+                        settings = core.StructuredMeshSettings(
+                            topology='c', algorithm=algorithm,
+                            normal_divisions=40, wake_points=40,
+                            te_anchor_mode=mode, te_anchor_value=value,
+                        )
+                        named = engine.build_blocks(
+                            spline_data=spline_data, settings=settings)
+                        rows = np.asarray(named[0][1].getULines())
+                        upper_te = settings.wake_points - 1
+                        lower_te = rows.shape[1] - settings.wake_points
+                        x_te = rows[0, upper_te, 0]
+                        x_upper = rows[-1, upper_te, 0]
+                        x_lower = rows[-1, lower_te, 0]
+                        self.assertGreater(rows[-1, upper_te, 1], 0.0)
+                        self.assertLess(rows[-1, lower_te, 1], 0.0)
+                        if mode == 'fraction' and value == 0.0:
+                            self.assertAlmostEqual(x_upper, x_te, places=6)
+                            self.assertAlmostEqual(x_lower, x_te, places=6)
+                        else:
+                            self.assertGreater(x_upper, x_te + 1.0)
+                            self.assertGreater(x_lower, x_te + 1.0)
+
+
+
+def _app_prepared_spline_data(path, points):
+    """Contour prepared exactly like the GUI does (spline + nose and TE
+    refinement), which gives the fine TE spacing the ortho bugs need."""
+    import types
+    from PySide6 import QtCore
+    from SplineRefine import SplineRefine
+    app = QtCore.QCoreApplication.instance() or QtCore.QCoreApplication([])
+    raw = _load_dat(path)
+    app.mainwindow = types.SimpleNamespace(airfoil=types.SimpleNamespace(
+        raw_coordinates=(raw[:, 0], raw[:, 1])))
+    SplineRefine().doSplineRefine(points=points)
+    return app.mainwindow.airfoil.spline_data
+
+
+class StructuredOrthoTrailingEdgeTests(unittest.TestCase):
+    def test_c_mesh_ortho_block_does_not_fold_at_te(self):
+        engine = StructuredEngine()
+        for name, path in (('naca0012', NACA0012), ('mw166', MW166)):
+            spline_data = _app_prepared_spline_data(path, 500)
+            for algorithm in ('tfi', 'elliptic'):
+                for ortho, growth in ((5, 1.07), (10, 1.15)):
+                    with self.subTest(airfoil=name, algorithm=algorithm,
+                                      ortho=ortho):
+                        settings = core.StructuredMeshSettings(
+                            topology='c', algorithm=algorithm,
+                            ortho_layers=ortho, ortho_growth=growth)
+                        # raises on inverted cells
+                        engine.build_blocks(spline_data=spline_data,
+                                            settings=settings)
+
+
 if __name__ == '__main__':
     unittest.main()

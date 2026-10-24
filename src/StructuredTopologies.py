@@ -12,7 +12,12 @@ Geometry conventions
 - Circular tunnel: circle of radius ``tunnel_height`` centered at mid-chord
   ``(0.5, 0)``. For C it is truncated at the outlet plane.
 - C-mesh wall row: ``upper_cut[::-1][:-1] + contour + lower_cut[1:]`` with
-  each cut running TE corner -> outlet. Sharp TE: both cuts coincide
+  each cut running TE corner -> outlet. The outer row is split at the two
+  TE anchors (where the grid line leaving the TE meets the tunnel) into
+  the same three segments, so the TE line lands exactly on the anchor.
+  The anchor is set as a fraction (0 = straight up/down from the TE,
+  1 = ``ANCHOR_OUTLET_RESERVE`` short of the outlet) or as an angle from
+  the vertical; the angle is the same above and below. Sharp TE: both cuts coincide
   node-for-node (matched cut). Blunt TE: distinct horizontal cuts bounding
   a constant-width wake strip meshed as a second frame.
 - O-grid wall row: the contour closed either exactly at the sharp TE or by
@@ -29,11 +34,16 @@ from StructuredCore import (
     detect_te_type,
     distribute_on_polyline,
     geometric_distances,
+    polyline_cumulative,
+    sample_polyline_at,
     sample_te_base,
 )
 
 ARC_SAMPLES = 360
 STRAIGHT_SAMPLES_PER_UNIT = 40
+# Share of the wake length kept between the furthest TE anchor and the
+# outlet, so the downstream lines still exit through the tunnel walls.
+ANCHOR_OUTLET_RESERVE = 0.1
 
 
 def build_frames(contour, settings: StructuredMeshSettings):
@@ -117,7 +127,6 @@ def _curved_seam(te_point: np.ndarray, bisector: np.ndarray,
     bezier = ((1.0 - parameters) ** 2 * te_point[None, :] +
               2.0 * (1.0 - parameters) * parameters * control[None, :] +
               parameters ** 2 * seam_target[None, :])
-    from StructuredCore import polyline_cumulative, sample_polyline_at
     distances = geometric_distances(
         polyline_cumulative(bezier)[-1], first_spacing, count)
     return sample_polyline_at(bezier, distances)
@@ -165,44 +174,16 @@ def _arc(center, radius, theta_from, theta_to) -> np.ndarray:
 
 
 def tunnel_outline(settings: StructuredMeshSettings, te_point: np.ndarray,
-                   te_type: str,
                    seam_direction: np.ndarray | None = None) -> np.ndarray:
-    """Dense outer-curve polyline: open for C, closed (CCW) for O.
+    """Dense closed (CCW) O-grid outer polyline.
 
-    For O topology the loop starts/ends at the seam point where the ray
-    from the TE along ``seam_direction`` (default +x) meets the outer
-    shape.
+    The loop starts/ends at the seam point where the ray from the TE
+    along ``seam_direction`` (default +x) meets the outer shape.
     """
     height = settings.tunnel_height
     x_te = float(te_point[0])
     x_outlet = x_te + settings.wake_length
 
-    if settings.topology == 'c':
-        if settings.tunnel_shape == 'legacy':
-            pieces = (
-                _straight((x_outlet, height), (x_te, height)),
-                _arc((x_te, 0.0), height, 0.5 * np.pi, 1.5 * np.pi),
-                _straight((x_te, -height), (x_outlet, -height)),
-            )
-        elif settings.tunnel_shape == 'circular':
-            offset = x_outlet - 0.5
-            if offset >= 0.95 * height:
-                raise ValueError(
-                    'Wake length reaches past the circular farfield; '
-                    'increase the radius or shorten the wake.')
-            y_cut = np.sqrt(height ** 2 - offset ** 2)
-            theta_outlet = np.arctan2(y_cut, offset)
-            pieces = (
-                _arc((0.5, 0.0), height, theta_outlet,
-                     2.0 * np.pi - theta_outlet),
-            )
-        else:
-            raise ValueError(
-                f'Unknown tunnel shape: {settings.tunnel_shape!r}.')
-        return _dedupe(np.vstack(pieces))
-
-    # O topology: closed loop starting/ending at the seam point where the
-    # TE ray meets the outer shape, sampled counterclockwise.
     direction = np.array([1.0, 0.0]) if seam_direction is None \
         else np.asarray(seam_direction, dtype=float)
     norm = np.linalg.norm(direction)
@@ -228,14 +209,7 @@ def tunnel_outline(settings: StructuredMeshSettings, te_point: np.ndarray,
     elif settings.tunnel_shape == 'circular':
         # intersect the ray with the circle around mid-chord
         center = np.array([0.5, 0.0])
-        offset = np.asarray(te_point, dtype=float) - center
-        b = float(np.dot(offset, direction))
-        c = float(np.dot(offset, offset)) - height ** 2
-        discriminant = b * b - c
-        if discriminant <= 0.0 or c >= 0.0:
-            raise ValueError('Farfield radius must enclose the airfoil.')
-        travel = -b + np.sqrt(discriminant)
-        seam_point = np.asarray(te_point, dtype=float) + travel * direction
+        seam_point = _ray_circle_exit(te_point, direction, center, height)
         theta_seam = float(np.arctan2(seam_point[1] - center[1],
                                       seam_point[0] - center[0]))
         pieces = (
@@ -248,18 +222,16 @@ def tunnel_outline(settings: StructuredMeshSettings, te_point: np.ndarray,
 
 
 def _distribute_outer(outline: np.ndarray, count: int,
-                      settings: StructuredMeshSettings,
-                      closed: bool) -> np.ndarray:
+                      settings: StructuredMeshSettings) -> np.ndarray:
+    """O-grid outer row on the closed outline."""
     control = settings.boundary_control
     if control.distribution == 'uniform' or control.clustering_ratio == 1.0:
         outer = distribute_on_polyline(outline, count, 'uniform')
     else:
-        # Cluster toward the outlet ends: split at the arclength midpoint
-        # (upstream apex for C, seam-opposite point for O), cluster each
-        # half toward its outlet/seam end.
+        # Cluster toward the seam: split at the arclength midpoint (the
+        # seam-opposite point), cluster each half toward its seam end.
         half_count = count // 2 + 1
         rest_count = count - half_count + 1
-        from StructuredCore import polyline_cumulative, sample_polyline_at
         cumulative = polyline_cumulative(outline)
         split_distance = 0.5 * cumulative[-1]
         split_index = int(np.searchsorted(cumulative, split_distance))
@@ -275,9 +247,121 @@ def _distribute_outer(outline: np.ndarray, count: int,
             _dedupe(second_half)[::-1], rest_count, 'clustered',
             control.clustering_ratio)[::-1]
         outer = np.vstack((first, second[1:]))
-    if closed:
-        outer[-1] = outer[0]
+    outer[-1] = outer[0]
     return outer
+
+
+def _ray_circle_exit(origin, direction, center, radius) -> np.ndarray:
+    """Point where the ray from ``origin`` (inside the circle) along the
+    unit ``direction`` leaves the circle."""
+    origin = np.asarray(origin, dtype=float)
+    offset = origin - center
+    b = float(np.dot(offset, direction))
+    c = float(np.dot(offset, offset)) - radius ** 2
+    discriminant = b * b - c
+    if discriminant <= 0.0 or c >= 0.0:
+        raise ValueError('Farfield radius must enclose the airfoil.')
+    return origin + (-b + np.sqrt(discriminant)) * direction
+
+
+def _te_anchor_x(settings: StructuredMeshSettings, te_point: np.ndarray,
+                 side: float) -> float:
+    """x of the TE anchor on the upper (side=+1) or lower (side=-1)
+    tunnel wall, clamped to leave the outlet reserve free."""
+    x_te = float(te_point[0])
+    x_max = x_te + (1.0 - ANCHOR_OUTLET_RESERVE) * settings.wake_length
+    value = settings.te_anchor_value
+    if settings.te_anchor_mode == 'fraction':
+        if not 0.0 <= value <= 1.0:
+            raise ValueError('TE anchor fraction must lie in [0, 1].')
+        return x_te + value * (x_max - x_te)
+    if settings.te_anchor_mode != 'angle':
+        raise ValueError(
+            f'Unknown TE anchor mode: {settings.te_anchor_mode!r}.')
+    if not 0.0 <= value < 90.0:
+        raise ValueError('TE anchor angle must lie in [0, 90) degrees.')
+    angle = np.radians(value)
+    if settings.tunnel_shape == 'legacy':
+        rise = settings.tunnel_height - side * float(te_point[1])
+        x_anchor = x_te + rise * np.tan(angle)
+    else:
+        direction = np.array([np.sin(angle), side * np.cos(angle)])
+        x_anchor = float(_ray_circle_exit(
+            te_point, direction, np.array([0.5, 0.0]),
+            settings.tunnel_height)[0])
+    return min(x_anchor, x_max)
+
+
+def c_outline_segments(settings: StructuredMeshSettings,
+                       te_point: np.ndarray):
+    """Dense C-mesh outer polylines, CCW: upper wake (outlet -> upper
+    anchor), contour (upper anchor -> apex -> lower anchor), lower wake
+    (lower anchor -> outlet)."""
+    height = settings.tunnel_height
+    x_te = float(te_point[0])
+    x_outlet = x_te + settings.wake_length
+    x_upper = _te_anchor_x(settings, te_point, 1.0)
+    x_lower = _te_anchor_x(settings, te_point, -1.0)
+
+    if settings.tunnel_shape == 'legacy':
+        upper_wake = _straight((x_outlet, height), (x_upper, height))
+        contour_part = np.vstack((
+            _straight((x_upper, height), (x_te, height)),
+            _arc((x_te, 0.0), height, 0.5 * np.pi, 1.5 * np.pi),
+            _straight((x_te, -height), (x_lower, -height)),
+        ))
+        lower_wake = _straight((x_lower, -height), (x_outlet, -height))
+    elif settings.tunnel_shape == 'circular':
+        offset = x_outlet - 0.5
+        if offset >= 0.95 * height:
+            raise ValueError(
+                'Wake length reaches past the circular farfield; '
+                'increase the radius or shorten the wake.')
+        theta_outlet = np.arccos(offset / height)
+        theta_upper = np.arccos((x_upper - 0.5) / height)
+        theta_lower = 2.0 * np.pi - np.arccos((x_lower - 0.5) / height)
+        center = (0.5, 0.0)
+        upper_wake = _arc(center, height, theta_outlet, theta_upper)
+        contour_part = _arc(center, height, theta_upper, theta_lower)
+        lower_wake = _arc(center, height, theta_lower,
+                          2.0 * np.pi - theta_outlet)
+    else:
+        raise ValueError(
+            f'Unknown tunnel shape: {settings.tunnel_shape!r}.')
+    return _dedupe(upper_wake), _dedupe(contour_part), _dedupe(lower_wake)
+
+
+def _wake_outer(segment: np.ndarray, count: int, anchor_spacing: float,
+                settings: StructuredMeshSettings) -> np.ndarray:
+    """Outer nodes on a wake segment running anchor -> outlet.
+
+    Uniform: geometric growth from the contour-segment spacing at the
+    anchor (no spacing jump across it). Clustered: fine at the outlet,
+    ``clustering_ratio`` times coarser at the anchor.
+    """
+    control = settings.boundary_control
+    length = polyline_cumulative(segment)[-1]
+    if control.distribution == 'clustered' and control.clustering_ratio != 1.0:
+        return distribute_on_polyline(
+            segment[::-1], count, 'clustered',
+            control.clustering_ratio)[::-1]
+    distances = geometric_distances(length, anchor_spacing, count)
+    return sample_polyline_at(segment, distances)
+
+
+def _distribute_c_outer(settings: StructuredMeshSettings,
+                        te_point: np.ndarray, wake_count: int,
+                        contour_count: int):
+    upper_wake, contour_part, lower_wake = c_outline_segments(
+        settings, te_point)
+    middle = distribute_on_polyline(contour_part, contour_count, 'uniform')
+    anchor_spacing = (polyline_cumulative(contour_part)[-1] /
+                      (contour_count - 1))
+    upper = _wake_outer(upper_wake[::-1], wake_count, anchor_spacing,
+                        settings)[::-1]
+    lower = _wake_outer(lower_wake, wake_count, anchor_spacing, settings)
+    outer = np.vstack((upper[:-1], middle, lower[1:]))
+    return outer, (middle[0], middle[-1])
 
 
 def _build_c_frames(contour: np.ndarray, settings: StructuredMeshSettings,
@@ -297,8 +381,8 @@ def _build_c_frames(contour: np.ndarray, settings: StructuredMeshSettings,
                               settings.wake_points)
 
     wall = np.vstack((upper_cut[::-1][:-1], contour, lower_cut[1:]))
-    outline = tunnel_outline(settings, te_point, te_type)
-    outer = _distribute_outer(outline, len(wall), settings, closed=False)
+    outer, te_anchors = _distribute_c_outer(
+        settings, te_point, len(upper_cut), len(contour))
     side_count = settings.normal_divisions + 1
     side_start = side_segment(wall[0], outer[0],
                               settings.first_layer_thickness, side_count)
@@ -313,6 +397,7 @@ def _build_c_frames(contour: np.ndarray, settings: StructuredMeshSettings,
             'wake_cut_matched': te_type == 'sharp',
             'x_outlet': x_outlet,
             'contour_slice': (contour_start, contour_start + len(contour)),
+            'te_anchors': te_anchors,
         },
     )
     validate_frame(main)
@@ -349,9 +434,9 @@ def _build_o_frame(contour: np.ndarray, settings: StructuredMeshSettings,
     te_point = wall[0]
     center = _polygon_centroid(wall)
     seam_direction = te_point - center
-    outline = tunnel_outline(settings, te_point, te_type,
+    outline = tunnel_outline(settings, te_point,
                              seam_direction=seam_direction)
-    outer = _distribute_outer(outline, len(wall), settings, closed=True)
+    outer = _distribute_outer(outline, len(wall), settings)
     seam = _curved_seam(te_point, _te_bisector(contour), outer[0],
                         settings.first_layer_thickness,
                         settings.normal_divisions + 1)

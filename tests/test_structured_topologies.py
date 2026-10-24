@@ -121,3 +121,94 @@ def test_circular_c_wake_too_long_raises():
                'wake' in str(error).lower()
     else:
         raise AssertionError('Expected ValueError for wake past farfield.')
+
+
+def _te_line(frame):
+    start = frame.metadata['contour_slice'][0]
+    return frame.wall[start], frame.outer[start]
+
+
+def _angle_from_vertical(te, anchor):
+    return np.degrees(np.arctan2(anchor[0] - te[0], abs(anchor[1] - te[1])))
+
+
+def test_c_te_anchor_fraction_zero_is_vertical():
+    for shape, height in (('legacy', 3.5), ('circular', 10.0)):
+        settings = core.StructuredMeshSettings(
+            topology='c', tunnel_shape=shape, tunnel_height=height)
+        frame = topo.build_frames(_sharp_contour(), settings)[0]
+        te, anchor = _te_line(frame)
+        assert np.isclose(anchor[0], te[0], atol=1e-9)
+        assert anchor[1] > 0.0
+        assert np.allclose(frame.metadata['te_anchors'][0], anchor)
+
+
+def test_c_te_anchor_fraction_moves_toward_outlet_with_reserve():
+    contour = _sharp_contour()
+    xs = []
+    for fraction in (0.0, 0.25, 0.5, 0.75, 1.0):
+        settings = core.StructuredMeshSettings(
+            topology='c', te_anchor_value=fraction)
+        frame = topo.build_frames(contour, settings)[0]
+        upper, lower = frame.metadata['te_anchors']
+        assert np.isclose(upper[0], lower[0])
+        xs.append(upper[0])
+    assert np.all(np.diff(xs) > 0.0)
+    x_te = contour[0][0]
+    reserve = topo.ANCHOR_OUTLET_RESERVE * settings.wake_length
+    assert np.isclose(xs[-1], x_te + settings.wake_length - reserve)
+
+
+def test_c_te_anchor_angle_is_exact_and_clamped():
+    contour = _sharp_contour()
+    for shape, height in (('legacy', 3.5), ('circular', 10.0)):
+        settings = core.StructuredMeshSettings(
+            topology='c', tunnel_shape=shape, tunnel_height=height,
+            te_anchor_mode='angle', te_anchor_value=25.0)
+        frame = topo.build_frames(contour, settings)[0]
+        te, _anchor = _te_line(frame)
+        for anchor in frame.metadata['te_anchors']:
+            assert np.isclose(_angle_from_vertical(te, anchor), 25.0)
+
+        steep = core.StructuredMeshSettings(
+            topology='c', tunnel_shape=shape, tunnel_height=height,
+            te_anchor_mode='angle', te_anchor_value=89.0)
+        limit = core.StructuredMeshSettings(
+            topology='c', tunnel_shape=shape, tunnel_height=height,
+            te_anchor_value=1.0)
+        steep_anchor = topo.build_frames(contour, steep)[0] \
+            .metadata['te_anchors'][0]
+        limit_anchor = topo.build_frames(contour, limit)[0] \
+            .metadata['te_anchors'][0]
+        assert np.allclose(steep_anchor, limit_anchor)
+
+
+def test_c_outer_row_monotone_for_all_anchors():
+    for contour in (_sharp_contour(), _blunt_contour()):
+        for shape, height in (('legacy', 3.5), ('circular', 10.0)):
+            for distribution in ('uniform', 'clustered'):
+                for fraction in (0.0, 0.5, 1.0):
+                    settings = core.StructuredMeshSettings(
+                        topology='c', tunnel_shape=shape,
+                        tunnel_height=height, te_anchor_value=fraction,
+                        boundary_control=core.TunnelBoundaryControl(
+                            distribution=distribution,
+                            clustering_ratio=3.0))
+                    frame = topo.build_frames(contour, settings)[0]
+                    steps = np.linalg.norm(np.diff(frame.outer, axis=0),
+                                           axis=1)
+                    assert len(frame.outer) == len(frame.wall)
+                    assert np.all(steps > 1e-9)
+
+
+def test_c_te_anchor_invalid_values_raise():
+    for mode, value in (('fraction', -0.1), ('fraction', 1.5),
+                        ('angle', 90.0), ('angle', -1.0)):
+        settings = core.StructuredMeshSettings(
+            topology='c', te_anchor_mode=mode, te_anchor_value=value)
+        try:
+            topo.build_frames(_sharp_contour(), settings)
+        except ValueError as error:
+            assert 'anchor' in str(error).lower()
+        else:
+            raise AssertionError(f'Expected ValueError for {mode}={value}.')

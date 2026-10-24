@@ -22,6 +22,8 @@ class StructuredMeshSettings:
     tunnel_shape: str = 'legacy'       # 'legacy' | 'circular'
     tunnel_height: float = 3.5         # legacy half-height / circular radius
     wake_length: float = 7.0           # TE to outlet (C-mesh only)
+    te_anchor_mode: str = 'fraction'   # 'fraction' | 'angle' (C-mesh only)
+    te_anchor_value: float = 0.0       # 0..1, or degrees from vertical
     algorithm: str = 'tfi'             # 'tfi' | 'elliptic' | 'hyperbolic'
     tfi_variant: str = 'standard'      # 'standard' | 'hermite'
     elliptic_iterations: int = 150

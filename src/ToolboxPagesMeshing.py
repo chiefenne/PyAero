@@ -131,6 +131,21 @@ def _build_structured_group(toolbox):
     form.addRow(make_page_label('Wake length'),
                 toolbox.structured_wake_length)
 
+    toolbox.structured_te_anchor_mode = QtWidgets.QComboBox()
+    toolbox.structured_te_anchor_mode.addItem('Fraction',
+                                              userData='fraction')
+    toolbox.structured_te_anchor_mode.addItem('Angle', userData='angle')
+    toolbox.structured_te_anchor_mode.setToolTip(
+        'Where the grid line leaving the trailing edge meets the tunnel '
+        'wall (same above and below).')
+    form.addRow(make_page_label('TE line target'),
+                toolbox.structured_te_anchor_mode)
+
+    toolbox.structured_te_anchor_value = QtWidgets.QDoubleSpinBox()
+    form.addRow(make_page_label('TE line position'),
+                toolbox.structured_te_anchor_value)
+    _update_te_anchor_range(toolbox)
+
     toolbox.structured_algorithm = QtWidgets.QComboBox()
     toolbox.structured_algorithm.addItem('TFI', userData='tfi')
     toolbox.structured_algorithm.addItem('Elliptic (Winslow + TM)',
@@ -249,6 +264,10 @@ def _build_structured_group(toolbox):
     group.setLayout(layout)
 
     toolbox.structured_form = form
+    toolbox.structured_topology.currentIndexChanged.connect(
+        lambda _index=None: _update_structured_algorithm_visibility(toolbox))
+    toolbox.structured_te_anchor_mode.currentIndexChanged.connect(
+        lambda _index=None: _update_te_anchor_range(toolbox))
     toolbox.structured_algorithm.currentIndexChanged.connect(
         lambda _index=None: _update_structured_algorithm_visibility(toolbox))
     toolbox.structured_tfi_variant.currentIndexChanged.connect(
@@ -262,6 +281,29 @@ def _build_structured_group(toolbox):
     return group
 
 
+def _update_te_anchor_range(toolbox):
+    spin = toolbox.structured_te_anchor_value
+    spin.setValue(0.0)
+    if toolbox.structured_te_anchor_mode.currentData() == 'angle':
+        spin.setDecimals(1)
+        spin.setRange(0.0, 89.0)
+        spin.setSingleStep(5.0)
+        spin.setSuffix(' °')
+        spin.setToolTip(
+            'Angle from the vertical through the trailing edge. Clamped so '
+            'the downstream lines keep the last 10 % of the wake length '
+            'to exit through the tunnel walls.')
+    else:
+        spin.setSuffix('')
+        spin.setRange(0.0, 1.0)
+        spin.setDecimals(2)
+        spin.setSingleStep(0.05)
+        spin.setToolTip(
+            '0 = straight up/down from the trailing edge, 1 = close to the '
+            'outlet (the last 10 % of the wake length stays free for the '
+            'downstream lines).')
+
+
 def _update_structured_algorithm_visibility(toolbox):
     """Show only the rows relevant to the selected algorithm, and grey out
     settings that the current algorithm/variant combination ignores."""
@@ -271,6 +313,9 @@ def _update_structured_algorithm_visibility(toolbox):
     outer_distribution = toolbox.structured_outer_distribution.currentData()
     smoother = toolbox.structured_smoother.currentData()
 
+    is_c_mesh = toolbox.structured_topology.currentData() == 'c'
+    form.setRowVisible(toolbox.structured_te_anchor_mode, is_c_mesh)
+    form.setRowVisible(toolbox.structured_te_anchor_value, is_c_mesh)
     form.setRowVisible(toolbox.structured_tfi_variant, algorithm == 'tfi')
     form.setRowVisible(toolbox.structured_elliptic_iterations,
                        algorithm == 'elliptic')
@@ -304,6 +349,8 @@ def structured_settings_from_toolbox(toolbox):
         tunnel_shape=toolbox.structured_tunnel_shape.currentData(),
         tunnel_height=toolbox.structured_tunnel_height.value(),
         wake_length=toolbox.structured_wake_length.value(),
+        te_anchor_mode=toolbox.structured_te_anchor_mode.currentData(),
+        te_anchor_value=toolbox.structured_te_anchor_value.value(),
         algorithm=toolbox.structured_algorithm.currentData(),
         tfi_variant=toolbox.structured_tfi_variant.currentData(),
         elliptic_iterations=toolbox.structured_elliptic_iterations.value(),

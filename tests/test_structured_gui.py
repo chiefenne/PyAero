@@ -179,3 +179,25 @@ def test_outer_angle_enabled_only_where_it_takes_effect():
     toolbox.structured_algorithm.setCurrentIndex(
         toolbox.structured_algorithm.findData('hyperbolic'))
     assert not toolbox.structured_outer_angle.isEnabled()
+
+
+def test_structured_te_anchor_controls():
+    toolbox = _toolbox_with_group()
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.te_anchor_mode == 'fraction'
+    assert settings.te_anchor_value == 0.0
+    assert toolbox.structured_te_anchor_value.maximum() == 1.0
+
+    toolbox.structured_te_anchor_mode.setCurrentIndex(
+        toolbox.structured_te_anchor_mode.findData('angle'))
+    toolbox.structured_te_anchor_value.setValue(30.0)
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.te_anchor_mode == 'angle'
+    assert settings.te_anchor_value == 30.0
+
+    form = toolbox.structured_form
+    assert form.isRowVisible(toolbox.structured_te_anchor_value)
+    toolbox.structured_topology.setCurrentIndex(
+        toolbox.structured_topology.findData('o'))
+    assert not form.isRowVisible(toolbox.structured_te_anchor_value)
+    assert not form.isRowVisible(toolbox.structured_te_anchor_mode)

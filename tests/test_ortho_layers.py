@@ -101,3 +101,67 @@ def test_thinning_on_concave_wall_instead_of_folding():
     assert np.all(total <= 0.5 * radius + 1e-9)      # thinned
     jacobians = core.cell_jacobians(rows)
     assert np.all(jacobians > 0) or np.all(jacobians < 0)   # not folded
+
+
+def _concave_kink_wall(spacing=0.001, slope_degrees=30.0):
+    """Open C-mesh-like wall: contour coming down into a corner at
+    ``slope_degrees``, then a horizontal wake cut. Fluid (offset side) is
+    above, so the corner is concave."""
+    ramp = np.radians(slope_degrees)
+    count = 120
+    upstream = np.arange(count, 0, -1)[:, None] * spacing * np.array(
+        [[-np.cos(ramp), np.sin(ramp)]])
+    downstream = np.arange(0, count)[:, None] * spacing * np.array([[1.0, 0.0]])
+    wall = np.vstack((downstream[::-1], upstream[::-1]))
+    # order: wake (outlet -> corner) then contour (corner -> upstream)
+    return wall, count - 1
+
+
+def _offset_up(normals):
+    flip = normals[:, 1] < 0.0
+    normals[flip] = -normals[flip]
+    return normals
+
+
+def test_arclength_corner_blend_prevents_concave_fold():
+    wall, corner = _concave_kink_wall()
+    heights = OrthoLayers.layer_heights(10, 0.002, 1.15)
+    narrow = _offset_up(OrthoLayers.wall_normals(wall, [corner]))
+    wide = _offset_up(OrthoLayers.wall_normals(
+        wall, [corner],
+        blend_length=OrthoLayers.CORNER_BLEND_FACTOR * heights[-1]))
+    folded = OrthoLayers.build_layers(wall, narrow, 10, 0.002, 1.15)
+    blended = OrthoLayers.build_layers(wall, wide, 10, 0.002, 1.15)
+    folded_j = core.cell_jacobians(folded)
+    assert np.any(folded_j > 0) and np.any(folded_j < 0)   # old: folds
+    jacobians = core.cell_jacobians(blended)
+    assert np.all(jacobians > 0) or np.all(jacobians < 0)
+    assert np.allclose(np.linalg.norm(wide, axis=1), 1.0)
+
+
+def test_curvature_caps_ignore_corner_kink():
+    wall, corner = _concave_kink_wall()
+    normals = _offset_up(OrthoLayers.wall_normals(wall, [corner]))
+    straddling = OrthoLayers.max_offset_heights(wall, normals)
+    piecewise = OrthoLayers.max_offset_heights(
+        wall, normals, corner_indices=[corner])
+    assert np.min(straddling) < 0.1             # spurious cap at the kink
+    assert np.min(piecewise) > 1.0e6            # both pieces are straight
+
+
+def test_thinning_is_slope_limited_no_notch():
+    x = np.linspace(0.0, 1.0, 201)
+    wall = np.column_stack((x, np.zeros_like(x)))
+    normals = np.tile([0.0, 1.0], (len(wall), 1))
+    caps = np.full(len(wall), np.inf)
+    caps[100] = 0.005                            # one isolated tight cap
+    rows = OrthoLayers.build_layers(wall, normals, layer_count=10,
+                                    first_height=0.002, growth=1.15,
+                                    max_heights=caps)
+    height = rows[-1, :, 1]
+    assert height[100] <= 0.005 + 1e-12
+    spacing = np.diff(x)
+    assert np.all(np.abs(np.diff(height)) <=
+                  OrthoLayers.MAX_THINNING_SLOPE * spacing + 1e-12)
+    jacobians = core.cell_jacobians(rows)
+    assert np.all(jacobians > 0) or np.all(jacobians < 0)
