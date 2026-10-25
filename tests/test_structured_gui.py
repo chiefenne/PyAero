@@ -201,3 +201,13 @@ def test_structured_te_anchor_controls():
         toolbox.structured_topology.findData('o'))
     assert not form.isRowVisible(toolbox.structured_te_anchor_value)
     assert not form.isRowVisible(toolbox.structured_te_anchor_mode)
+
+
+def test_structured_te_base_divisions_field():
+    toolbox = _toolbox_with_group()
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.te_base_divisions == 0
+    assert toolbox.structured_te_base_divisions.text() == 'Auto'
+    toolbox.structured_te_base_divisions.setValue(9)
+    settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
+    assert settings.te_base_divisions == 9

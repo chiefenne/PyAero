@@ -212,3 +212,22 @@ def test_c_te_anchor_invalid_values_raise():
             assert 'anchor' in str(error).lower()
         else:
             raise AssertionError(f'Expected ValueError for {mode}={value}.')
+
+
+def test_te_base_divisions_setting_for_c_and_o():
+    contour = _blunt_contour()
+    for topology in ('c', 'o'):
+        auto = core.StructuredMeshSettings(topology=topology)
+        fixed = core.StructuredMeshSettings(topology=topology,
+                                            te_base_divisions=11)
+        auto_frames = topo.build_frames(contour, auto)
+        fixed_frames = topo.build_frames(contour, fixed)
+        if topology == 'c':
+            strip = fixed_frames[1]
+            assert len(strip.side_start) == 12
+            assert len(strip.side_end) == 12
+        else:
+            extra = len(fixed_frames[0].wall) - len(auto_frames[0].wall)
+            auto_base = len(auto_frames[0].wall) - len(contour)
+            assert len(fixed_frames[0].wall) - len(contour) == 11
+            assert extra == 11 - auto_base

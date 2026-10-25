@@ -404,7 +404,8 @@ def _build_c_frames(contour: np.ndarray, settings: StructuredMeshSettings,
     if te_type == 'sharp':
         return [main]
 
-    base = sample_te_base(contour[-1], contour[0], spacing)
+    base = sample_te_base(contour[-1], contour[0], spacing,
+                          settings.te_base_divisions)
     outlet_segment = np.column_stack((
         np.full(len(base), x_outlet),
         np.linspace(lower_cut[-1][1], upper_cut[-1][1], len(base)),
@@ -427,7 +428,8 @@ def _build_o_frame(contour: np.ndarray, settings: StructuredMeshSettings,
         wall[-1] = wall[0]           # exact loop closure
         contour_slice = (0, len(wall))
     else:
-        base = sample_te_base(contour[-1], contour[0], spacing)
+        base = sample_te_base(contour[-1], contour[0], spacing,
+                              settings.te_base_divisions)
         wall = np.vstack((contour, base[1:]))
         contour_slice = (0, len(contour))
 

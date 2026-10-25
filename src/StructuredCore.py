@@ -35,6 +35,7 @@ class StructuredMeshSettings:
     normal_divisions: int = 60         # total wall->outer cells (incl. ortho)
     first_layer_thickness: float = 0.002
     wake_points: int = 60              # nodes along each wake cut (C-mesh)
+    te_base_divisions: int = 0         # cells across a blunt TE; 0 = auto
     ortho_layers: int = 0              # 0 = ortho block off
     ortho_growth: float = 1.15
     boundary_control: TunnelBoundaryControl = field(
@@ -106,13 +107,16 @@ def geometric_distances(length: float, first_spacing: float,
 
 
 def sample_te_base(p_from: np.ndarray, p_to: np.ndarray,
-                   spacing: float) -> np.ndarray:
+                   spacing: float, divisions: int = 0) -> np.ndarray:
+    """Uniform nodes across a blunt TE base. ``divisions`` > 0 sets the
+    cell count; 0 picks it from the TE spacing (gap / spacing, >= 2)."""
     p_from = np.asarray(p_from, dtype=float)
     p_to = np.asarray(p_to, dtype=float)
     gap = float(np.linalg.norm(p_to - p_from))
     if gap <= 0.0:
         raise ValueError('sample_te_base needs distinct endpoints.')
-    divisions = max(2, int(round(gap / max(spacing, 1.0e-12))))
+    if divisions <= 0:
+        divisions = max(2, int(round(gap / max(spacing, 1.0e-12))))
     fractions = np.linspace(0.0, 1.0, divisions + 1)[:, None]
     return p_from[None, :] * (1.0 - fractions) + p_to[None, :] * fractions
 

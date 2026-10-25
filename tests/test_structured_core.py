@@ -69,3 +69,13 @@ def test_settings_defaults_valid():
     assert settings.topology in ('c', 'o')
     assert settings.tunnel_shape in ('legacy', 'circular')
     assert settings.boundary_control.distribution == 'uniform'
+
+
+def test_sample_te_base_explicit_divisions():
+    lower = np.array([1.0, -0.01])
+    upper = np.array([1.0, 0.01])
+    base = core.sample_te_base(lower, upper, spacing=0.004, divisions=12)
+    assert len(base) == 13
+    assert np.allclose(base[0], lower)
+    assert np.allclose(base[-1], upper)
+    assert np.allclose(np.diff(base[:, 1]), 0.02 / 12)

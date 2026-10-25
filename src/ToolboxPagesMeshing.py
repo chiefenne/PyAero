@@ -204,6 +204,17 @@ def _build_structured_group(toolbox):
     form.addRow(make_page_label('Wake points'),
                 toolbox.structured_wake_points)
 
+    toolbox.structured_te_base_divisions = QtWidgets.QSpinBox()
+    toolbox.structured_te_base_divisions.setRange(0, 200)
+    toolbox.structured_te_base_divisions.setSpecialValueText('Auto')
+    toolbox.structured_te_base_divisions.setValue(0)
+    toolbox.structured_te_base_divisions.setToolTip(
+        'Cells across a blunt trailing edge (wake strip for C-mesh, base '
+        'for O-grid). Auto matches the contour spacing at the trailing '
+        'edge. Ignored for a sharp trailing edge.')
+    form.addRow(make_page_label('TE base divisions'),
+                toolbox.structured_te_base_divisions)
+
     toolbox.structured_ortho_layers = QtWidgets.QSpinBox()
     toolbox.structured_ortho_layers.setRange(0, 100)
     toolbox.structured_ortho_layers.setValue(0)
@@ -363,6 +374,7 @@ def structured_settings_from_toolbox(toolbox):
         normal_divisions=toolbox.structured_normal_divisions.value(),
         first_layer_thickness=toolbox.structured_first_layer.value(),
         wake_points=toolbox.structured_wake_points.value(),
+        te_base_divisions=toolbox.structured_te_base_divisions.value(),
         ortho_layers=toolbox.structured_ortho_layers.value(),
         ortho_growth=toolbox.structured_ortho_growth.value(),
         boundary_control=Meshing.TunnelBoundaryControl(
