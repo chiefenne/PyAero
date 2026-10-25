@@ -131,7 +131,6 @@ Once the mesh is generated, the export section lets you:
 
 Supported export formats are:
 
-- ``FLMA``
 - ``SU2``
 - ``Gmsh`` ``.msh``
 - ``VTU``

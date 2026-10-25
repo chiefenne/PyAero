@@ -634,8 +634,6 @@ class MeshImporter(ABC):
     """Base class for 2D mesh importers.
 
     The current import/export layer only operates on 2D mesh data.
-    FIRE/FLMA is a special case on disk because it stores the 2D mesh as a
-    single-cell extrusion in the third dimension.
     """
 
     format_name = 'mesh'
@@ -657,15 +655,6 @@ class PlannedMeshImporter(MeshImporter):
             f'{format_label} mesh import is reserved for future work '
             f'({basename}). {self.detail}'
         )
-
-
-class FlmaImporter(PlannedMeshImporter):
-    format_name = 'flma'
-    detail = (
-        'Only 2D mesh import/export is in scope at the moment. '
-        'FIRE/FLMA currently represents the 2D mesh as a one-cell extrusion '
-        'in the third dimension.'
-    )
 
 
 class Su2Importer(PlannedMeshImporter):
@@ -700,70 +689,6 @@ class MeshExporter(ABC):
               boundary_definitions: BoundaryDefinitions | Mapping[str, str] | None = None,
               **kwargs):
         """Write mesh data to disk."""
-
-
-class FlmaExporter(MeshExporter):
-    format_name = 'flma'
-
-    def write(self, mesh_or_data, name: str,
-              boundary_definitions: BoundaryDefinitions | Mapping[str, str] | None = None,
-              **kwargs):
-        mesh_data = _coerce_mesh_data(mesh_or_data)
-        vertices = mesh_data.vertices.tolist()
-        connectivity = mesh_data.connectivity.tolist()
-        depth = float(kwargs.get('depth', 0.3))
-
-        with open(name, 'w') as handle:
-            number_of_vertices_2d = len(vertices)
-            handle.write(str(2 * number_of_vertices_2d) + '\n')
-
-            # FIRE expects a thin 3D volume. For now the 2D mesh is exported
-            # as a single-cell extrusion in the third dimension.
-            signum = -1.0
-            for _ in range(2):
-                for vertex in vertices:
-                    handle.write(
-                        f'{vertex[0]} {vertex[1]} {signum * depth / 2.0} '
-                    )
-                signum = 1.0
-
-            cells = len(connectivity)
-            handle.write('\n' + str(cells) + '\n')
-
-            for cell in connectivity:
-                cell_connect = (
-                    f'{cell[0]} {cell[1]} {cell[2]} {cell[3]} '
-                    f'{cell[0] + number_of_vertices_2d} '
-                    f'{cell[1] + number_of_vertices_2d} '
-                    f'{cell[2] + number_of_vertices_2d} '
-                    f'{cell[3] + number_of_vertices_2d}\n'
-                )
-                handle.write('8\n')
-                handle.write(cell_connect)
-
-            handle.write('\n' + str(cells) + '\n')
-            handle.write(' '.join(['5'] * cells))
-            handle.write('\n\n')
-
-            handle.write('6\n')
-            handle.write('symmetry\n')
-            handle.write('3\n')
-            handle.write(str(4 * len(connectivity)) + '\n')
-            for index in range(len(connectivity)):
-                handle.write(f' {index} 0')
-            for index in range(len(connectivity)):
-                handle.write(f' {index} 1')
-            handle.write('\n\n')
-
-            for selection in ('bottom', 'top', 'back', 'front'):
-                handle.write(selection + '\n')
-                handle.write('3\n')
-                handle.write('2\n')
-                direction = {'bottom': 2, 'top': 3, 'back': 4, 'front': 5}[selection]
-                handle.write(f'0 {direction}\n')
-                handle.write('\n')
-
-        logger.info('FIRE type mesh saved as %s', os.path.basename(name))
 
 
 class Su2Exporter(MeshExporter):
@@ -1020,7 +945,6 @@ class GmshExporter(MeshExporter):
 
 class MeshImportRegistry:
     _registry = {
-        'flma': FlmaImporter(),
         'su2': Su2Importer(),
         'msh': GmshImporter(),
         'gmsh': GmshImporter(),
@@ -1054,7 +978,6 @@ class MeshImportRegistry:
     @classmethod
     def supported_extensions(cls) -> tuple[str, ...]:
         extensions = [
-            'flma',
             'su2',
             'msh',
             'inp',
@@ -1086,15 +1009,11 @@ class MeshImportRegistry:
 
 class MeshExportRegistry:
     _extensions = {
-        'flma': '.flma',
         'su2': '.su2',
         'gmsh': '.msh',
         'vtu': '.vtu',
     }
     _format_aliases = {
-        'flma': 'flma',
-        'fire': 'flma',
-        'avl fire': 'flma',
         'su2': 'su2',
         'gmsh': 'gmsh',
         'msh': 'gmsh',
@@ -1102,7 +1021,6 @@ class MeshExportRegistry:
         'vtu': 'vtu',
     }
     _registry = {
-        'flma': FlmaExporter(),
         'su2': Su2Exporter(),
         'vtk': VtuExporter(),
         'vtu': VtuExporter(),

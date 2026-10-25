@@ -53,10 +53,6 @@ class MeshExportCleanupTests(unittest.TestCase):
             Mesh.MeshExportRegistry.normalize_format('.msh'),
             'gmsh',
         )
-        self.assertEqual(
-            Mesh.MeshExportRegistry.normalize_format('AVL FIRE'),
-            'flma',
-        )
 
     def test_extension_lookup_uses_canonical_export_extension(self):
         self.assertEqual(
@@ -80,7 +76,6 @@ class MeshExportCleanupTests(unittest.TestCase):
 
     def test_export_registry_writes_all_supported_mesh_formats(self):
         expected_headers = {
-            'flma': '8',
             'su2': '%',
             'gmsh': '$MeshFormat',
             'vtu': '<?xml version="1.0"?>',
@@ -101,6 +96,12 @@ class MeshExportCleanupTests(unittest.TestCase):
                 self.assertTrue(os.path.exists(output_name))
                 with open(output_name, 'r', encoding='utf-8') as handle:
                     self.assertEqual(handle.readline().rstrip(), expected_header)
+
+    def test_flma_export_is_no_longer_supported(self):
+        for mesh_format in ('flma', 'FIRE', 'AVL FIRE'):
+            with self.assertRaisesRegex(ValueError,
+                                        'Unknown mesh export format'):
+                Mesh.MeshExportRegistry.normalize_format(mesh_format)
 
 
 if __name__ == '__main__':

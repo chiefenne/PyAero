@@ -12,7 +12,7 @@ The application combines three areas of work in one desktop tool:
 Project Focus
 =============
 
-PyAero currently focuses on 2D airfoil workflows. The application does not perform the CFD solve itself. Instead, it prepares contour and mesh data for downstream tools such as SU2, Gmsh, ParaView, and AVL FIRE-based workflows.
+PyAero currently focuses on 2D airfoil workflows. The application does not perform the CFD solve itself. Instead, it prepares contour and mesh data for downstream tools such as SU2, Gmsh, and ParaView.
 
 The strongest current path is:
 
@@ -75,7 +75,6 @@ Exports and Downstream Use
 
 PyAero exports meshes to:
 
-- ``FLMA`` for AVL FIRE workflows
 - ``SU2``
 - ``Gmsh`` ``.msh``
 - ``VTU``

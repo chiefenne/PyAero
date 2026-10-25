@@ -36,7 +36,6 @@ Export Formats
 
 The canonical export formats are:
 
-- ``flma``
 - ``su2``
 - ``gmsh``
 - ``vtu``

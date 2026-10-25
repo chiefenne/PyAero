@@ -1423,8 +1423,6 @@ class Toolbox(QtWidgets.QWidget):
 
     def mesh_export_settings(self):
         formats = []
-        if self.check_FIRE.isChecked():
-            formats.append('flma')
         if self.check_SU2.isChecked():
             formats.append('su2')
         if self.check_GMSH.isChecked():

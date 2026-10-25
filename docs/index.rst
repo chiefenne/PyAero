@@ -29,7 +29,7 @@ What PyAero Covers
 - Inspect contour gradient, curvature, and radius plots
 - Generate a structured C-type wind-tunnel mesh around the airfoil
 - Smooth the mesh with simple, elliptic, or angle-based strategies
-- Export meshes to ``.flma``, ``.su2``, ``.msh``, and ``.vtu``
+- Export meshes to ``.su2``, ``.msh``, and ``.vtu``
 - Export derived contour, camber, and CST data
 - Prepare CFD helper inputs such as freestream components, wall distance, and turbulence values
 - Run the same mesh-generation pipeline in batch mode

@@ -604,11 +604,9 @@ def _build_export_group(toolbox):
         default='Bottom',
     )
 
-    toolbox.check_FIRE = QtWidgets.QCheckBox('AVL FIRE')
     toolbox.check_SU2 = QtWidgets.QCheckBox('SU2')
     toolbox.check_GMSH = QtWidgets.QCheckBox('GMSH')
     toolbox.check_VTU = QtWidgets.QCheckBox('VTU')
-    toolbox.check_FIRE.setChecked(True)
     toolbox.check_SU2.setChecked(True)
     toolbox.check_GMSH.setChecked(False)
     toolbox.check_VTU.setChecked(False)
@@ -617,10 +615,9 @@ def _build_export_group(toolbox):
     format_label.setToolTip('Check format to be exported')
     format_grid = QtWidgets.QGridLayout()
     format_grid.addWidget(format_label, 0, 0)
-    format_grid.addWidget(toolbox.check_FIRE, 1, 1)
-    format_grid.addWidget(toolbox.check_SU2, 1, 2)
-    format_grid.addWidget(toolbox.check_GMSH, 1, 3)
-    format_grid.addWidget(toolbox.check_VTU, 2, 1)
+    format_grid.addWidget(toolbox.check_SU2, 1, 1)
+    format_grid.addWidget(toolbox.check_GMSH, 1, 2)
+    format_grid.addWidget(toolbox.check_VTU, 1, 3)
 
     toolbox.exportMeshButton = QtWidgets.QPushButton('Export Mesh')
     toolbox.exportMeshButton.setObjectName('pageSecondaryActionButton')

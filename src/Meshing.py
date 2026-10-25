@@ -792,10 +792,6 @@ class BlockMesh(LegacyBlockMesh):
     """Backward-compatible export shim for legacy callers."""
 
     @staticmethod
-    def writeFLMA(wind_tunnel, name='', depth=0.3):
-        return wind_tunnel.export_mesh('flma', name=name, depth=depth)
-
-    @staticmethod
     def writeSU2(wind_tunnel, name=''):
         return wind_tunnel.export_mesh('su2', name=name)
 

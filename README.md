@@ -7,7 +7,7 @@
 
 PyAero is an open-source desktop tool for airfoil contour preparation, contour analysis, and 2D block-structured CFD mesh generation. It focuses on the workflow that typically happens before a solver run: cleaning up geometry, refining point distributions, creating a practical trailing edge, building a structured wind-tunnel mesh, and exporting the result in solver-friendly formats.
 
-The current application is built with Python and PySide6 and ships with a redesigned workflow-oriented user interface. PyAero does not solve the CFD case itself; it prepares geometry and meshes for downstream tools such as SU2, Gmsh, ParaView, or AVL FIRE workflows.
+The current application is built with Python and PySide6 and ships with a redesigned workflow-oriented user interface. PyAero does not solve the CFD case itself; it prepares geometry and meshes for downstream tools such as SU2, Gmsh, or ParaView.
 
 ## Highlights
 
@@ -19,7 +19,7 @@ The current application is built with Python and PySide6 and ships with a redesi
 - Derived geometry outputs including prepared contour, camber line, and CST parameters
 - 2D block-structured C-type wind-tunnel mesh generation with dedicated airfoil, trailing-edge, tunnel, and wake blocks
 - Simple, elliptic, and angle-based smoothing options, including protected tunnel guide controls
-- Mesh export to `FLMA`, `SU2`, `Gmsh`, and `VTU`
+- Mesh export to `SU2`, `Gmsh`, and `VTU`
 - Batch mode for generating and exporting meshes without the GUI
 - Registry-driven menus, toolbars, and keyboard shortcuts, including a shortcut editor
 
