@@ -374,5 +374,35 @@ class StructuredOrthoTrailingEdgeTests(unittest.TestCase):
                                             settings=settings)
 
 
+    def test_too_thick_ortho_block_stops_with_working_suggestion(self):
+        import re
+        engine = StructuredEngine()
+        spline_data = _app_prepared_spline_data(NACA2315, 500)
+        settings = core.StructuredMeshSettings(
+            topology='c', ortho_layers=50, ortho_growth=1.2)
+        with self.assertRaises(ValueError) as caught:
+            engine.build_blocks(spline_data=spline_data, settings=settings)
+        message = str(caught.exception)
+        self.assertIn('Ortho block too thick', message)
+        layers = int(re.search(r'at most (\d+) layers', message).group(1))
+        growth = float(re.search(r'growth <= ([\d.]+)', message).group(1))
+        for suggested in (
+                core.StructuredMeshSettings(topology='c', ortho_layers=layers,
+                                            ortho_growth=1.2),
+                core.StructuredMeshSettings(topology='c', ortho_layers=50,
+                                            ortho_growth=growth)):
+            engine.build_blocks(spline_data=spline_data, settings=suggested)
+
+    def test_inverted_message_names_region_and_location(self):
+        x, y = np.meshgrid(np.linspace(0.0, 1.0, 5), np.linspace(0.0, 1.0, 6))
+        rows = np.stack((x, y), axis=-1)
+        rows[3, 2] = rows[5, 2] + [0.0, 0.5]        # fold one node upward
+        with self.assertRaises(ValueError) as caught:
+            StructuredEngine._reject_inverted(rows, 'block', frozen_rows=3)
+        message = str(caught.exception)
+        self.assertIn('above the ortho block', message)
+        self.assertIn('x=', message)
+
+
 if __name__ == '__main__':
     unittest.main()

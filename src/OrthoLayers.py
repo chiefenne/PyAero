@@ -205,7 +205,8 @@ def _slope_limited(caps: np.ndarray, arclength: np.ndarray,
 
 def build_layers(wall: np.ndarray, normals: np.ndarray, layer_count: int,
                  first_height: float, growth: float,
-                 max_heights=None, closed: bool = False) -> np.ndarray:
+                 max_heights=None, closed: bool = False,
+                 warn: bool = True) -> np.ndarray:
     wall = np.asarray(wall, dtype=float)
     normals = np.asarray(normals, dtype=float)
     heights = layer_heights(layer_count, first_height, growth)
@@ -220,10 +221,11 @@ def build_layers(wall: np.ndarray, normals: np.ndarray, layer_count: int,
         if np.any(cap_scale < 1.0):
             scale = _slope_limited(cap_scale * total, _arclength(wall),
                                    closed) / total
-            logger.warning(
-                'Ortho block thinned at %d of %d wall nodes to respect the '
-                'local radius of curvature.',
-                int(np.sum(cap_scale < 1.0)), len(wall))
+            if warn:
+                logger.warning(
+                    'Ortho block thinned at %d of %d wall nodes to respect '
+                    'the local radius of curvature.',
+                    int(np.sum(cap_scale < 1.0)), len(wall))
 
     offsets = heights[:, None, None] * (scale[:, None] * normals)[None, :, :]
     rows = np.concatenate((wall[None, :, :], wall[None, :, :] + offsets))

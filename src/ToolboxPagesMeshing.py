@@ -6,6 +6,10 @@ from ToolboxWidgets import (
     right_aligned_row,
 )
 
+# Ortho block heights above this share of the farfield distance get a
+# warning in the readout (SD7003 folds at about 14 %).
+ORTHO_HEIGHT_WARN_SHARE = 0.10
+
 
 def build_meshing_panel(toolbox):
     engine_group = _build_engine_group(toolbox)
@@ -230,6 +234,17 @@ def _build_structured_group(toolbox):
     form.addRow(make_page_label('Ortho growth'),
                 toolbox.structured_ortho_growth)
 
+    toolbox.structured_ortho_height = QtWidgets.QLabel()
+    toolbox.structured_ortho_height.setWordWrap(True)
+    toolbox.structured_ortho_height.setProperty('pageSectionHint', 'true')
+    toolbox.structured_ortho_height.setToolTip(
+        'Total thickness of the ortho block (chord = 1). Exact wall '
+        'normals only work close to the wall: a thick block folds at '
+        'concave regions and the trailing edge, and meshing then stops '
+        'with the largest safe height for the contour.')
+    form.addRow(make_page_label('Ortho block height'),
+                toolbox.structured_ortho_height)
+
     toolbox.structured_outer_distribution = QtWidgets.QComboBox()
     toolbox.structured_outer_distribution.addItem('Uniform',
                                                   userData='uniform')
@@ -275,6 +290,13 @@ def _build_structured_group(toolbox):
     group.setLayout(layout)
 
     toolbox.structured_form = form
+    for spin in (toolbox.structured_ortho_layers,
+                 toolbox.structured_ortho_growth,
+                 toolbox.structured_first_layer,
+                 toolbox.structured_tunnel_height):
+        spin.valueChanged.connect(
+            lambda _value=None: _update_ortho_height(toolbox))
+    _update_ortho_height(toolbox)
     toolbox.structured_topology.currentIndexChanged.connect(
         lambda _index=None: _update_structured_algorithm_visibility(toolbox))
     toolbox.structured_te_anchor_mode.currentIndexChanged.connect(
@@ -290,6 +312,25 @@ def _build_structured_group(toolbox):
     _update_structured_algorithm_visibility(toolbox)
 
     return group
+
+
+def _update_ortho_height(toolbox):
+    """Live total ortho block height; flags heights that are a large
+    share of the farfield distance."""
+    import OrthoLayers
+    label = toolbox.structured_ortho_height
+    layers = toolbox.structured_ortho_layers.value()
+    if layers <= 0:
+        label.setText('Off')
+        return
+    height = OrthoLayers.layer_heights(
+        layers, toolbox.structured_first_layer.value(),
+        toolbox.structured_ortho_growth.value())[-1]
+    share = height / toolbox.structured_tunnel_height.value()
+    text = f'{height:.3g} ({100.0 * share:.1f} % of farfield)'
+    if share > ORTHO_HEIGHT_WARN_SHARE:
+        text = '⚠ ' + text + ': likely too thick'
+    label.setText(text)
 
 
 def _update_te_anchor_range(toolbox):

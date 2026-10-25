@@ -211,3 +211,15 @@ def test_structured_te_base_divisions_field():
     toolbox.structured_te_base_divisions.setValue(9)
     settings = ToolboxPagesMeshing.structured_settings_from_toolbox(toolbox)
     assert settings.te_base_divisions == 9
+
+
+def test_structured_ortho_height_readout():
+    toolbox = _toolbox_with_group()
+    label = toolbox.structured_ortho_height
+    assert label.text() == 'Off'
+    toolbox.structured_ortho_layers.setValue(10)
+    assert '% of farfield' in label.text()
+    assert '\u26a0' not in label.text()
+    toolbox.structured_ortho_layers.setValue(50)
+    toolbox.structured_ortho_growth.setValue(1.2)
+    assert label.text().startswith('\u26a0')

@@ -26,6 +26,9 @@ from StructuredTopologies import build_frames, side_segment
 
 MAIN_BLOCK_NAME = 'block_structured'
 WAKE_STRIP_BLOCK_NAME = 'block_structured_wake_strip'
+# The ortho rim may reach at most this share of each column's wall-to-
+# farfield distance, so the remaining normal divisions keep room to grow.
+ORTHO_MAX_REACH = 0.5
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +52,7 @@ class StructuredEngine:
                 frozen_rows = 1 + settings.ortho_layers
             rows = self._apply_smoother(rows, frame, settings, frozen_rows,
                                         name)
-            self._reject_inverted(rows, name)
+            self._reject_inverted(rows, name, frozen_rows)
             named_blocks.append((name, self._emit_block(name, rows)))
         return named_blocks
 
@@ -114,26 +117,12 @@ class StructuredEngine:
             raise ValueError(
                 'Ortho layers must be fewer than total normal divisions.')
 
-        contour_slice = frame.metadata.get('contour_slice')
-        block_height = OrthoLayers.layer_heights(
-            settings.ortho_layers, settings.first_layer_thickness,
-            settings.ortho_growth)[-1]
-        normals = OrthoLayers.wall_normals(
-            frame.wall, corner_indices,
-            spline_data=spline_data, contour_slice=contour_slice,
-            closed=frame.periodic,
-            blend_length=OrthoLayers.CORNER_BLEND_FACTOR * block_height,
-        )
-        caps = OrthoLayers.max_offset_heights(
-            frame.wall, normals,
-            spline_data=spline_data, contour_slice=contour_slice,
-            corner_indices=corner_indices,
-        )
-        ortho_rows = OrthoLayers.build_layers(
-            frame.wall, normals, settings.ortho_layers,
-            settings.first_layer_thickness, settings.ortho_growth, caps,
-            closed=frame.periodic,
-        )
+        ortho_rows = self._build_ortho_rows(
+            frame, spline_data, settings, corner_indices,
+            settings.first_layer_thickness)
+        if not self._ortho_rows_usable(ortho_rows, frame):
+            raise ValueError(self._ortho_too_thick_message(
+                frame, spline_data, settings, corner_indices))
 
         rim = ortho_rows[-1]
         next_spacing = (settings.first_layer_thickness *
@@ -163,6 +152,92 @@ class StructuredEngine:
         return np.vstack((ortho_rows, outer_rows[1:]))
 
     @staticmethod
+    def _build_ortho_rows(frame, spline_data,
+                          settings: StructuredMeshSettings, corner_indices,
+                          first_height: float,
+                          warn: bool = True) -> np.ndarray:
+        contour_slice = frame.metadata.get('contour_slice')
+        block_height = OrthoLayers.layer_heights(
+            settings.ortho_layers, first_height, settings.ortho_growth)[-1]
+        normals = OrthoLayers.wall_normals(
+            frame.wall, corner_indices,
+            spline_data=spline_data, contour_slice=contour_slice,
+            closed=frame.periodic,
+            blend_length=OrthoLayers.CORNER_BLEND_FACTOR * block_height,
+        )
+        caps = OrthoLayers.max_offset_heights(
+            frame.wall, normals,
+            spline_data=spline_data, contour_slice=contour_slice,
+            corner_indices=corner_indices,
+        )
+        return OrthoLayers.build_layers(
+            frame.wall, normals, settings.ortho_layers,
+            first_height, settings.ortho_growth, caps,
+            closed=frame.periodic, warn=warn,
+        )
+
+    @staticmethod
+    def _ortho_rows_usable(ortho_rows: np.ndarray, frame) -> bool:
+        """No folded/degenerate ortho cell, and the rim keeps clear of the
+        farfield (ORTHO_MAX_REACH of each column's distance)."""
+        jacobians = cell_jacobians(ortho_rows)
+        if not (np.all(jacobians > 0.0) or np.all(jacobians < 0.0)):
+            return False
+        reach = np.linalg.norm(ortho_rows[-1] - frame.wall, axis=1)
+        room = np.linalg.norm(frame.outer - frame.wall, axis=1)
+        return bool(np.all(reach <= ORTHO_MAX_REACH * room))
+
+    def _ortho_too_thick_message(self, frame, spline_data,
+                                 settings: StructuredMeshSettings,
+                                 corner_indices) -> str:
+        layers = settings.ortho_layers
+        growth = settings.ortho_growth
+        first = settings.first_layer_thickness
+        height = OrthoLayers.layer_heights(layers, first, growth)[-1]
+
+        # Largest uniform scale of the layer heights that still works.
+        low, high = 0.0, 1.0
+        for _ in range(30):
+            mid = 0.5 * (low + high)
+            rows = self._build_ortho_rows(
+                frame, spline_data, settings, corner_indices, first * mid,
+                warn=False)
+            if self._ortho_rows_usable(rows, frame):
+                low = mid
+            else:
+                high = mid
+        safe_height = low * height
+
+        message = (
+            f'Ortho block too thick: {layers} layers at growth {growth:g} '
+            f'reach {height:.3g} (chord = 1), but on this contour the '
+            f'block folds or crowds the farfield above about '
+            f'{safe_height:.3g}.')
+        max_layers = 0
+        while (max_layers < layers and OrthoLayers.layer_heights(
+                max_layers + 1, first, growth)[-1] <= safe_height):
+            max_layers += 1
+        hints = []
+        if max_layers >= 1:
+            hints.append(f'use at most {max_layers} layers at growth '
+                         f'{growth:g}')
+        if layers * first <= safe_height:
+            low_growth, high_growth = 1.0, growth
+            for _ in range(40):
+                mid = 0.5 * (low_growth + high_growth)
+                if OrthoLayers.layer_heights(layers, first, mid)[-1] \
+                        <= safe_height:
+                    low_growth = mid
+                else:
+                    high_growth = mid
+            low_growth = np.floor(low_growth * 1000.0) / 1000.0
+            hints.append(f'or growth <= {low_growth:.3f} with {layers} '
+                         'layers')
+        if not hints:
+            hints.append('reduce the first layer thickness')
+        return message + ' ' + ' '.join(hints).capitalize() + '.'
+
+    @staticmethod
     def _corner_indices(frame):
         if frame.kind == 'o':
             return [0, len(frame.wall) - 1]
@@ -170,15 +245,29 @@ class StructuredEngine:
         return [start, stop - 1]
 
     @staticmethod
-    def _reject_inverted(rows: np.ndarray, name: str):
+    def _reject_inverted(rows: np.ndarray, name: str,
+                         frozen_rows: int = 1):
         jacobians = cell_jacobians(rows)
         positive = int(np.sum(jacobians > 0.0))
         negative = int(np.sum(jacobians < 0.0))
-        inverted = min(positive, negative) + int(np.sum(jacobians == 0.0))
-        if inverted:
-            raise ValueError(
-                f'Structured mesh block {name!r} has {inverted} inverted '
-                'or degenerate cells; adjust layer heights or divisions.')
+        majority = 1.0 if positive >= negative else -1.0
+        bad = np.argwhere(jacobians * majority <= 0.0)
+        if not len(bad):
+            return
+        j, i = bad[np.argmin(bad[:, 0])]
+        center = rows[j:j + 2, i:i + 2].reshape(-1, 2).mean(axis=0)
+        rows_hit = f'rows {bad[:, 0].min()}-{bad[:, 0].max()}'
+        if frozen_rows > 1:
+            region = ('inside the ortho block' if j < frozen_rows - 1
+                      else 'in the fill above the ortho block')
+        else:
+            region = 'in the volume fill'
+        raise ValueError(
+            f'Structured mesh block {name!r} has {len(bad)} inverted or '
+            f'degenerate cells, {region} ({rows_hit}), first near '
+            f'x={center[0]:.3f}, y={center[1]:.3f}. Try fewer ortho layers '
+            'or a smaller growth, more normal divisions, or the Elliptic '
+            'algorithm.')
 
     @staticmethod
     def _emit_block(name: str, rows: np.ndarray) -> BlockMesh:
