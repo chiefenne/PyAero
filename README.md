@@ -96,4 +96,4 @@ PyAero is not a full CFD solver, and mesh import remains future-facing compared 
 
 Distributed under the MIT license. See [LICENSE](LICENSE).
 
-2026 Andreas Ennemoser - andreas.ennemoser@aon.at
+2026 Andreas Ennemoser - <andreas.ennemoser@aon.at>
