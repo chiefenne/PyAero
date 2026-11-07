@@ -195,7 +195,7 @@ def _build_structured_group(toolbox):
                 toolbox.structured_normal_divisions)
 
     toolbox.structured_first_layer = QtWidgets.QDoubleSpinBox()
-    toolbox.structured_first_layer.setDecimals(5)
+    toolbox.structured_first_layer.setDecimals(8)
     toolbox.structured_first_layer.setRange(1.0e-8, 1.0)
     toolbox.structured_first_layer.setSingleStep(0.001)
     toolbox.structured_first_layer.setValue(0.002)
